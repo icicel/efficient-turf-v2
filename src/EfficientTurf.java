@@ -1,8 +1,12 @@
-import java.io.*;
-import java.nio.file.*;
-import java.net.*;
-import java.net.http.*;
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 public class EfficientTurf {
     public static void main(String[] args) throws Exception {
