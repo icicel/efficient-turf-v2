@@ -1,11 +1,11 @@
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.nio.file.FileSystems;
-import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class EfficientTurf {
@@ -17,25 +17,23 @@ public class EfficientTurf {
     }
 
     // Get a KML file located in the root directory
-    public static String getKML(String file) throws IOException {
+    public static KML getKML(String file) throws IOException {
         Path path = FileSystems.getDefault().getPath(".", file);
-        byte[] encoded = Files.readAllBytes(path);
-        return new String(encoded);
+        return new KML(path);
     }
 
-    // Getting a KML by http request and a Google My Maps "mid" (map id)
-    // Not working yet
-    // Will probably have to pretend to be Firefox to get it to work
-    public static String getWebKML(String mapId) throws IOException, InterruptedException {
+    // Get a KML by http request and a Google My Maps "mid" (map id)
+    // Not working yet, will probably have to pretend to be Firefox to get it to work
+    public static KML getWebKML(String mapId) throws IOException, InterruptedException {
         String urlString = "http://www.google.com/maps/d/kml?forcekml=1&mid=" + mapId;
 
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(urlString))
             .build();
-        HttpResponse<String> response = 
-            client.send(request, BodyHandlers.ofString());
+        HttpResponse<InputStream> response = 
+            client.send(request, BodyHandlers.ofInputStream());
         
-        return response.body();
+        return new KML(response.body());
     }
 }
