@@ -1,29 +1,26 @@
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-// Stores a KML InputStream
+// Stores a KML String
 // It actually doesn't have to be a KML
 public class KML {
 
-    private InputStream stream;
+    private String document;
 
     public KML(Path path) throws IOException {
-        this.stream = Files.newInputStream(path);
+        this.document = Files.readString(path);
     }
-    public KML(InputStream stream) {
-        this.stream = stream;
+    public KML(String string) {
+        this.document = string;
     }
 
-    public InputStream asStream() {
-        return stream;
+    public StringReader asStream() {
+        return new StringReader(document);
     }
 
     public String asString() throws IOException {
-        byte[] bytes = stream.readAllBytes();
-        return new String(bytes);
+        return document;
     }
-
-
 }

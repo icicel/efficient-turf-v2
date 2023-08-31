@@ -1,5 +1,4 @@
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -31,8 +30,8 @@ public class EfficientTurf {
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(urlString))
             .build();
-        HttpResponse<InputStream> response = 
-            client.send(request, BodyHandlers.ofInputStream());
+        HttpResponse<String> response = 
+            client.send(request, BodyHandlers.ofString());
         
         return new KML(response.body());
     }
