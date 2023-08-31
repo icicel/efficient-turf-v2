@@ -6,5 +6,6 @@ public class Test {
         System.out.println(webKml.asString().length());
 
         KMLParser kml = new KMLParser(localKml);
+        kml.parse();
     }
 }
