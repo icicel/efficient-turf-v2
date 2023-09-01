@@ -1,4 +1,4 @@
-import java.util.jar.Attributes;
+import org.xml.sax.Attributes;
 import org.xml.sax.helpers.DefaultHandler;
 
 public class KMLHandler extends DefaultHandler {
@@ -9,11 +9,24 @@ public class KMLHandler extends DefaultHandler {
         this.parent = parent;
     }
 
+    // Returns information to parent
     public void getEvents() {
         return;
     }
 
-    private void startElement(String uri, String localName, String qName, Attributes atts) {
-        System.out.println(uri + ", " + localName + ", " + qName + ", " + atts);
+    @Override
+    public void startElement(String uri, String name, String qName, Attributes attributes) {
+        System.out.println("Start " + qName);
+    }
+
+    @Override
+    public void endElement(String uri, String name, String qName) {
+        System.out.println("End " + qName);
+    }
+
+    @Override
+    public void characters(char chars[], int start, int length) {
+        String string = new String(chars, start, length);
+        System.out.println("Characters " + string);
     }
 }
