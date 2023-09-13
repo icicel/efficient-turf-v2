@@ -28,7 +28,7 @@ public class KMLParser {
 
     // Can be used as an empty parse to debug a KMLHandler
     public void parse() throws IOException, SAXException {
-        InputSource kmlSource = new InputSource(kml.asStream());
+        InputSource kmlSource = new InputSource(kml.asReader());
         xmlReader.parse(kmlSource);
     }
 

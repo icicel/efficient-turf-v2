@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.io.Reader;
 import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,11 +17,11 @@ public class KML {
         this.document = string;
     }
 
-    public StringReader asStream() {
+    public Reader asReader() {
         return new StringReader(document);
     }
 
-    public String asString() throws IOException {
+    public String asString() {
         return document;
     }
 }
