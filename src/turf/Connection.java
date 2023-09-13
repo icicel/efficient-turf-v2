@@ -1,3 +1,5 @@
+package turf;
+
 // Represents a one-way connection from a parent zone to its neighbor
 public class Connection {
     

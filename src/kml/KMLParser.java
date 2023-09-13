@@ -1,3 +1,4 @@
+package kml;
 import java.io.IOException;
 import java.util.Set;
 import javax.xml.parsers.ParserConfigurationException;
@@ -5,6 +6,8 @@ import javax.xml.parsers.SAXParserFactory;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
+import turf.Connection;
+import turf.Zone;
 
 // Parses a KML object
 public class KMLParser {

@@ -1,7 +1,10 @@
+package kml;
 import java.util.HashSet;
 import java.util.Set;
 import org.xml.sax.Attributes;
 import org.xml.sax.helpers.DefaultHandler;
+import turf.Connection;
+import turf.Zone;
 
 // This class's methods are called by an XMLReader parsing a KML whenever certain
 //  events occur, such as at the start or end of a tag (element)
