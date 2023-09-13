@@ -3,11 +3,15 @@ import java.util.Set;
 
 public class Zone {
 
+    public String name;
     public int points;
     public Set<Connection> connections;
 
-    public Zone(int points) {
-        this.points = points;
+    public float latitude;
+    public float longitude;
+
+    public Zone(String name, String coordinates) {
+        this.name = name;
         connections = new HashSet<>();
     }
 }

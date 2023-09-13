@@ -5,10 +5,22 @@ import org.xml.sax.helpers.DefaultHandler;
 
 // This class's methods are called by an XMLReader parsing a KML whenever certain
 //  events occur, such as at the start or end of a tag (element)
-// Google My Maps-exported KMLs use a <Folder> tag to store each layer
-// Objects in layers are stored in <Placemark> tags in these folders that contain
+// Google My Maps-exported KMLs use <Folder> to store each layer
+// Objects in layers are stored in <Placemark> elements in these folders that contain
 //  either <Point> (for Zones) or <LineString> (for Connections)
-// Both <Folder> and <Placemark> tags also contain <name> tags
+// Both <Point> and <LineString> elements contain <coordinates>
+// Both <Folder> and <Placemark> elements contain <name>
+//
+// Folder
+// |- name
+// |- Placemark
+// |  |- name
+// |  |- Point
+// |     |- coordinates
+// |- Placemark
+//    |- name
+//    |- LineString
+//       |- coordinates
 public class KMLHandler extends DefaultHandler {
 
     // If targetLayer is null, all layers are parsed
@@ -17,14 +29,44 @@ public class KMLHandler extends DefaultHandler {
     private Set<Zone> zones;
     private Set<Connection> connections;
 
+    // True if in a <Folder> tag and <name> has not been parsed yet
+    private boolean searchingForLayerName;
+    // True if in a <Placemark> tag and <name> has not been parsed yet
+    private boolean searchingForObjectName;
+
+    // True if in the target layer
+    private boolean inTargetLayer;
+    // True if in a <Point> element
+    private boolean parsingZone;
+    // True if in a <LineString> element
+    private boolean parsingConnection;
+
+    // Stores the latest parsed characters, cleared at the end of each tag
+    // Cannot be null because parsed characters are appended
+    private String currentChars;
+    // Stores the current object name, cleared at the end of each <Placemark>
+    private String objectName;
+
     public KMLHandler() {
-        resetStorage();
+        reset();
     }
 
-    // Clears parsed zones and connections
-    public void resetStorage() {
+    // Clears all variables
+    public void reset() {
+        targetLayer = null;
+
         zones = new HashSet<>();
         connections = new HashSet<>();
+
+        searchingForLayerName = false;
+        searchingForObjectName = false;
+
+        inTargetLayer = false;
+        parsingZone = false;
+        parsingConnection = false;
+
+        currentChars = "";
+        objectName = null;
     }
 
     // A KMLParser uses these methods to get the results of a parse
@@ -39,19 +81,94 @@ public class KMLHandler extends DefaultHandler {
         this.targetLayer = targetLayer;
     }
 
+    // Called at the start of a tag
+    // uri and localName are probably unused for KMLs
     @Override
-    public void startElement(String uri, String name, String qName, Attributes attributes) {
-        System.out.println("Start " + qName);
+    public void startElement(String uri, String localName, String name, Attributes attributes) {
+        switch (name) {
+
+            case "Folder":
+                searchingForLayerName = true;
+                break;
+            
+            case "Placemark":
+                if (inTargetLayer) {
+                    searchingForObjectName = true;
+                }
+                break;
+            
+            case "Point":
+                if (inTargetLayer) {
+                    parsingZone = true;
+                }
+                break;
+            
+            case "LineString":
+                if (inTargetLayer) {
+                    parsingConnection = true;
+                }
+                break;
+
+            default:
+                break;
+        }
+
+        currentChars = "";
     }
 
+    // Called at the end of an element
+    // At this point, currentChars contains the characters immediately before the end tag
+    //  which will be the element data if the element is <name> or <coordinates>
     @Override
-    public void endElement(String uri, String name, String qName) {
-        System.out.println("End " + qName);
+    public void endElement(String uri, String localName, String name) {
+        switch (name) {
+
+            case "name":
+                if (searchingForLayerName) {
+                    if (targetLayer == null || currentChars.equals(targetLayer)) {
+                        inTargetLayer = true;
+                    }
+                    searchingForLayerName = false;
+                } 
+                if (searchingForObjectName) {
+                    objectName = currentChars;
+                    searchingForObjectName = false;
+                }
+                break;
+            
+            case "coordinates":
+                if (parsingZone) {
+                    Zone newZone = new Zone(objectName, currentChars);
+                    zones.add(newZone);
+                } 
+                if (parsingConnection) {
+                    Connection newConnection = new Connection(currentChars);
+                    connections.add(newConnection);
+                }
+                break;
+
+            case "Folder":
+                inTargetLayer = false;
+                break;
+
+            case "Placemark":
+                objectName = null;
+                parsingConnection = false;
+                parsingZone = false;
+                break;
+
+            default:
+                break;
+        }
+
+        currentChars = "";
     }
 
+    // Called between starts and ends of tags, receives the characters inbetween as
+    //  parameters (actually a substring of seemingly the full file)
     @Override
-    public void characters(char chars[], int start, int length) {
-        String string = new String(chars, start, length);
-        System.out.println("Characters " + string);
+    public void characters(char fullFile[], int start, int length) {
+        String string = new String(fullFile, start, length);
+        currentChars += string;
     }
 }

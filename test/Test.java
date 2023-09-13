@@ -1,3 +1,5 @@
+import java.util.Set;
+
 public class Test {
     public static void main(String[] args) throws Exception {
         KML localKml = EfficientTurf.getKML("example.kml");
@@ -6,6 +8,19 @@ public class Test {
         System.out.println(webKml.asString().length());
 
         KMLParser kml = new KMLParser(localKml);
-        kml.parse();
+        Set<Zone> zones = kml.getZones("Zones");
+        Set<Zone> crossings = kml.getZones("Crossings");
+        Set<Connection> connections = kml.getConnections("Connections");
+
+        System.out.println(zones.size());
+        System.out.println(crossings.size());
+        System.out.println(connections.size());
+        
+        for (Zone zone : zones) {
+            System.out.println(zone.name);
+        }
+        for (Zone crossing : crossings) {
+            System.out.println(crossing.name);
+        }
     }
 }

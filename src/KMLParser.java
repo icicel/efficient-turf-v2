@@ -25,11 +25,11 @@ public class KMLParser {
     }
 
     // Can be used as an empty parse to debug a KMLHandler
-    // Clears the KMLHandler's storage first
+    // Resets the KMLHandler first
     // A new InputSource is created each time because the old one is closed after use
     public void parse(String layerName) throws IOException, SAXException {
+        handler.reset();
         handler.setTargetLayer(layerName);
-        handler.resetStorage();
         InputSource kmlSource = new InputSource(kml.asReader());
         xmlReader.parse(kmlSource);
     }
