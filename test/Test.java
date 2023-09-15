@@ -21,10 +21,13 @@ public class Test {
         System.out.println(connections.size());
         
         for (Zone zone : zones) {
-            System.out.println(zone.name);
+            System.out.println(zone);
         }
         for (Zone crossing : crossings) {
-            System.out.println(crossing.name);
+            System.out.println(crossing);
+        }
+        for (Connection connection : connections) {
+            System.out.println(connection);
         }
     }
 }

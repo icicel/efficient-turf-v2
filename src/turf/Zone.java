@@ -1,6 +1,7 @@
 package turf;
 import java.util.HashSet;
 import java.util.Set;
+import map.Coords;
 
 public class Zone {
 
@@ -8,11 +9,16 @@ public class Zone {
     public int points;
     public Set<Connection> connections;
 
-    public float latitude;
-    public float longitude;
+    public Coords coords;
 
     public Zone(String name, String coordinates) {
         this.name = name;
-        connections = new HashSet<>();
+        this.coords = new Coords(coordinates);
+        this.connections = new HashSet<>();
+    }
+
+    @Override
+    public String toString() {
+        return name;
     }
 }
