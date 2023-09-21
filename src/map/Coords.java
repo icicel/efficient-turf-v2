@@ -3,13 +3,13 @@ package map;
 // Represents a coordinate pair
 public class Coords {
     
-    public float lat;
-    public float lon;
+    public double lat;
+    public double lon;
     
     public Coords(String coordinateString) {
         String[] coordinates = coordinateString.split(",");
-        this.lat = Float.parseFloat(coordinates[0]);
-        this.lon = Float.parseFloat(coordinates[1]);
+        this.lon = Double.parseDouble(coordinates[0]);
+        this.lat = Double.parseDouble(coordinates[1]);
     }
 
     @Override

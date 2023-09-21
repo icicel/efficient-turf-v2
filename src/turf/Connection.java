@@ -1,10 +1,14 @@
 package turf;
 import map.Coords;
+import net.sf.geographiclib.Geodesic;
+import net.sf.geographiclib.GeodesicData;
 
 // Represents a one-way connection from a parent zone to its neighbor
 public class Connection {
     
-    public int distance;
+    // meters
+    public double distance;
+
     public Zone parent;
     public Zone neighbor;
     
@@ -26,6 +30,22 @@ public class Connection {
 
         this.start = coordinates[0];
         this.end = coordinates[coordinates.length - 1];
+        
+        // Calculates distance between every coordinate pair, adds them together to form a total distance
+        Coords previousCoordinate = null;
+        this.distance = 0;
+        for (Coords coordinate : coordinates) {
+            if (previousCoordinate != null) {
+                this.distance += distanceBetween(previousCoordinate, coordinate);
+            }
+            previousCoordinate = coordinate;
+        }
+    }
+
+    // Calculates geodesic distance in meters between two coordinates
+    public static double distanceBetween(Coords start, Coords end) {
+        GeodesicData data = Geodesic.WGS84.Inverse(start.lat, start.lon, end.lat, end.lon);
+        return data.s12;
     }
 
     @Override

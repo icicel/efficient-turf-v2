@@ -28,6 +28,7 @@ public class Test {
         }
         for (Connection connection : connections) {
             System.out.println(connection);
+            System.out.println(connection.distance);
         }
     }
 }
