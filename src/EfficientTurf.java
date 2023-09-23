@@ -13,6 +13,7 @@ import kml.KML;
 import kml.KMLParser;
 import map.Connection;
 import map.Zone;
+import turf.ZoneFinder;
 
 public class EfficientTurf {
     public static void main(String[] args) throws Exception {
@@ -27,8 +28,11 @@ public class EfficientTurf {
         Set<Zone> crossings = kml.getZones("Crossings");
         Set<Connection> connections = kml.getConnections("Connections");
         
+        // Collect all zones into a single set
+        // Check for duplicates and initialize a ZoneFinder on it
         Set<Zone> allZones = union(trueZones, crossings);
         checkForDuplicates(allZones);
+        ZoneFinder finder = new ZoneFinder(allZones);
 
         // Add the reverse of all connections to the set
         Set<Connection> reversedConnections = new HashSet<>();
