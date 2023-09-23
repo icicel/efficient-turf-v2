@@ -1,4 +1,5 @@
 package turf;
+import java.util.Set;
 import map.Coords;
 
 // Represents a one-way connection from a parent zone to its neighbor
@@ -10,7 +11,7 @@ public class Connection {
     public Zone parent;
     public Zone neighbor;
     
-    // Coordinates are used to calculate the parent and neighbor
+    // Coordinates are used to calculate distance, parent and neighbor
     public Coords start;
     public Coords end;
 
@@ -38,6 +39,14 @@ public class Connection {
             }
             previousCoordinate = coordinate;
         }
+    }
+
+    // Complete the connection by finding the closest zones to the start and end coords out of a set
+    // This does NOT add itself to the neighbor's connections since it is a one-way connection
+    public void completeOn(Set<Zone> zones) {
+        this.parent = start.closestZoneFrom(zones);
+        this.parent.connections.add(this);
+        this.neighbor = end.closestZoneFrom(zones);
     }
 
     @Override
