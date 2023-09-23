@@ -1,8 +1,8 @@
 import java.util.Set;
 import kml.KML;
 import kml.KMLParser;
-import turf.Connection;
-import turf.Zone;
+import map.Connection;
+import map.Zone;
 
 public class Test {
     public static void main(String[] args) throws Exception {

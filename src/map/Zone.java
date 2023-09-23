@@ -1,7 +1,6 @@
-package turf;
+package map;
 import java.util.HashSet;
 import java.util.Set;
-import map.Coords;
 
 public class Zone {
 

@@ -1,6 +1,5 @@
-package turf;
+package map;
 import java.util.Set;
-import map.Coords;
 
 // Represents a one-way connection from a parent zone to its neighbor
 public class Connection {

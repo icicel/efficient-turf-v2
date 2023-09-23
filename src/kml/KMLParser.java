@@ -6,8 +6,8 @@ import javax.xml.parsers.SAXParserFactory;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
-import turf.Connection;
-import turf.Zone;
+import map.Connection;
+import map.Zone;
 
 // Parses a KML object
 public class KMLParser {

@@ -11,8 +11,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import kml.KML;
 import kml.KMLParser;
-import turf.Connection;
-import turf.Zone;
+import map.Connection;
+import map.Zone;
 
 public class EfficientTurf {
     public static void main(String[] args) throws Exception {

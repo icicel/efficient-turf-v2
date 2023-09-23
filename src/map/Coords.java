@@ -2,7 +2,6 @@ package map;
 import java.util.Set;
 import net.sf.geographiclib.Geodesic;
 import net.sf.geographiclib.GeodesicData;
-import turf.Zone;
 
 // Represents a coordinate pair
 public class Coords {
