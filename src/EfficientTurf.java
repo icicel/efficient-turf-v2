@@ -1,8 +1,14 @@
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import kml.KML;
 import kml.KMLParser;
 import turf.Connection;
@@ -36,6 +42,8 @@ public class EfficientTurf {
             connection.completeOn(allZones);
         }
 
+        // rounds start at 12:00 swedish time the first sunday of every month
+
         // use depth first search with a single route object
         // if it's valid and finished then copy and save
     }
@@ -49,6 +57,32 @@ public class EfficientTurf {
             }
             names.add(zone.name);
         }
+    }
+
+    // Get points values of zones from the Turf API
+    // Takes into account both on-capture points and hourly points by calculating the expected
+    //  number of hours the zone will be held
+    // All supplied zone names must correspond to an actual zone
+    public static void getZonesPoints(Set<Zone> zones) throws IOException, InterruptedException {
+        
+        // Create a JSON body with all zone names
+        // [{"name": "zonea"}, {"name": "zoneb"}, ...]
+        JSONArray json = new JSONArray();
+        for (Zone zone : zones) {
+            JSONObject object = new JSONObject();
+            object.put("name", zone.name);
+            json.put(object);
+        }
+
+        // Post the JSON to the API
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create("https://api.turfgame.com/v4/zones"))
+            .POST(HttpRequest.BodyPublishers.ofString(json.toString()))
+            .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        System.out.println(response.body());
     }
 
     // Set union

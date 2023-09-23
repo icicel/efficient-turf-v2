@@ -8,15 +8,15 @@ public class Test {
     public static void main(String[] args) throws Exception {
         KML localKml = EfficientTurf.getKML("example.kml");
         KMLParser kml = new KMLParser(localKml);
-        Set<Zone> zones = kml.getZones("Zones");
+        Set<Zone> realZones = kml.getZones("Zones");
         Set<Zone> crossings = kml.getZones("Crossings");
         Set<Connection> connections = kml.getConnections("Connections");
 
-        System.out.println(zones.size());
+        System.out.println(realZones.size());
         System.out.println(crossings.size());
         System.out.println(connections.size());
 
-        Set<Zone> allZones = EfficientTurf.union(zones, crossings);
+        Set<Zone> allZones = EfficientTurf.union(realZones, crossings);
         EfficientTurf.checkForDuplicates(allZones);
 
         for (Connection connection : connections) {
@@ -29,5 +29,7 @@ public class Test {
         for (Connection connection : connections) {
             System.out.println(connection);
         }
+
+        EfficientTurf.getZonesPoints(realZones);
     }
 }
