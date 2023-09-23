@@ -15,16 +15,17 @@ public class Test {
         System.out.println(zones.size());
         System.out.println(crossings.size());
         System.out.println(connections.size());
-        
-        for (Zone zone : zones) {
-            System.out.println(zone);
+
+        Set<Zone> allZones = EfficientTurf.union(zones, crossings);
+        for (Connection connection : connections) {
+            connection.completeOn(allZones);
         }
-        for (Zone crossing : crossings) {
-            System.out.println(crossing);
+        
+        for (Zone zone : allZones) {
+            System.out.println(zone);
         }
         for (Connection connection : connections) {
             System.out.println(connection);
-            System.out.println(connection.distance);
         }
     }
 }
