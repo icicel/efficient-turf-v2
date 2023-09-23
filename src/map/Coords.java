@@ -1,4 +1,6 @@
 package map;
+import net.sf.geographiclib.Geodesic;
+import net.sf.geographiclib.GeodesicData;
 
 // Represents a coordinate pair
 public class Coords {
@@ -10,6 +12,12 @@ public class Coords {
         String[] coordinates = coordinateString.split(",");
         this.lon = Double.parseDouble(coordinates[0]);
         this.lat = Double.parseDouble(coordinates[1]);
+    }
+
+    // Calculates geodesic distance in meters to another Coords object
+    public double distanceTo(Coords other) {
+        GeodesicData data = Geodesic.WGS84.Inverse(this.lat, this.lon, other.lat, other.lon);
+        return data.s12;
     }
 
     @Override
