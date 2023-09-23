@@ -12,7 +12,7 @@ public class Zone {
     public Coords coords;
 
     public Zone(String name, String coordinates) {
-        this.name = name;
+        this.name = name.toLowerCase();
         this.coords = new Coords(coordinates);
         this.connections = new HashSet<>();
     }
