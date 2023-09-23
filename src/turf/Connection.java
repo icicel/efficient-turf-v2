@@ -40,6 +40,8 @@ public class Connection {
             previousCoordinate = coordinate;
         }
     }
+    // Empty constructor
+    private Connection() {}
 
     // Complete the connection by finding the closest zones to the start and end coords out of a set
     // This does NOT add itself to the neighbor's connections since it is a one-way connection
@@ -47,6 +49,17 @@ public class Connection {
         this.parent = start.closestZoneFrom(zones);
         this.parent.connections.add(this);
         this.neighbor = end.closestZoneFrom(zones);
+    }
+
+    // Create an identical connection with parent and neighbor swapped
+    public Connection reversed() {
+        Connection reversed = new Connection();
+        reversed.distance = this.distance;
+        reversed.parent = this.neighbor;
+        reversed.neighbor = this.parent;
+        reversed.start = this.end;
+        reversed.end = this.start;
+        return reversed;
     }
 
     @Override
