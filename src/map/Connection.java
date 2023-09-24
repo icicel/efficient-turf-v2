@@ -9,6 +9,10 @@ public class Connection {
 
     public Zone parent;
     public Zone neighbor;
+
+    // If the zone has been fully connected to its parent and neighbor
+    //  (aka parent and neighbor are defined and it is in parent.connections)
+    private boolean completed;
     
     // Coordinates are used to calculate distance, parent and neighbor
     public Coords start;
@@ -38,6 +42,8 @@ public class Connection {
             }
             previousCoordinate = coordinate;
         }
+
+        this.completed = false;
     }
     // Empty constructor
     private Connection() {}
@@ -48,16 +54,21 @@ public class Connection {
         this.parent = start.closestZoneFrom(zones);
         this.parent.connections.add(this);
         this.neighbor = end.closestZoneFrom(zones);
+        this.completed = true;
     }
 
     // Create an identical connection with parent and neighbor swapped
     public Connection reversed() {
         Connection reversed = new Connection();
         reversed.distance = this.distance;
-        reversed.parent = this.neighbor;
-        reversed.neighbor = this.parent;
         reversed.start = this.end;
         reversed.end = this.start;
+        if (this.completed) {
+            reversed.parent = this.neighbor;
+            reversed.neighbor = this.parent;
+            reversed.parent.connections.add(reversed);
+            reversed.completed = true;
+        }
         return reversed;
     }
 
