@@ -9,7 +9,7 @@ import org.json.JSONObject;
 public class Zone {
 
     public String name;
-    public double points;
+    public int points;
     public Set<Connection> connections;
 
     public Coords coords;
@@ -42,27 +42,56 @@ public class Zone {
         String creationTimestamp = info.getString("dateCreated");
         long creationTime = parseTimestamp(creationTimestamp);
         long currentTime = System.currentTimeMillis();
-        double hoursExisted = (currentTime - creationTime) / 1000 / 60 / 60;
+        double hoursExisted = asHours(currentTime - creationTime);
+        
+        // Find how many hours are left in this round
+        // A round ends and a new one begins at 12:00 swedish time the first sunday of every month
+        // So to find the next round end, we get the first sunday of this month, and then simply add
+        //   a month if that sunday is in the past
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime firstDay = LocalDateTime.of(now.getYear(), now.getMonth(), 1, 12, 0);
+        // 7 - day of week = days until sunday
+        LocalDateTime firstSunday = firstDay.plusDays(7 - firstDay.getDayOfWeek().getValue());
+        if (firstSunday.isBefore(now)) {
+            firstSunday = firstSunday.plusMonths(1);
+        }
+        long roundEndTime = parseDatetime(firstSunday);
+        double hoursLeftInRound = asHours(roundEndTime - currentTime);
 
-        // Find the expected amount of hours the zone will be held for
         // Adding 1 to total takeovers because we count when the zone was created
         // A "takeover from nonexistance", if you will - it makes the math work out
         //   for zones with few/no takeovers
         int totalTakeovers = info.getInt("totalTakeovers") + 1;
-        double expectedHoursHeld = hoursExisted / totalTakeovers;
+
+        // Find the expected amount of hours the zone will be held for
+        // The first calculation ignores the fact that the round might end, resetting ownership prematurely
+        //   (also I really wanted to use ï in a variable name)
+        double naïveHoursHeld = hoursExisted / totalTakeovers;
+        double expectedHoursHeld = Math.min(naïveHoursHeld, hoursLeftInRound);
 
         // Calculate the total points!
+        // Stored as int because Turf doesn't do fractional points B)
         int pointsPerHour = info.getInt("pointsPerHour");
         int takeoverPoints = info.getInt("takeoverPoints");
-        this.points = expectedHoursHeld * pointsPerHour + takeoverPoints;
+        this.points = (int) expectedHoursHeld * pointsPerHour + takeoverPoints;
     }
+
+    /* Time methods */
 
     // Parses a timestamp string into a long (ms)
     // Example: "2020-06-18T19:04:42+0000"
     private static long parseTimestamp(String timestamp) {
         LocalDateTime datetime = LocalDateTime.parse(timestamp, DateTimeFormatter.ISO_DATE_TIME);
+        return parseDatetime(datetime);
+    }
+    // Parses a datetime object into a long (ms)
+    private static long parseDatetime(LocalDateTime datetime) {
         Date date = java.sql.Date.valueOf(datetime.toLocalDate());
         return date.getTime();
+    }
+    // Get hours from milliseconds
+    private static double asHours(long ms) {
+        return ms / 1000 / 60 / 60;
     }
 
     @Override
