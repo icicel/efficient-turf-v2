@@ -98,4 +98,17 @@ public class Zone {
     public String toString() {
         return name;
     }
+
+    @Override
+    public boolean equals(Object other) {
+        if (!(other instanceof Zone)) {
+            return false;
+        }
+        Zone otherZone = (Zone) other;
+        return this.name.equals(otherZone.name);
+    }
+    @Override
+    public int hashCode() {
+        return this.name.hashCode();
+    }
 }
