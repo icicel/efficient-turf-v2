@@ -46,7 +46,18 @@ public class EfficientTurf {
             connection.completeOn(allZones);
         }
 
-        // rounds start at 12:00 swedish time the first sunday of every month
+
+        /* Initialize zone points */
+        
+        JSONArray zoneJson = getZoneJSON(allZones);
+
+        // Set points for each zone
+        for (int i = 0; i < zoneJson.length(); i++) {
+            JSONObject zoneInfo = zoneJson.getJSONObject(i);
+            String name = zoneInfo.getString("name").toLowerCase();
+            Zone zone = finder.get(name);
+            zone.setPoints(zoneInfo);
+        }
 
         // use depth first search with a single route object
         // if it's valid and finished then copy and save
@@ -64,10 +75,8 @@ public class EfficientTurf {
     }
 
     // Get points values of zones from the Turf API
-    // Takes into account both on-capture points and hourly points by calculating the expected
-    //  number of hours the zone will be held
     // All supplied zone names must correspond to an actual zone
-    public static void getZonesPoints(Set<Zone> zones) throws IOException, InterruptedException {
+    public static JSONArray getZoneJSON(Set<Zone> zones) throws IOException, InterruptedException {
         
         // Create a JSON body with all zone names
         // [{"name": "zonea"}, {"name": "zoneb"}, ...]
@@ -87,6 +96,7 @@ public class EfficientTurf {
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
         System.out.println(response.body());
+        return new JSONArray(response.body());
     }
 
     // Set union

@@ -29,7 +29,5 @@ public class Test {
         for (Connection connection : connections) {
             System.out.println(connection);
         }
-
-        EfficientTurf.getZonesPoints(realZones);
     }
 }
