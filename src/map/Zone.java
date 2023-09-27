@@ -83,7 +83,9 @@ public class Zone {
     // Parses a timestamp string into a long (ms)
     // Example: "2020-06-18T19:04:42+0000"
     private static long parseTimestamp(String timestamp) {
-        LocalDateTime datetime = LocalDateTime.parse(timestamp, DateTimeFormatter.ISO_DATE_TIME);
+        // Remove the timezone offset
+        String trimmed = timestamp.substring(0, timestamp.length() - 5);
+        LocalDateTime datetime = LocalDateTime.parse(trimmed, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
         return parseDatetime(datetime);
     }
     // Parses a datetime object into a long (ms)
