@@ -1,5 +1,9 @@
 package kml;
 import java.io.IOException;
+import java.io.StringReader;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Set;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParserFactory;
@@ -9,17 +13,21 @@ import org.xml.sax.XMLReader;
 import map.Line;
 import map.Zone;
 
-// Parses a KML object
+// Takes and parses a KML file
 public class KMLParser {
 
+    public String kml;
+
     private XMLReader xmlReader;
-    private KML kml;
     private KMLHandler handler;
     
-    // Stores an XMLReader object to do the reading, and sets a KMLHandler
-    //  linked to itself as both content and error handler
-    public KMLParser(KML kml) throws ParserConfigurationException, SAXException, IOException {
-        this.kml = kml;
+    // Takes a KML file located in the root directory
+    // Stores an XMLReader object to do the reading, and sets a KMLHandler object
+    //   as both content and error handler
+    public KMLParser(String file) throws ParserConfigurationException, SAXException, IOException {
+        Path path = FileSystems.getDefault().getPath(".", file);
+
+        this.kml = Files.readString(path);
         this.xmlReader = SAXParserFactory.newInstance().newSAXParser().getXMLReader();
         this.handler = new KMLHandler();
 
@@ -33,7 +41,8 @@ public class KMLParser {
     public void parse(String layerName) throws IOException, SAXException {
         handler.reset();
         handler.setTargetLayer(layerName);
-        InputSource kmlSource = new InputSource(kml.asReader());
+        StringReader kmlStream = new StringReader(kml);
+        InputSource kmlSource = new InputSource(kmlStream);
         xmlReader.parse(kmlSource);
     }
 

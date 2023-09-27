@@ -3,13 +3,10 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.file.FileSystems;
-import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import kml.KML;
 import kml.KMLParser;
 import map.Connection;
 import map.Line;
@@ -18,8 +15,7 @@ import turf.ZoneFinder;
 
 public class EfficientTurf {
     public static void main(String[] args) throws Exception {
-        KML localKml = getKML("example.kml");
-        KMLParser kml = new KMLParser(localKml);
+        KMLParser kml = new KMLParser("example.kml");
 
         /* Get zones and connections */
 
@@ -131,11 +127,5 @@ public class EfficientTurf {
         Set<T> result = new HashSet<>(a);
         result.addAll(b);
         return result;
-    }
-
-    // Get a KML file located in the root directory
-    public static KML getKML(String file) throws IOException {
-        Path path = FileSystems.getDefault().getPath(".", file);
-        return new KML(path);
     }
 }
