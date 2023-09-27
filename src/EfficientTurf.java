@@ -42,7 +42,7 @@ public class EfficientTurf {
 
         /* Initialize zone points */
         
-        JSONArray zoneJson = getZoneJSON(allZones);
+        JSONArray zoneJson = getZoneJSON(trueZones);
         
         ZoneFinder finder = new ZoneFinder(allZones);
 
@@ -100,8 +100,40 @@ public class EfficientTurf {
             .build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-        System.out.println(response.body());
-        return new JSONArray(response.body());
+        JSONArray result = new JSONArray(response.body());
+
+        // Check that the response contains the same number of zones as the request
+        // Should always be less - the API will ignore nonexistant zones
+        if (result.length() != zones.size()) {
+            System.out.println("WARNING: API response contains less zones than requested");
+            findFakeZones(zones, result);
+        }
+
+        return result;
+    }
+
+    // Find zones in a set that aren't real, a.k.a. don't exist in the API
+    public static void findFakeZones(Set<Zone> zones, JSONArray zoneJson) {
+        ZoneFinder finder = new ZoneFinder(zones);
+        Set<Zone> foundZones = new HashSet<>();
+        for (int i = 0; i < zoneJson.length(); i++) {
+            JSONObject zoneInfo = zoneJson.getJSONObject(i);
+            String name = zoneInfo.getString("name").toLowerCase();
+            Zone zone = finder.get(name);
+            if (zone != null) {
+                foundZones.add(zone);
+            }
+        }
+        boolean fakeZone = false;
+        for (Zone zone : zones) {
+            if (!foundZones.contains(zone)) {
+                System.out.println("ERROR: Zone " + zone.name + " does not exist in the API");
+                fakeZone = true;
+            }
+        }
+        if (fakeZone) {
+            throw new RuntimeException("Found fake zones");
+        }
     }
 
     // Set union
