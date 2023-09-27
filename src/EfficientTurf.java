@@ -7,7 +7,7 @@ import java.util.HashSet;
 import java.util.Set;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import kml.KMLParser;
+import kml.KML;
 import map.Connection;
 import map.Line;
 import map.Zone;
@@ -15,7 +15,7 @@ import turf.ZoneFinder;
 
 public class EfficientTurf {
     public static void main(String[] args) throws Exception {
-        KMLParser kml = new KMLParser("example.kml");
+        KML kml = new KML("example.kml");
 
         /* Get zones and connections */
 

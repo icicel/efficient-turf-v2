@@ -14,25 +14,25 @@ import map.Line;
 import map.Zone;
 
 // Takes and parses a KML file
-public class KMLParser {
+public class KML {
 
     public String kml;
 
-    private XMLReader xmlReader;
+    private XMLReader parser;
     private KMLHandler handler;
     
     // Takes a KML file located in the root directory
     // Stores an XMLReader object to do the reading, and sets a KMLHandler object
     //   as both content and error handler
-    public KMLParser(String file) throws ParserConfigurationException, SAXException, IOException {
+    public KML(String file) throws ParserConfigurationException, SAXException, IOException {
         Path path = FileSystems.getDefault().getPath(".", file);
 
         this.kml = Files.readString(path);
-        this.xmlReader = SAXParserFactory.newInstance().newSAXParser().getXMLReader();
+        this.parser = SAXParserFactory.newInstance().newSAXParser().getXMLReader();
         this.handler = new KMLHandler();
 
-        xmlReader.setContentHandler(handler);
-        xmlReader.setErrorHandler(handler);
+        parser.setContentHandler(handler);
+        parser.setErrorHandler(handler);
     }
 
     // Can be used as an empty parse to debug a KMLHandler
@@ -43,7 +43,7 @@ public class KMLParser {
         handler.setTargetLayer(layerName);
         StringReader kmlStream = new StringReader(kml);
         InputSource kmlSource = new InputSource(kmlStream);
-        xmlReader.parse(kmlSource);
+        parser.parse(kmlSource);
     }
 
     // Get all zones or connections in layerName

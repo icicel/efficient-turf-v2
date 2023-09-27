@@ -1,12 +1,12 @@
 import java.util.Set;
-import kml.KMLParser;
+import kml.KML;
 import map.Connection;
 import map.Line;
 import map.Zone;
 
 public class Test {
     public static void main(String[] args) throws Exception {
-        KMLParser kml = new KMLParser("example.kml");
+        KML kml = new KML("example.kml");
         Set<Zone> realZones = kml.getZones("Zones");
         Set<Zone> crossings = kml.getZones("Crossings");
         Set<Line> lines = kml.getLines("Connections");
