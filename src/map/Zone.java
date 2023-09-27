@@ -14,8 +14,10 @@ public class Zone {
 
     public Coords coords;
 
+    // Create a zone from a Point
     public Zone(String name, String coordinates) {
         this.name = name.toLowerCase();
+        this.points = 0;
         this.coords = new Coords(coordinates);
         this.connections = new HashSet<>();
     }

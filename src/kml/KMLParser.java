@@ -6,7 +6,7 @@ import javax.xml.parsers.SAXParserFactory;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
-import map.Connection;
+import map.Line;
 import map.Zone;
 
 // Parses a KML object
@@ -43,8 +43,8 @@ public class KMLParser {
         parse(layerName);
         return handler.getZones();
     }
-    public Set<Connection> getConnections(String layerName) throws IOException, SAXException {
+    public Set<Line> getLines(String layerName) throws IOException, SAXException {
         parse(layerName);
-        return handler.getConnections();
+        return handler.getLines();
     }
 }

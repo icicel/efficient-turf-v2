@@ -12,6 +12,7 @@ import org.json.JSONObject;
 import kml.KML;
 import kml.KMLParser;
 import map.Connection;
+import map.Line;
 import map.Zone;
 import turf.ZoneFinder;
 
@@ -20,36 +21,30 @@ public class EfficientTurf {
         KML localKml = getKML("example.kml");
         KMLParser kml = new KMLParser(localKml);
 
-        // Get zones and connections
+        /* Get zones and connections */
+
         // There are two types of zones: a true zone and a crossing
         //   Crossings are zones that are not actually zones, but "helper" zones
         //   They are worth 0 points and are usually used to reduce the amount of connections
         Set<Zone> trueZones = kml.getZones("Zones");
         Set<Zone> crossings = kml.getZones("Crossings");
-        Set<Connection> connections = kml.getConnections("Connections");
+        Set<Line> lines = kml.getLines("Connections");
         
         // Collect all zones into a single set
-        // Check for duplicates and initialize a ZoneFinder on it
         Set<Zone> allZones = union(trueZones, crossings);
+
+        // Convert lines to connections
+        Set<Connection> connections = fromLines(lines, allZones);
+
+        // Check for duplicates
         checkForDuplicates(allZones);
-        ZoneFinder finder = new ZoneFinder(allZones);
-
-        // Add the reverse of all connections to the set
-        Set<Connection> reversedConnections = new HashSet<>();
-        for (Connection connection : connections) {
-            reversedConnections.add(connection.reversed());
-        }
-        connections.addAll(reversedConnections);
-
-        // Connect crossings to their closest zone
-        for (Connection connection : connections) {
-            connection.completeOn(allZones);
-        }
 
 
         /* Initialize zone points */
         
         JSONArray zoneJson = getZoneJSON(allZones);
+        
+        ZoneFinder finder = new ZoneFinder(allZones);
 
         // Set points for each zone
         for (int i = 0; i < zoneJson.length(); i++) {
@@ -72,6 +67,16 @@ public class EfficientTurf {
             }
             names.add(zone.name);
         }
+    }
+
+    // Convert a set of lines to a set of connections, using a set of zones
+    public static Set<Connection> fromLines(Set<Line> lines, Set<Zone> zones) {
+        Set<Connection> connections = new HashSet<>();
+        for (Line line : lines) {
+            connections.add(line.leftConnection(zones));
+            connections.add(line.rightConnection(zones));
+        }
+        return connections;
     }
 
     // Get points values of zones from the Turf API

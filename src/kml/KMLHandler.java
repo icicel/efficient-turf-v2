@@ -3,14 +3,14 @@ import java.util.HashSet;
 import java.util.Set;
 import org.xml.sax.Attributes;
 import org.xml.sax.helpers.DefaultHandler;
-import map.Connection;
+import map.Line;
 import map.Zone;
 
 // This class's methods are called by an XMLReader parsing a KML whenever certain
 //  events occur, such as at the start or end of a tag (element)
 // Google My Maps-exported KMLs use <Folder> to store each layer
 // Objects in layers are stored in <Placemark> elements in these folders that contain
-//  either <Point> (for Zones) or <LineString> (for Connections)
+//  either <Point> (for Zones) or <LineString> (for Lines)
 // Both <Point> and <LineString> elements contain <coordinates>
 // Both <Folder> and <Placemark> elements contain <name>
 //
@@ -30,7 +30,7 @@ public class KMLHandler extends DefaultHandler {
     private String targetLayer;
 
     private Set<Zone> zones;
-    private Set<Connection> connections;
+    private Set<Line> lines;
 
     // True if in a <Folder> tag and <name> has not been parsed yet
     private boolean searchingForLayerName;
@@ -42,7 +42,7 @@ public class KMLHandler extends DefaultHandler {
     // True if in a <Point> element
     private boolean parsingZone;
     // True if in a <LineString> element
-    private boolean parsingConnection;
+    private boolean parsingLine;
 
     // Stores the latest parsed characters, cleared at the end of each tag
     // Cannot be null because parsed characters are appended
@@ -59,14 +59,14 @@ public class KMLHandler extends DefaultHandler {
         targetLayer = null;
 
         zones = new HashSet<>();
-        connections = new HashSet<>();
+        lines = new HashSet<>();
 
         searchingForLayerName = false;
         searchingForObjectName = false;
 
         inTargetLayer = false;
         parsingZone = false;
-        parsingConnection = false;
+        parsingLine = false;
 
         currentChars = "";
         objectName = null;
@@ -76,8 +76,8 @@ public class KMLHandler extends DefaultHandler {
     public Set<Zone> getZones() {
         return zones;
     }
-    public Set<Connection> getConnections() {
-        return connections;
+    public Set<Line> getLines() {
+        return lines;
     }
     
     public void setTargetLayer(String targetLayer) {
@@ -108,7 +108,7 @@ public class KMLHandler extends DefaultHandler {
             
             case "LineString":
                 if (inTargetLayer) {
-                    parsingConnection = true;
+                    parsingLine = true;
                 }
                 break;
 
@@ -144,9 +144,9 @@ public class KMLHandler extends DefaultHandler {
                     Zone newZone = new Zone(objectName, currentChars);
                     zones.add(newZone);
                 } 
-                if (parsingConnection) {
-                    Connection newConnection = new Connection(currentChars);
-                    connections.add(newConnection);
+                if (parsingLine) {
+                    Line newLine = new Line(currentChars);
+                    lines.add(newLine);
                 }
                 break;
 
@@ -156,7 +156,7 @@ public class KMLHandler extends DefaultHandler {
 
             case "Placemark":
                 objectName = null;
-                parsingConnection = false;
+                parsingLine = false;
                 parsingZone = false;
                 break;
 

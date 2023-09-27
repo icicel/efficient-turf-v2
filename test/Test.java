@@ -2,6 +2,7 @@ import java.util.Set;
 import kml.KML;
 import kml.KMLParser;
 import map.Connection;
+import map.Line;
 import map.Zone;
 
 public class Test {
@@ -10,18 +11,16 @@ public class Test {
         KMLParser kml = new KMLParser(localKml);
         Set<Zone> realZones = kml.getZones("Zones");
         Set<Zone> crossings = kml.getZones("Crossings");
-        Set<Connection> connections = kml.getConnections("Connections");
+        Set<Line> lines = kml.getLines("Connections");
 
         System.out.println(realZones.size());
         System.out.println(crossings.size());
-        System.out.println(connections.size());
+        System.out.println(lines.size());
 
         Set<Zone> allZones = EfficientTurf.union(realZones, crossings);
-        EfficientTurf.checkForDuplicates(allZones);
+        Set<Connection> connections = EfficientTurf.fromLines(lines, allZones);
 
-        for (Connection connection : connections) {
-            connection.completeOn(allZones);
-        }
+        EfficientTurf.checkForDuplicates(allZones);
         
         for (Zone zone : allZones) {
             System.out.println(zone);
