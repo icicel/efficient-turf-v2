@@ -27,7 +27,7 @@ public class Connection {
 
     @Override
     public String toString() {
-        return parent.name + " -> " + neighbor.name + " (" + distance + ")";
+        return parent.name + " -> " + neighbor.name;
     }
 
     @Override

@@ -44,6 +44,6 @@ public class Line {
 
     @Override
     public String toString() {
-        return left + " -> " + right + " (" + distance + ")";
+        return left + " -> " + right;
     }
 }
