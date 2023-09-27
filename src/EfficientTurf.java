@@ -36,9 +36,6 @@ public class EfficientTurf {
         // Convert lines to connections
         Set<Connection> connections = fromLines(lines, allZones);
 
-        // Check for duplicates
-        checkForDuplicates(allZones);
-
 
         /* Initialize zone points */
         
@@ -58,23 +55,16 @@ public class EfficientTurf {
         // if it's valid and finished then copy and save
     }
 
-    // Find duplicate zone names
-    public static void checkForDuplicates(Set<Zone> zones) {
-        Set<String> names = new HashSet<>();
-        for (Zone zone : zones) {
-            if (names.contains(zone.name)) {
-                System.out.println("WARNING: Duplicate zone name " + zone.name);
-            }
-            names.add(zone.name);
-        }
-    }
-
     // Convert a set of lines to a set of connections, using a set of zones
     public static Set<Connection> fromLines(Set<Line> lines, Set<Zone> zones) {
         Set<Connection> connections = new HashSet<>();
         for (Line line : lines) {
-            connections.add(line.leftConnection(zones));
-            connections.add(line.rightConnection(zones));
+            if (!connections.add(line.leftConnection(zones))) {
+                System.out.println("WARNING: Duplicate connection " + line.leftConnection(zones));
+            }
+            if (!connections.add(line.rightConnection(zones))) {
+                System.out.println("WARNING: Duplicate connection " + line.leftConnection(zones));
+            }
         }
         return connections;
     }

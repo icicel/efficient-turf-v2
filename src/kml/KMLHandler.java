@@ -142,7 +142,9 @@ public class KMLHandler extends DefaultHandler {
             case "coordinates":
                 if (parsingZone) {
                     Zone newZone = new Zone(objectName, currentChars);
-                    zones.add(newZone);
+                    if (!zones.add(newZone)) {
+                        System.out.println("WARNING: Duplicate zone " + newZone.name);
+                    }
                 } 
                 if (parsingLine) {
                     Line newLine = new Line(currentChars);

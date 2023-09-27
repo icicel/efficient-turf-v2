@@ -19,8 +19,6 @@ public class Test {
 
         Set<Zone> allZones = EfficientTurf.union(realZones, crossings);
         Set<Connection> connections = EfficientTurf.fromLines(lines, allZones);
-
-        EfficientTurf.checkForDuplicates(allZones);
         
         for (Zone zone : allZones) {
             System.out.println(zone);
