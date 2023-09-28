@@ -12,16 +12,21 @@ import java.util.Set;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import map.Zone;
+import map.ZoneType;
 
 // Represents a set of Zones
 public class Zones implements Iterable<Zone> {
     
     private Set<Zone> zones;
 
+    public ZoneType type;
+
     private Map<String, Zone> nameMap;
 
+    // Similar to Zone class, type starts at CROSSING until initPoints() is called
     public Zones(Set<Zone> zones) {
         this.zones = zones;
+        this.type = ZoneType.CROSSING;
 
         // Build name map
         this.nameMap = new HashMap<>();
@@ -68,6 +73,8 @@ public class Zones implements Iterable<Zone> {
             Zone zone = findByName(name);
             zone.setPoints(zoneInfo);
         }
+
+        this.type = ZoneType.REAL;
     }
 
     // Find Zones that aren't real, a.k.a. don't exist in the API

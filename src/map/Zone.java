@@ -12,14 +12,18 @@ public class Zone {
     public int points;
     public Set<Connection> connections;
 
+    public ZoneType type;
+
     public Coords coords;
 
     // Create a zone from a Point
+    // type defaults to CROSSING until points are set
     public Zone(String name, String coordinates) {
         this.name = name.toLowerCase();
         this.points = 0;
         this.coords = new Coords(coordinates);
         this.connections = new HashSet<>();
+        this.type = ZoneType.CROSSING;
     }
 
     // Calculates a total point value for the zone from the given API JSON object
@@ -68,14 +72,18 @@ public class Zone {
         // Find the expected amount of hours the zone will be held for
         // The first calculation ignores the fact that the round might end, resetting ownership prematurely
         //   (also I really wanted to use ï in a variable name)
-        double naïveHoursHeld = hoursExisted / totalTakeovers;
+        double naïveHoursHeld = hoursExisted / (double) totalTakeovers;
         double expectedHoursHeld = Math.min(naïveHoursHeld, hoursLeftInRound);
 
         // Calculate the total points!
         // Stored as int because Turf doesn't do fractional points B)
-        int pointsPerHour = info.getInt("pointsPerHour");
         int takeoverPoints = info.getInt("takeoverPoints");
-        this.points = (int) expectedHoursHeld * pointsPerHour + takeoverPoints;
+
+        int pointsPerHour = info.getInt("pointsPerHour");
+        int holdingPoints = (int) expectedHoursHeld * pointsPerHour;
+
+        this.points = takeoverPoints + holdingPoints;
+        this.type = ZoneType.REAL;
     }
 
     /* Time methods */
