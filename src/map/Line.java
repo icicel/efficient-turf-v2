@@ -4,10 +4,11 @@ import java.util.Set;
 // Represents a primitive connection (two-way) between two Coords (left and right)
 public class Line {
 
-    Coords left;
-    Coords right;
+    // meters
+    public double distance;
 
-    double distance;
+    public Coords left;
+    public Coords right;
 
     public Line(String coordinateListString) {
 
