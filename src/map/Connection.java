@@ -1,5 +1,5 @@
 package map;
-import java.util.Set;
+import turf.Zones;
 
 // Represents a one-way connection from a parent zone to its neighbor
 public class Connection {
@@ -13,7 +13,7 @@ public class Connection {
     // Convert a Line to a Connection
     // Requires a set of zones to find parent and neighbor
     // Also adds itself to the parent's connection set
-    public Connection(Line line, Set<Zone> zones, boolean leftParent) {
+    public Connection(Line line, Zones zones, boolean leftParent) {
         this.distance = line.distance;
         if (leftParent) {
             this.parent = line.left.closestZoneFrom(zones);

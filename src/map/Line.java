@@ -1,5 +1,5 @@
 package map;
-import java.util.Set;
+import turf.Zones;
 
 // Represents a primitive connection (two-way) between two Coords (left and right)
 public class Line {
@@ -36,10 +36,10 @@ public class Line {
     }
 
     // Convert to a Connection using a set of zones, with a specific coordinate as the parent
-    public Connection leftConnection(Set<Zone> zones) {
+    public Connection leftConnection(Zones zones) {
         return new Connection(this, zones, true);
     }
-    public Connection rightConnection(Set<Zone> zones) {
+    public Connection rightConnection(Zones zones) {
         return new Connection(this, zones, false);
     }
 

@@ -8,10 +8,9 @@ import java.util.Set;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import kml.KML;
-import map.Connection;
-import map.Line;
 import map.Zone;
-import turf.ZoneFinder;
+import turf.Connections;
+import turf.Zones;
 
 public class EfficientTurf {
     public static void main(String[] args) throws Exception {
@@ -22,28 +21,25 @@ public class EfficientTurf {
         // There are two types of zones: a true zone and a crossing
         //   Crossings are zones that are not actually zones, but "helper" zones
         //   They are worth 0 points and are usually used to reduce the amount of connections
-        Set<Zone> trueZones = kml.getZones("Zones");
-        Set<Zone> crossings = kml.getZones("Crossings");
-        Set<Line> lines = kml.getLines("Connections");
+        Zones trueZones = kml.getZones("Zones");
+        Zones crossings = kml.getZones("Crossings");
         
         // Collect all zones into a single set
-        Set<Zone> allZones = union(trueZones, crossings);
+        Zones allZones = Zones.union(trueZones, crossings);
 
-        // Convert lines to connections
-        Set<Connection> connections = fromLines(lines, allZones);
+        // Get connections
+        Connections connections = kml.getConnections("Connections", allZones);
 
 
         /* Initialize zone points */
         
         JSONArray zoneJson = getZoneJSON(trueZones);
-        
-        ZoneFinder finder = new ZoneFinder(allZones);
 
         // Set points for each zone
         for (int i = 0; i < zoneJson.length(); i++) {
             JSONObject zoneInfo = zoneJson.getJSONObject(i);
             String name = zoneInfo.getString("name").toLowerCase();
-            Zone zone = finder.get(name);
+            Zone zone = trueZones.findByName(name);
             zone.setPoints(zoneInfo);
         }
 
@@ -51,23 +47,9 @@ public class EfficientTurf {
         // if it's valid and finished then copy and save
     }
 
-    // Convert a set of lines to a set of connections, using a set of zones
-    public static Set<Connection> fromLines(Set<Line> lines, Set<Zone> zones) {
-        Set<Connection> connections = new HashSet<>();
-        for (Line line : lines) {
-            if (!connections.add(line.leftConnection(zones))) {
-                System.out.println("WARNING: Duplicate connection " + line.leftConnection(zones));
-            }
-            if (!connections.add(line.rightConnection(zones))) {
-                System.out.println("WARNING: Duplicate connection " + line.leftConnection(zones));
-            }
-        }
-        return connections;
-    }
-
     // Get points values of zones from the Turf API
     // All supplied zone names must correspond to an actual zone
-    public static JSONArray getZoneJSON(Set<Zone> zones) throws IOException, InterruptedException {
+    public static JSONArray getZoneJSON(Zones zones) throws IOException, InterruptedException {
         
         // Create a JSON body with all zone names
         // [{"name": "zonea"}, {"name": "zoneb"}, ...]
@@ -99,13 +81,12 @@ public class EfficientTurf {
     }
 
     // Find zones in a set that aren't real, a.k.a. don't exist in the API
-    public static void findFakeZones(Set<Zone> zones, JSONArray zoneJson) {
-        ZoneFinder finder = new ZoneFinder(zones);
+    public static void findFakeZones(Zones zones, JSONArray zoneJson) {
         Set<Zone> foundZones = new HashSet<>();
         for (int i = 0; i < zoneJson.length(); i++) {
             JSONObject zoneInfo = zoneJson.getJSONObject(i);
             String name = zoneInfo.getString("name").toLowerCase();
-            Zone zone = finder.get(name);
+            Zone zone = zones.findByName(name);
             if (zone != null) {
                 foundZones.add(zone);
             }
@@ -120,12 +101,5 @@ public class EfficientTurf {
         if (fakeZone) {
             throw new RuntimeException("Found fake zones");
         }
-    }
-
-    // Set union
-    public static <T> Set<T> union(Set<T> a, Set<T> b) {
-        Set<T> result = new HashSet<>(a);
-        result.addAll(b);
-        return result;
     }
 }

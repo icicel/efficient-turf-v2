@@ -1,7 +1,7 @@
 package map;
-import java.util.Set;
 import net.sf.geographiclib.Geodesic;
 import net.sf.geographiclib.GeodesicData;
+import turf.Zones;
 
 // Represents a coordinate pair
 public class Coords {
@@ -22,7 +22,7 @@ public class Coords {
     }
 
     // Returns the closest zone out of a set
-    public Zone closestZoneFrom(Set<Zone> zones) {
+    public Zone closestZoneFrom(Zones zones) {
         Zone closestZone = null;
         double closestDistance = Double.MAX_VALUE;
         for (Zone zone : zones) {

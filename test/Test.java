@@ -1,22 +1,20 @@
-import java.util.Set;
 import kml.KML;
 import map.Connection;
-import map.Line;
 import map.Zone;
+import turf.Connections;
+import turf.Zones;
 
 public class Test {
     public static void main(String[] args) throws Exception {
         KML kml = new KML("example.kml");
-        Set<Zone> realZones = kml.getZones("Zones");
-        Set<Zone> crossings = kml.getZones("Crossings");
-        Set<Line> lines = kml.getLines("Connections");
+        Zones realZones = kml.getZones("Zones");
+        Zones crossings = kml.getZones("Crossings");
+        Zones allZones = Zones.union(realZones, crossings);
+        Connections connections = kml.getConnections("Connections", allZones);
 
         System.out.println(realZones.size());
         System.out.println(crossings.size());
-        System.out.println(lines.size());
-
-        Set<Zone> allZones = EfficientTurf.union(realZones, crossings);
-        Set<Connection> connections = EfficientTurf.fromLines(lines, allZones);
+        System.out.println(connections.size());
         
         for (Zone zone : allZones) {
             System.out.println(zone);
