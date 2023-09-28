@@ -12,15 +12,17 @@ public class Test {
         Zones allZones = Zones.union(realZones, crossings);
         Connections connections = kml.getConnections("Connections", allZones);
 
+        realZones.initPoints();
+
         System.out.println(realZones.size());
         System.out.println(crossings.size());
         System.out.println(connections.size());
         
         for (Zone zone : allZones) {
-            System.out.println(zone);
+            System.out.println(zone + " " + zone.points);
         }
         for (Connection connection : connections) {
-            System.out.println(connection);
+            System.out.println(connection + " " + connection.distance);
         }
     }
 }
