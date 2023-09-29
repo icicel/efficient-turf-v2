@@ -117,10 +117,17 @@ public class ZoneSet extends AbstractSet<Zone> {
         return nameMap.get(name);
     }
 
+    // Merge two ZoneSets
     public static ZoneSet union(ZoneSet a, ZoneSet b) {
         ZoneSet union = new ZoneSet();
+        union.nameMap = new HashMap<>();
+
+        // Possible duplicates are handled by AbstractSet.addAll()
         union.addAll(a);
         union.addAll(b);
+        union.nameMap.putAll(a.nameMap);
+        union.nameMap.putAll(b.nameMap);
+        
         return union;
     }
 }
