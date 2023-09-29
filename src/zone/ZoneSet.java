@@ -6,7 +6,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import org.json.JSONArray;
@@ -14,9 +13,7 @@ import org.json.JSONObject;
 import map.Coords;
 
 // Represents a set of Zones
-public class ZoneSet implements Iterable<Zone> {
-    
-    private Set<Zone> zones;
+public class ZoneSet extends AbstractSet<Zone> {
 
     public ZoneType type;
 
@@ -24,7 +21,7 @@ public class ZoneSet implements Iterable<Zone> {
 
     // Similar to Zone class, type starts at CROSSING until initPoints() is called
     public ZoneSet(Set<Zone> zones) {
-        this.zones = zones;
+        this.set = zones;
         this.type = ZoneType.CROSSING;
 
         // Build name map
@@ -33,6 +30,8 @@ public class ZoneSet implements Iterable<Zone> {
             nameMap.put(zone.name, zone);
         }
     }
+    // Empty constructor
+    public ZoneSet() {super();}
 
     // Get points values of zones from the Turf API
     // Only use on Zones objects that contain real zones
@@ -41,7 +40,7 @@ public class ZoneSet implements Iterable<Zone> {
         // Create a JSON body with all zone names
         // [{"name": "zonea"}, {"name": "zoneb"}, ...]
         JSONArray json = new JSONArray();
-        for (Zone zone : zones) {
+        for (Zone zone : set) {
             JSONObject object = new JSONObject();
             object.put("name", zone.name);
             json.put(object);
@@ -60,7 +59,7 @@ public class ZoneSet implements Iterable<Zone> {
         // Check that the response contains the same number of zones as the request
         // Should always be less - the API will ignore nonexistant zones
         // If not, tries to find those nonexistant zones
-        if (zoneJson.length() != zones.size()) {
+        if (zoneJson.length() != set.size()) {
             System.out.println("WARNING: API response contains less zones than requested");
             findFakeZones(zoneJson);
         }
@@ -88,7 +87,7 @@ public class ZoneSet implements Iterable<Zone> {
             }
         }
         boolean fakeZone = false;
-        for (Zone zone : zones) {
+        for (Zone zone : set) {
             if (!foundZones.contains(zone)) {
                 System.out.println("ERROR: Zone " + zone.name + " does not exist in the API");
                 fakeZone = true;
@@ -103,7 +102,7 @@ public class ZoneSet implements Iterable<Zone> {
     public Zone closestZoneTo(Coords coords) {
         Zone closestZone = null;
         double closestDistance = Double.MAX_VALUE;
-        for (Zone zone : zones) {
+        for (Zone zone : set) {
             double distance = coords.distanceTo(zone.coords);
             if (distance < closestDistance) {
                 closestZone = zone;
@@ -118,19 +117,10 @@ public class ZoneSet implements Iterable<Zone> {
         return nameMap.get(name);
     }
 
-    // Merge and return a new Zones object
     public static ZoneSet union(ZoneSet a, ZoneSet b) {
-        Set<Zone> result = new HashSet<>(a.zones);
-        result.addAll(b.zones);
-        return new ZoneSet(result);
-    }
-
-    public int size() {
-        return zones.size();
-    }
-
-    @Override
-    public Iterator<Zone> iterator() {
-        return zones.iterator();
+        ZoneSet union = new ZoneSet();
+        union.addAll(a);
+        union.addAll(b);
+        return union;
     }
 }
