@@ -11,17 +11,12 @@ public class Connection {
     public Zone neighbor;
 
     // Convert a Line to a Connection
-    // Requires a ZoneSet to find parent and neighbor
-    // Also adds itself to the parent's connections
-    public Connection(Line line, ZoneSet zones, boolean leftParent) {
+    // parent.coords and neighbor.coords don't necessarily have to correspond to line.left and line.right
+    public Connection(Line line, Zone parent, Zone neighbor) {
         this.distance = line.distance;
-        if (leftParent) {
-            this.parent = zones.closestZoneTo(line.left);
-            this.neighbor = zones.closestZoneTo(line.right);
-        } else {
-            this.parent = zones.closestZoneTo(line.right);
-            this.neighbor = zones.closestZoneTo(line.left);
-        }
+        this.parent = parent;
+        this.neighbor = neighbor;
+
         this.parent.connections.add(this);
     }
 

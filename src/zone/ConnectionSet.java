@@ -14,8 +14,12 @@ public class ConnectionSet implements Iterable<Connection> {
         // Convert Lines to Connections
         this.connections = new HashSet<>();
         for (Line line : lines) {
-            this.addConnection(new Connection(line, zones, true));
-            this.addConnection(new Connection(line, zones, false));
+            Zone leftZone = zones.closestZoneTo(line.left);
+            Zone rightZone = zones.closestZoneTo(line.right);
+            Connection leftConnection = new Connection(line, leftZone, rightZone);
+            Connection rightConnection = new Connection(line, rightZone, leftZone);
+            addConnection(leftConnection);
+            addConnection(rightConnection);
         }
     }
 
