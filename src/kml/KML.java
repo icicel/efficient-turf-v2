@@ -11,9 +11,9 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import map.Line;
-import map.Zone;
-import turf.ConnectionSet;
-import turf.ZoneSet;
+import zone.ConnectionSet;
+import zone.Zone;
+import zone.ZoneSet;
 
 // Takes and parses a KML file
 public class KML {

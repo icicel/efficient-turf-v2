@@ -1,7 +1,7 @@
 package turf;
 import java.util.LinkedList;
 import java.util.List;
-import map.Zone;
+import zone.Zone;
 
 public class Route {
 

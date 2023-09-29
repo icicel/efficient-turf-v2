@@ -1,6 +1,6 @@
-import map.Connection;
-import map.Zone;
 import turf.Turf;
+import zone.Connection;
+import zone.Zone;
 
 public class Test {
     public static void main(String[] args) throws Exception {

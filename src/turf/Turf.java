@@ -3,6 +3,8 @@ import java.io.IOException;
 import javax.xml.parsers.ParserConfigurationException;
 import org.xml.sax.SAXException;
 import kml.KML;
+import zone.ConnectionSet;
+import zone.ZoneSet;
 
 // Represents a collection of real zones, user-defined zones (optionally), and connections between them
 //   all extracted from the given KML file

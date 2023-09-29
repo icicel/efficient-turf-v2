@@ -1,10 +1,11 @@
-package map;
+package zone;
 import java.sql.Date;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.Set;
 import org.json.JSONObject;
+import map.Coords;
 
 public class Zone {
 

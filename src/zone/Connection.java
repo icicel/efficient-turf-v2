@@ -1,5 +1,5 @@
-package map;
-import turf.ZoneSet;
+package zone;
+import map.Line;
 
 // Represents a one-way connection from a parent zone to its neighbor
 public class Connection {

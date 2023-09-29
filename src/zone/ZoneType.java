@@ -1,4 +1,4 @@
-package map;
+package zone;
 
 // Represents if the zone exists in the API or is user-defined
 // REAL: exists in the API

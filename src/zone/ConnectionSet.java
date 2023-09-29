@@ -1,8 +1,7 @@
-package turf;
+package zone;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-import map.Connection;
 import map.Line;
 
 // Represents a set of Connections

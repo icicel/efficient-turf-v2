@@ -1,4 +1,4 @@
-package turf;
+package zone;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -12,8 +12,6 @@ import java.util.Set;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import map.Coords;
-import map.Zone;
-import map.ZoneType;
 
 // Represents a set of Zones
 public class ZoneSet implements Iterable<Zone> {
