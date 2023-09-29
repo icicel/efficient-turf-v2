@@ -16,11 +16,11 @@ public class Connection {
     public Connection(Line line, ZoneSet zones, boolean leftParent) {
         this.distance = line.distance;
         if (leftParent) {
-            this.parent = line.left.closestZoneFrom(zones);
-            this.neighbor = line.right.closestZoneFrom(zones);
+            this.parent = zones.closestZoneTo(line.left);
+            this.neighbor = zones.closestZoneTo(line.right);
         } else {
-            this.parent = line.right.closestZoneFrom(zones);
-            this.neighbor = line.left.closestZoneFrom(zones);
+            this.parent = zones.closestZoneTo(line.right);
+            this.neighbor = zones.closestZoneTo(line.left);
         }
         this.parent.connections.add(this);
     }

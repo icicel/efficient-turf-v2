@@ -15,8 +15,8 @@ public class ConnectionSet implements Iterable<Connection> {
         // Convert Lines to Connections
         this.connections = new HashSet<>();
         for (Line line : lines) {
-            this.addConnection(line.leftConnection(zones));
-            this.addConnection(line.rightConnection(zones));
+            this.addConnection(new Connection(line, zones, true));
+            this.addConnection(new Connection(line, zones, false));
         }
     }
 

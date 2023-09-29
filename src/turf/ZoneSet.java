@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import map.Coords;
 import map.Zone;
 import map.ZoneType;
 
@@ -78,7 +79,7 @@ public class ZoneSet implements Iterable<Zone> {
     }
 
     // Find Zones that aren't real, a.k.a. don't exist in the API
-    public void findFakeZones(JSONArray zoneJson) {
+    private void findFakeZones(JSONArray zoneJson) {
         Set<Zone> foundZones = new HashSet<>();
         for (int i = 0; i < zoneJson.length(); i++) {
             JSONObject zoneInfo = zoneJson.getJSONObject(i);
@@ -98,6 +99,20 @@ public class ZoneSet implements Iterable<Zone> {
         if (fakeZone) {
             throw new RuntimeException("Found fake zones");
         }
+    }
+
+    // Returns the closest Zone to a given Coords
+    public Zone closestZoneTo(Coords coords) {
+        Zone closestZone = null;
+        double closestDistance = Double.MAX_VALUE;
+        for (Zone zone : zones) {
+            double distance = coords.distanceTo(zone.coords);
+            if (distance < closestDistance) {
+                closestZone = zone;
+                closestDistance = distance;
+            }
+        }
+        return closestZone;
     }
 
     // Find a zone by name
