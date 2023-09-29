@@ -1,16 +1,16 @@
 import kml.KML;
 import map.Connection;
 import map.Zone;
-import turf.Connections;
-import turf.Zones;
+import turf.ConnectionSet;
+import turf.ZoneSet;
 
 public class Test {
     public static void main(String[] args) throws Exception {
         KML kml = new KML("example.kml");
-        Zones realZones = kml.getZones("Zones");
-        Zones crossings = kml.getZones("Crossings");
-        Zones allZones = Zones.union(realZones, crossings);
-        Connections connections = kml.getConnections("Connections", allZones);
+        ZoneSet realZones = kml.getZones("Zones");
+        ZoneSet crossings = kml.getZones("Crossings");
+        ZoneSet allZones = ZoneSet.union(realZones, crossings);
+        ConnectionSet connections = kml.getConnections("Connections", allZones);
 
         realZones.initPoints();
 

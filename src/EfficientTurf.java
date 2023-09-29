@@ -1,6 +1,6 @@
 import kml.KML;
-import turf.Connections;
-import turf.Zones;
+import turf.ConnectionSet;
+import turf.ZoneSet;
 
 public class EfficientTurf {
     public static void main(String[] args) throws Exception {
@@ -11,14 +11,14 @@ public class EfficientTurf {
         // There are two types of zones: a true zone and a crossing
         //   Crossings are zones that are not actually zones, but "helper" zones
         //   They are worth 0 points and are usually used to reduce the amount of connections
-        Zones trueZones = kml.getZones("Zones");
-        Zones crossings = kml.getZones("Crossings");
+        ZoneSet trueZones = kml.getZones("Zones");
+        ZoneSet crossings = kml.getZones("Crossings");
         
         // Collect all zones into a single set
-        Zones allZones = Zones.union(trueZones, crossings);
+        ZoneSet allZones = ZoneSet.union(trueZones, crossings);
 
         // Get connections
-        Connections connections = kml.getConnections("Connections", allZones);
+        ConnectionSet connections = kml.getConnections("Connections", allZones);
 
         // Get points
         trueZones.initPoints();

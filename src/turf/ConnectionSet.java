@@ -6,12 +6,12 @@ import map.Connection;
 import map.Line;
 
 // Represents a set of Connections
-public class Connections implements Iterable<Connection> {
+public class ConnectionSet implements Iterable<Connection> {
 
     private Set<Connection> connections;
     
-    // Requires a set of zones to connect to
-    public Connections(Set<Line> lines, Zones zones) {
+    // Requires a ZoneSet to connect to
+    public ConnectionSet(Set<Line> lines, ZoneSet zones) {
         // Convert Lines to Connections
         this.connections = new HashSet<>();
         for (Line line : lines) {

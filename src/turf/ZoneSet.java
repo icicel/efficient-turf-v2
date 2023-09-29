@@ -15,7 +15,7 @@ import map.Zone;
 import map.ZoneType;
 
 // Represents a set of Zones
-public class Zones implements Iterable<Zone> {
+public class ZoneSet implements Iterable<Zone> {
     
     private Set<Zone> zones;
 
@@ -24,7 +24,7 @@ public class Zones implements Iterable<Zone> {
     private Map<String, Zone> nameMap;
 
     // Similar to Zone class, type starts at CROSSING until initPoints() is called
-    public Zones(Set<Zone> zones) {
+    public ZoneSet(Set<Zone> zones) {
         this.zones = zones;
         this.type = ZoneType.CROSSING;
 
@@ -106,10 +106,10 @@ public class Zones implements Iterable<Zone> {
     }
 
     // Merge and return a new Zones object
-    public static Zones union(Zones a, Zones b) {
+    public static ZoneSet union(ZoneSet a, ZoneSet b) {
         Set<Zone> result = new HashSet<>(a.zones);
         result.addAll(b.zones);
-        return new Zones(result);
+        return new ZoneSet(result);
     }
 
     public int size() {

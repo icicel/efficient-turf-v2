@@ -12,8 +12,8 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import map.Line;
 import map.Zone;
-import turf.Connections;
-import turf.Zones;
+import turf.ConnectionSet;
+import turf.ZoneSet;
 
 // Takes and parses a KML file
 public class KML {
@@ -48,19 +48,19 @@ public class KML {
         parser.parse(kmlSource);
     }
 
-    // Get all zones in layerName
+    // Get all Zones in layerName
     // Submit null as layerName to parse every layer
-    public Zones getZones(String layerName) throws IOException, SAXException {
+    public ZoneSet getZones(String layerName) throws IOException, SAXException {
         parse(layerName);
         Set<Zone> zones = handler.getZones();
-        return new Zones(zones);
+        return new ZoneSet(zones);
     }
     
-    // Get all connections in layerName, requires Zones to connect to
+    // Get all Connections in layerName, requires a ZoneSet to connect to
     // Submit null as layerName to parse every layer
-    public Connections getConnections(String layerName, Zones zones) throws IOException, SAXException {
+    public ConnectionSet getConnections(String layerName, ZoneSet zones) throws IOException, SAXException {
         parse(layerName);
         Set<Line> lines = handler.getLines();
-        return new Connections(lines, zones);
+        return new ConnectionSet(lines, zones);
     }
 }

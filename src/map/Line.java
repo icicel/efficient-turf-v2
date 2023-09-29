@@ -1,5 +1,5 @@
 package map;
-import turf.Zones;
+import turf.ZoneSet;
 
 // Represents a primitive connection (two-way) between two Coords (left and right)
 public class Line {
@@ -35,11 +35,11 @@ public class Line {
         }
     }
 
-    // Convert to a Connection using a set of zones, with a specific coordinate as the parent
-    public Connection leftConnection(Zones zones) {
+    // Convert to a Connection using a ZoneSet, with either left or right as the parent
+    public Connection leftConnection(ZoneSet zones) {
         return new Connection(this, zones, true);
     }
-    public Connection rightConnection(Zones zones) {
+    public Connection rightConnection(ZoneSet zones) {
         return new Connection(this, zones, false);
     }
 
