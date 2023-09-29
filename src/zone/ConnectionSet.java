@@ -18,12 +18,17 @@ public class ConnectionSet implements Iterable<Connection> {
             Zone rightZone = zones.closestZoneTo(line.right);
             Connection leftConnection = new Connection(line, leftZone, rightZone);
             Connection rightConnection = new Connection(line, rightZone, leftZone);
-            addConnection(leftConnection);
-            addConnection(rightConnection);
+            add(leftConnection);
+            add(rightConnection);
         }
     }
+    // Empty set
+    public ConnectionSet() {
+        this.connections = new HashSet<>();
+    }
 
-    private void addConnection(Connection connection) {
+    public void add(Connection connection) {
+        // Set.add() returns false if the element already exists
         if (!this.connections.add(connection)) {
             System.out.println("WARNING: Duplicate connection " + connection);
         }

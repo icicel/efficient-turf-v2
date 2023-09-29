@@ -2,8 +2,6 @@ package zone;
 import java.sql.Date;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashSet;
-import java.util.Set;
 import org.json.JSONObject;
 import map.Coords;
 
@@ -11,7 +9,7 @@ public class Zone {
 
     public String name;
     public int points;
-    public Set<Connection> connections;
+    public ConnectionSet connections;
 
     public ZoneType type;
 
@@ -23,7 +21,7 @@ public class Zone {
         this.name = name.toLowerCase();
         this.points = 0;
         this.coords = new Coords(coordinates);
-        this.connections = new HashSet<>();
+        this.connections = new ConnectionSet();
         this.type = ZoneType.CROSSING;
     }
 
