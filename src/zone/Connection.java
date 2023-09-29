@@ -26,15 +26,6 @@ public class Connection {
     }
 
     @Override
-    public boolean equals(Object other) {
-        if (!(other instanceof Connection)) {
-            return false;
-        }
-        Connection otherConnection = (Connection) other;
-        return this.parent.equals(otherConnection.parent) 
-            && this.neighbor.equals(otherConnection.neighbor);
-    }
-    @Override
     public int hashCode() {
         return this.parent.hashCode() + this.neighbor.hashCode();
     }
