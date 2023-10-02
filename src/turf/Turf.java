@@ -32,7 +32,7 @@ public class Turf {
     throws IOException, InterruptedException, SAXException, ParserConfigurationException {
         KML kml = new KML(kmlFile);
         ZoneSet realZones = kml.getZones(realZoneLayer);
-        realZones.initPoints();
+        realZones.initPoints(settings.username);
         ZoneSet crossings = kml.getZones(crossingLayer);
         this.zones = ZoneSet.union(realZones, crossings);
 
@@ -48,7 +48,7 @@ public class Turf {
     throws IOException, InterruptedException, SAXException, ParserConfigurationException {
         KML kml = new KML(kmlFile);
         this.zones = kml.getZones(zoneLayer);
-        zones.initPoints();
+        zones.initPoints(settings.username);
 
         this.connections = kml.getConnections(connectionLayer, zones);
 

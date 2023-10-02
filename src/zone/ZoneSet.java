@@ -35,7 +35,7 @@ public class ZoneSet extends AbstractSet<Zone> {
 
     // Get points values of zones from the Turf API
     // Only use on Zones objects that contain real zones
-    public void initPoints() throws IOException, InterruptedException {
+    public void initPoints(String username) throws IOException, InterruptedException {
         
         // Create a JSON body with all zone names
         // [{"name": "zonea"}, {"name": "zoneb"}, ...]
@@ -69,7 +69,7 @@ public class ZoneSet extends AbstractSet<Zone> {
             JSONObject zoneInfo = zoneJson.getJSONObject(i);
             String name = zoneInfo.getString("name").toLowerCase();
             Zone zone = findByName(name);
-            zone.setPoints(zoneInfo);
+            zone.setPoints(zoneInfo, username);
         }
 
         this.type = ZoneType.REAL;

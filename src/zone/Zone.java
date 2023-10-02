@@ -26,6 +26,7 @@ public class Zone {
     }
 
     // Calculates a total point value for the zone from the given API JSON object
+    //  and the given Turf username
     // Takes into account both on-capture points and hourly points by calculating the expected
     //  number of hours the zone will be held
     // Example object:
@@ -41,25 +42,29 @@ public class Zone {
     //     "longitude": 11.851104,
     //     "takeoverPoints": 185}
     //      , ...]
-    public void setPoints(JSONObject info) {
+    public void setPoints(JSONObject info, String username) {
+        
+        /* Calculate the average amount of hours the zone was held for */
+
+        long currentTime = System.currentTimeMillis();
 
         // find the amount of hours the zone has existed for (current time - creation time)
         String creationTimestamp = info.getString("dateCreated");
         long creationTime = parseTimestamp(creationTimestamp);
-        long currentTime = System.currentTimeMillis();
         double hoursExisted = asHours(currentTime - creationTime);
         
         // Find how many hours are left in this round
         // A round ends and a new one begins at 12:00 swedish time the first sunday of every month
-        // So to find the next round end, we get the first sunday of this month, and then simply add
-        //   a month if that sunday is in the past
         LocalDateTime now = LocalDateTime.now();
+        // First day of the current month at 12:00
         LocalDateTime firstDay = LocalDateTime.of(now.getYear(), now.getMonth(), 1, 12, 0);
-        // 7 - day of week = days until sunday
+        // First sunday of current month
+        // Days until sunday = 7 - weekday number
         LocalDateTime firstSunday = firstDay.plusDays(7 - firstDay.getDayOfWeek().getValue());
-        if (firstSunday.isBefore(now)) {
+        // If the first sunday has already passed, change month to next month
+        if (firstSunday.isBefore(now))
             firstSunday = firstSunday.plusMonths(1);
-        }
+        // This is then guaranteed to be the next round end datetime
         long roundEndTime = parseDatetime(firstSunday);
         double hoursLeftInRound = asHours(roundEndTime - currentTime);
 
@@ -74,14 +79,51 @@ public class Zone {
         double naïveHoursHeld = hoursExisted / (double) totalTakeovers;
         double expectedHoursHeld = Math.min(naïveHoursHeld, hoursLeftInRound);
 
-        // Calculate the total points!
-        // Stored as int because Turf doesn't do fractional points B)
+
+        /* Everything else */
+
+        boolean userControlsZone = false;
+        int neutralPoints = 0;
+
+        // If the zone has no owner ("currentOwner" does not exist), it's neutral and a bonus is added
+        boolean hasOwner = info.has("currentOwner");
+        if (!hasOwner)
+            neutralPoints = 50;
+        
+        else {
+            // If the zone's owner is the user, points are calculated differently
+            String owner = info.getJSONObject("currentOwner").getString("name");
+            if (owner.equals(username))
+                userControlsZone = true;
+        }
+
+        // One time point payout for taking over the zone
         int takeoverPoints = info.getInt("takeoverPoints");
 
-        int pointsPerHour = info.getInt("pointsPerHour");
-        int holdingPoints = (int) expectedHoursHeld * pointsPerHour;
+        // Ordinary calculation
+        if (!userControlsZone) {
+            int pointsPerHour = info.getInt("pointsPerHour");
 
-        this.points = takeoverPoints + holdingPoints;
+            // Stored as int because Turf doesn't do fractional points B)
+            int holdingPoints = (int) expectedHoursHeld * pointsPerHour;
+
+            this.points = takeoverPoints + holdingPoints + neutralPoints;
+        }
+
+        // Special calculation for when the user controls the zone
+        else {
+            // If 23 hours have passed since the zone was taken, grant revisit points, otherwise nothing
+            String lastTakenTimestamp = info.getString("dateLastTaken");
+            long lastTakenTime = parseTimestamp(lastTakenTimestamp);
+            double hoursSinceTaken = asHours(currentTime - lastTakenTime);
+
+            if (hoursSinceTaken > 23)
+                this.points = takeoverPoints / 2; // integer division
+            else
+                this.points = 0;
+        }
+        
+        // Change type
         this.type = ZoneType.REAL;
     }
 
