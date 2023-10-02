@@ -10,6 +10,9 @@ public class Connection {
     public Zone parent;
     public Zone neighbor;
 
+    // The connection from neighbor to parent (if it exists)
+    public Connection reverse;
+
     // Convert a Line to a Connection
     // parent.coords and neighbor.coords don't necessarily have to correspond to line.left and line.right
     public Connection(Line line, Zone parent, Zone neighbor) {

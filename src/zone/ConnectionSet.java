@@ -11,14 +11,21 @@ public class ConnectionSet extends AbstractSet<Connection> {
         // Convert Lines to Connections
         this.set = new HashSet<>();
         for (Line line : lines) {
-            Zone leftZone = zones.closestZoneTo(line.left);
-            Zone rightZone = zones.closestZoneTo(line.right);
-            Connection leftConnection = new Connection(line, leftZone, rightZone);
-            Connection rightConnection = new Connection(line, rightZone, leftZone);
-            add(leftConnection);
-            add(rightConnection);
+            addLine(line, zones);
         }
     }
     // Empty constructor
     public ConnectionSet() {super();}
+
+    // Convert a Line to two Connections and add them
+    public void addLine(Line line, ZoneSet zones) {
+        Zone leftZone = zones.closestZoneTo(line.left);
+        Zone rightZone = zones.closestZoneTo(line.right);
+        Connection leftConnection = new Connection(line, leftZone, rightZone);
+        Connection rightConnection = new Connection(line, rightZone, leftZone);
+        leftConnection.reverse = rightConnection;
+        rightConnection.reverse = leftConnection;
+        add(leftConnection);
+        add(rightConnection);
+    }
 }
