@@ -1,6 +1,7 @@
 package zone;
-import java.sql.Date;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import org.json.JSONObject;
 import map.Coords;
@@ -138,9 +139,10 @@ public class Zone {
         return parseDatetime(datetime);
     }
     // Parses a datetime object into a long (ms)
+    // Assumes datetimes (and by extension, API timestamps) are in Swedish time
     private static long parseDatetime(LocalDateTime datetime) {
-        Date date = java.sql.Date.valueOf(datetime.toLocalDate());
-        return date.getTime();
+        ZonedDateTime swedishDatetime = datetime.atZone(ZoneId.of("Europe/Stockholm"));
+        return swedishDatetime.toInstant().toEpochMilli();
     }
     // Get hours from milliseconds
     private static double asHours(long ms) {
