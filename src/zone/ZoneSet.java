@@ -5,7 +5,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import org.json.JSONArray;
@@ -18,7 +17,7 @@ public class ZoneSet extends AbstractSet<Zone> {
     private Map<String, Zone> nameMap;
 
     public ZoneSet(Set<Zone> zones) {
-        this.set = zones;
+        super(zones);
 
         // Build name map
         this.nameMap = new HashMap<>();
@@ -26,8 +25,10 @@ public class ZoneSet extends AbstractSet<Zone> {
             nameMap.put(zone.name, zone);
         }
     }
-    // Empty constructor
-    public ZoneSet() {super();}
+    public ZoneSet() {
+        super();
+        this.nameMap = new HashMap<>();
+    }
 
     // Get points values of zones from the Turf API
     // Only use on Zones objects that contain real zones
@@ -36,7 +37,7 @@ public class ZoneSet extends AbstractSet<Zone> {
         // Create a JSON body with all zone names
         // [{"name": "zonea"}, {"name": "zoneb"}, ...]
         JSONArray requestJson = new JSONArray();
-        for (Zone zone : set) {
+        for (Zone zone : this) {
             JSONObject object = new JSONObject();
             object.put("name", zone.name);
             requestJson.put(object);
@@ -55,7 +56,7 @@ public class ZoneSet extends AbstractSet<Zone> {
         // Check that the response contains the same number of zones as the request
         // Should always be less - the API will ignore nonexistant zones
         // If not, tries to find those nonexistant zones
-        if (resultJson.length() != set.size()) {
+        if (resultJson.length() != this.size()) {
             System.out.println("WARNING: API response contains less zones than requested");
             findFakeZones(resultJson);
         }
@@ -71,7 +72,7 @@ public class ZoneSet extends AbstractSet<Zone> {
 
     // Find Zones that aren't real, a.k.a. don't exist in the API
     private void findFakeZones(JSONArray resultJson) {
-        Set<Zone> foundZones = new HashSet<>();
+        ZoneSet foundZones = new ZoneSet();
         for (int i = 0; i < resultJson.length(); i++) {
             JSONObject zoneInfo = resultJson.getJSONObject(i);
             String name = zoneInfo.getString("name").toLowerCase();
@@ -79,7 +80,7 @@ public class ZoneSet extends AbstractSet<Zone> {
             foundZones.add(zone);
         }
         boolean foundFakeZone = false;
-        for (Zone zone : set) {
+        for (Zone zone : this) {
             if (!foundZones.contains(zone)) {
                 System.out.println("ERROR: Zone " + zone.name + " does not exist in the API");
                 foundFakeZone = true;
@@ -94,7 +95,7 @@ public class ZoneSet extends AbstractSet<Zone> {
     public Zone closestZoneTo(Coords coords) {
         Zone closestZone = null;
         double closestDistance = Double.MAX_VALUE;
-        for (Zone zone : set) {
+        for (Zone zone : this) {
             double distance = coords.distanceTo(zone.coords);
             if (distance < closestDistance) {
                 closestZone = zone;
@@ -109,17 +110,22 @@ public class ZoneSet extends AbstractSet<Zone> {
         return nameMap.get(name);
     }
 
+    @Override
+    public boolean add(Zone zone) {
+        nameMap.put(zone.name, zone);
+        return super.add(zone);
+    }
+    @Override
+    public boolean remove(Zone zone) {
+        nameMap.remove(zone.name);
+        return super.remove(zone);
+    }
+
     // Merge two ZoneSets
     public static ZoneSet union(ZoneSet a, ZoneSet b) {
         ZoneSet union = new ZoneSet();
-        union.nameMap = new HashMap<>();
-
-        // Possible duplicates are handled by AbstractSet.addAll()
         union.addAll(a);
         union.addAll(b);
-        union.nameMap.putAll(a.nameMap);
-        union.nameMap.putAll(b.nameMap);
-        
         return union;
     }
 }

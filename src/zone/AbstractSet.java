@@ -1,29 +1,35 @@
 package zone;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
-public class AbstractSet<T> extends HashSet<T> {
+// Abstract class for the ZoneSet and ConnectionSet classes
+// Acts like a Set but also has a List for iteration
+//   because I am concerned about the performance of the HashSet iterator
+public class AbstractSet<T> implements Iterable<T> {
     
-    protected Set<T> set;
+    private Set<T> set; // For other methods
+    private List<T> list; // For iteration
 
+    public AbstractSet(Collection<T> elements) {
+        this.set = new HashSet<>(elements);
+        this.list = new ArrayList<>(elements);
+    }
     public AbstractSet() {
         this.set = new HashSet<>();
+        this.list = new ArrayList<>();
     }
 
-    @Override
+    /* Add/remove */
+
     public boolean add(T element) {
-        // Set.add() returns false if the element already exists
-        boolean added = this.set.add(element);
-        if (!added) {
-            System.out.println("WARNING: Duplicate element " + element);
-        }
-        return added;
+        list.add(element);
+        return this.set.add(element);
     }
-
-    @Override
-    public boolean addAll(Collection<? extends T> elements) {
+    public boolean addAll(Iterable<T> elements) {
         boolean added = false;
         for (T element : elements) {
             added = add(element) || added;
@@ -31,13 +37,34 @@ public class AbstractSet<T> extends HashSet<T> {
         return added;
     }
 
-    @Override
+    public boolean remove(T element) {
+        list.remove(element);
+        return this.set.remove(element);
+    }
+    public boolean removeAll(Iterable<T> elements) {
+        boolean removed = false;
+        for (T element : elements) {
+            removed = remove(element) || removed;
+        }
+        return removed;
+    }
+
+
+    /* Simple methods */
+
     public int size() {
         return set.size();
     }
-
-    @Override
     public Iterator<T> iterator() {
-        return set.iterator();
+        return list.iterator();
+    }
+    public void clear() {
+        this.set.clear();
+    }
+    public boolean isEmpty() {
+        return set.isEmpty();
+    }
+    public boolean contains(T element) {
+        return set.contains(element);
     }
 }
