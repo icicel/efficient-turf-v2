@@ -109,6 +109,7 @@ public class Zone {
             int holdingPoints = (int) expectedHoursHeld * pointsPerHour;
 
             this.points = takeoverPoints + holdingPoints + neutralPoints;
+            this.type = ZoneType.REAL;
         }
 
         // Special calculation for when the user controls the zone
@@ -118,14 +119,14 @@ public class Zone {
             long lastTakenTime = parseTimestamp(lastTakenTimestamp);
             double hoursSinceTaken = asHours(currentTime - lastTakenTime);
 
-            if (hoursSinceTaken > 23)
+            if (hoursSinceTaken > 23) {
                 this.points = takeoverPoints / 2; // integer division
-            else
+                this.type = ZoneType.REAL;
+            } else {
                 this.points = 0;
+                this.type = ZoneType.POINTLESS;
+            }
         }
-        
-        // Change type
-        this.type = ZoneType.REAL;
     }
 
     /* Time methods */
