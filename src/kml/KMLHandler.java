@@ -128,7 +128,7 @@ public class KMLHandler extends DefaultHandler {
 
             case "name":
                 if (searchingForLayerName) {
-                    if (targetLayer == null || currentChars.equals(targetLayer)) {
+                    if (targetLayer.equals("!ALL") || targetLayer.equals(currentChars)) {
                         inTargetLayer = true;
                     }
                     searchingForLayerName = false;

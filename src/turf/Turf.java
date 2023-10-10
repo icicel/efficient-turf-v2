@@ -31,7 +31,7 @@ public class Turf {
     // Give layer names of layers containing real zones, crossings, and connections for the
     //   program to search through
     // Crossings are optional, set to null to ignore them
-    // Set a layer name to null to search through all layers
+    // Set a layer name to "!ALL" to search through all layers
     public Turf(String username, String kmlFile, String realZoneLayer, String crossingLayer, String connectionLayer)
     throws IOException, InterruptedException, SAXException, ParserConfigurationException {
         KML kml = new KML(kmlFile);
