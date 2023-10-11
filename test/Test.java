@@ -7,7 +7,7 @@ public class Test {
     public static void main(String[] args) throws Exception {
         Path kmlPath = Turf.getRootFilePath("example.kml");
         Turf turf = new Turf("icicle", kmlPath, "Zones", "Crossings", "Connections");
-        turf.setSpeed(64.0);
+        turf.speed = 64.0;
         
         for (Zone zone : turf.zones) {
             System.out.println(zone + " " + zone.points);

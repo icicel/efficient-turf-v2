@@ -23,10 +23,10 @@ public class Turf {
     public Zone[] whitelist;
 
     // Speed in meters per minute (ignoring wait times at zones)
-    public double speed = 60.0;
+    public double speed;
 
     // Time in minutes to wait at each zone
-    public double waitTime = 1.0;
+    public double waitTime;
 
     // Initialize zones and connections from the given KML file
     // Username is required but can be set to null
@@ -49,6 +49,10 @@ public class Turf {
         ZoneSet crossings = kml.getZones(crossingLayer);
         this.zones = ZoneSet.union(realZones, crossings);
         this.connections = kml.getConnections(connectionLayer, zones);
+
+        // Default values
+        this.speed = 60.0;
+        this.waitTime = 1.0;
     }
 
     // Helper function to get a path to a file in the root directory
@@ -56,16 +60,7 @@ public class Turf {
         return FileSystems.getDefault().getPath(".", filename);
     }
 
-    /* Setters */
-
-    public void setSpeed(double speed) {
-        this.speed = speed;
-    }
-    public void setWaitTime(double waitTime) {
-        this.waitTime = waitTime;
-    }
-
-    // List of names of zones 
+    // Set black/whitelist using array of zone names
     public void setBlacklist(String[] blacklist) {
         this.blacklist = namesToZones(blacklist);
     }
