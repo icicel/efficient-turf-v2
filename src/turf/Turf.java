@@ -1,5 +1,7 @@
 package turf;
 import java.io.IOException;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
 import javax.xml.parsers.ParserConfigurationException;
 import org.xml.sax.SAXException;
 import kml.KML;
@@ -32,9 +34,9 @@ public class Turf {
     //   program to search through
     // Crossings are optional, set to null to ignore them
     // Set a layer name to "!ALL" to search through all layers
-    public Turf(String username, String kmlFile, String realZoneLayer, String crossingLayer, String connectionLayer)
+    public Turf(String username, Path kmlPath, String realZoneLayer, String crossingLayer, String connectionLayer)
     throws IOException, InterruptedException, SAXException, ParserConfigurationException {
-        KML kml = new KML(kmlFile);
+        KML kml = new KML(kmlPath);
         ZoneSet realZones = kml.getZones(realZoneLayer);
         realZones.initPoints(username);
 
@@ -47,6 +49,11 @@ public class Turf {
         ZoneSet crossings = kml.getZones(crossingLayer);
         this.zones = ZoneSet.union(realZones, crossings);
         this.connections = kml.getConnections(connectionLayer, zones);
+    }
+
+    // Helper function to get a path to a file in the root directory
+    public static Path getRootFilePath(String filename) {
+        return FileSystems.getDefault().getPath(".", filename);
     }
 
     /* Setters */

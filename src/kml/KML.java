@@ -1,7 +1,6 @@
 package kml;
 import java.io.IOException;
 import java.io.StringReader;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
@@ -23,12 +22,10 @@ public class KML {
     private XMLReader parser;
     private KMLHandler handler;
     
-    // Takes a KML file located in the root directory
+    // Takes a path to the KML file
     // Stores an XMLReader object to do the reading, and sets a KMLHandler object
     //   as both content and error handler
-    public KML(String file) throws ParserConfigurationException, SAXException, IOException {
-        Path path = FileSystems.getDefault().getPath(".", file);
-
+    public KML(Path path) throws ParserConfigurationException, SAXException, IOException {
         this.kml = Files.readString(path);
         this.parser = SAXParserFactory.newInstance().newSAXParser().getXMLReader();
         this.handler = new KMLHandler();
