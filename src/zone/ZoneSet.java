@@ -112,13 +112,19 @@ public class ZoneSet extends AbstractSet<Zone> {
 
     @Override
     public boolean add(Zone zone) {
+        if (!super.add(zone)) {
+            return false;
+        }
         nameMap.put(zone.name, zone);
-        return super.add(zone);
+        return true;
     }
     @Override
     public boolean remove(Zone zone) {
+        if (!super.remove(zone)) {
+            return false;
+        }
         nameMap.remove(zone.name);
-        return super.remove(zone);
+        return true;
     }
 
     // Merge two ZoneSets

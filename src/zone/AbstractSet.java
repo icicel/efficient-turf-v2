@@ -23,11 +23,14 @@ public class AbstractSet<T> implements Iterable<T> {
         this.list = new ArrayList<>();
     }
 
-    /* Add/remove */
+    /* Add/remove (ignores null objects) */
 
     public boolean add(T element) {
+        if (this.set.contains(element) || element == null)
+            return false;
         list.add(element);
-        return this.set.add(element);
+        set.add(element);
+        return true;
     }
     public boolean addAll(Iterable<T> elements) {
         boolean added = false;
@@ -38,8 +41,11 @@ public class AbstractSet<T> implements Iterable<T> {
     }
 
     public boolean remove(T element) {
+        if (!this.set.contains(element) || element == null)
+            return false;
         list.remove(element);
-        return this.set.remove(element);
+        set.remove(element);
+        return true;
     }
     public boolean removeAll(Iterable<T> elements) {
         boolean removed = false;
