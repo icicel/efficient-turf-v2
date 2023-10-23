@@ -124,7 +124,7 @@ public class Zone {
                 this.type = ZoneType.REAL;
             } else {
                 this.points = 0;
-                this.type = ZoneType.POINTLESS;
+                // Stays as crossing
             }
         }
     }

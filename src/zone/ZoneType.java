@@ -1,9 +1,8 @@
 package zone;
 
-// Represents if the zone exists in the API or is user-defined
-// REAL: exists in the API
-// POINTLESS: exists in the API but gives no points (is already owned by user)
-// CROSSING: user-defined, gives no points
+// Represents if the zone has points
+// REAL: gives points (exists in the API)
+// CROSSING: gives no points (usually user-defined but could also be already owned by the user)
 public enum ZoneType {
-    REAL, POINTLESS, CROSSING;
+    REAL, CROSSING;
 }
