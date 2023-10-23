@@ -46,7 +46,7 @@ public class KML {
     }
 
     // Get all Zones in layerName
-    // Submit null as layerName to parse every layer
+    // Submit "!ALL" as layerName to parse every layer
     public ZoneSet getZones(String layerName) throws IOException, SAXException {
         parse(layerName);
         Set<Zone> zones = handler.getZones();
@@ -54,7 +54,7 @@ public class KML {
     }
     
     // Get all Connections in layerName, requires a ZoneSet to connect to
-    // Submit null as layerName to parse every layer
+    // Submit "!ALL" as layerName to parse every layer
     public ConnectionSet getConnections(String layerName, ZoneSet zones) throws IOException, SAXException {
         parse(layerName);
         Set<Line> lines = handler.getLines();
