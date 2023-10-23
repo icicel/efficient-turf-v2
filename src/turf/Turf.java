@@ -16,11 +16,15 @@ public class Turf {
     public ZoneSet zones;
     public ConnectionSet connections;
 
+    // In order to refer to zones based on type
+    public ZoneSet realZones;
+    public ZoneSet crossings;
+
     // Zones that should not be visited
-    public Zone[] blacklist;
+    public ZoneSet blacklist;
 
     // Zones that must be visited
-    public Zone[] whitelist;
+    public ZoneSet whitelist;
 
     // Speed in meters per minute (ignoring wait times at zones)
     public double speed;
@@ -37,27 +41,23 @@ public class Turf {
     public Turf(String username, Path kmlPath, String realZoneLayer, String crossingLayer, String connectionLayer)
     throws IOException, InterruptedException, SAXException, ParserConfigurationException {
         KML kml = new KML(kmlPath);
-        ZoneSet realZones = kml.getZones(realZoneLayer);
+        realZones = kml.getZones(realZoneLayer);
         realZones.initPoints(username);
 
         if (crossingLayer == null) {
-            this.zones = realZones;
-            this.connections = kml.getConnections(connectionLayer, zones);
+            // crossings remains null
+            zones = realZones;
+            connections = kml.getConnections(connectionLayer, zones);
             return;
         }
 
-        ZoneSet crossings = kml.getZones(crossingLayer);
-        this.zones = ZoneSet.union(realZones, crossings);
-        this.connections = kml.getConnections(connectionLayer, zones);
+        crossings = kml.getZones(crossingLayer);
+        zones = ZoneSet.union(realZones, crossings);
+        connections = kml.getConnections(connectionLayer, zones);
 
         // Default values
         this.speed = 60.0;
         this.waitTime = 1.0;
-    }
-
-    // Helper function to get a path to a file in the root directory
-    public static Path getRootFilePath(String filename) {
-        return FileSystems.getDefault().getPath(".", filename);
     }
 
     // Set black/whitelist using array of zone names
@@ -68,16 +68,22 @@ public class Turf {
         this.whitelist = namesToZones(whitelist);
     }
 
-    // Convert an array of zone names to an array of corresponding Zone objects
-    private Zone[] namesToZones(String[] names) {
+    // Convert an array of zone names to a ZoneSet of corresponding Zone objects
+    //   in this.zones
+    private ZoneSet namesToZones(String[] names) {
         if (names == null) {
             return null;
         }
-        Zone[] zones = new Zone[names.length];
-        for (int i = 0; i < names.length; i++) {
-            String name = names[i].toLowerCase();
-            zones[i] = this.zones.findByName(name);
+        ZoneSet zones = new ZoneSet();
+        for (String name : names) {
+            Zone zone = this.zones.findByName(name.toLowerCase());
+            zones.add(zone);
         }
         return zones;
+    }
+
+    // Helper function to get a path to a file in the root directory
+    public static Path getRootFilePath(String filename) {
+        return FileSystems.getDefault().getPath(".", filename);
     }
 }
