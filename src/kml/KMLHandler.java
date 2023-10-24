@@ -134,7 +134,7 @@ public class KMLHandler extends DefaultHandler {
                     searchingForLayerName = false;
                 } 
                 if (searchingForObjectName) {
-                    objectName = currentChars;
+                    objectName = currentChars.strip();
                     searchingForObjectName = false;
                 }
                 break;
