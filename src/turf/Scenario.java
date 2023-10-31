@@ -1,4 +1,5 @@
 package turf;
+import java.util.Map;
 import zone.Connection;
 import zone.ConnectionSet;
 import zone.Zone;
@@ -7,6 +8,8 @@ import zone.ZoneSet;
 // Represents a combination of a Turf object (Zone and Connection data)
 //   and a set of Conditions that specify the problem definition
 public class Scenario {
+
+    // Base Turf/Conditions data
 
     public ZoneSet zones;
     public ConnectionSet connections;
@@ -17,9 +20,12 @@ public class Scenario {
 
     public double speed;
     public double waitTime;
-    public String username;
 
     public ZoneSet priority;
+
+    // Scenario-specific information
+
+    public Map<Zone, Integer> points;
     
     public Scenario(Turf turf, Conditions conditions) {
         this.zones = new ZoneSet(turf.zones);
@@ -28,17 +34,18 @@ public class Scenario {
         this.start = this.zones.findByName(conditions.start);
         this.end = this.zones.findByName(conditions.end);
         this.timeLimit = conditions.timeLimit;
-
         this.speed = conditions.speed;
         this.waitTime = conditions.waitTime;
-        this.username = new String(conditions.username);
-
         if (conditions.whitelist != null) {
             inverseRemoveZones(namesToZones(conditions.whitelist));
         } else if (conditions.blacklist != null) {
             removeZones(namesToZones(conditions.blacklist));
         }
         this.priority = namesToZones(conditions.priority);
+
+        for (Zone zone : this.zones) {
+            points.put(zone, zone.getPoints(conditions.username, conditions.infiniteRounds));
+        }
     }
 
     // Convert an array of zone names to a ZoneSet

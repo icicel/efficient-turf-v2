@@ -21,11 +21,11 @@ public class Turf {
     //   program to search through
     // Crossings are optional, set to null to ignore them
     // Set a layer name to "!ALL" to search through all layers
-    public Turf(String username, Path kmlPath, String realZoneLayer, String crossingLayer, String connectionLayer)
+    public Turf(Path kmlPath, String realZoneLayer, String crossingLayer, String connectionLayer)
     throws IOException, InterruptedException, SAXException, ParserConfigurationException {
         KML kml = new KML(kmlPath);
         ZoneSet realZones = kml.getZones(realZoneLayer);
-        realZones.initPoints(username);
+        realZones.initPoints();
 
         if (crossingLayer == null) {
             // crossings remains null

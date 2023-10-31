@@ -19,6 +19,9 @@ public class Conditions {
     // Username to use for zone ownership calculation
     public String username;
 
+    // Ignore end of Turf rounds when calculating Zone points
+    public boolean infiniteRounds;
+
     /* Zone adjustments */
 
     // Names of zones to avoid (a.k.a. remove completely)
@@ -39,5 +42,6 @@ public class Conditions {
         // Default values
         this.speed = 60.0;
         this.waitTime = 1.0;
+        this.infiniteRounds = false;
     }
 }

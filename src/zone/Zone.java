@@ -9,18 +9,31 @@ import map.Coords;
 public class Zone {
 
     public String name;
-    public int points;
     public ConnectionSet connections;
 
     public ZoneType type;
 
     public Coords coords;
 
+    // Points-related values
+
+    // One time point payout for taking over the zone
+    private int takeoverPoints;
+    // Hourly point payout for holding the zone
+    private int hourlyPoints;
+    // Expected amount of hours the zone will be held for
+    private double expectedHoursHeld;
+    // expectedHoursHeld, but without taking into account Turf rounds ending
+    private double naïveHoursHeld;
+    // Can be revisited by owner
+    private boolean revisitable;
+    // The user who controls the zone
+    private String owner;
+
     // Create a zone from a Point
     // type defaults to CROSSING until points are set
     public Zone(String name, String coordinates) {
         this.name = name.toLowerCase();
-        this.points = 0;
         this.coords = new Coords(coordinates);
         this.connections = new ConnectionSet();
         this.type = ZoneType.CROSSING;
@@ -43,7 +56,7 @@ public class Zone {
     //     "longitude": 11.851104,
     //     "takeoverPoints": 185}
     //      , ...]
-    public void setPoints(JSONObject info, String username) {
+    public void initPoints(JSONObject info) {
         
         /* Calculate the average amount of hours the zone was held for */
 
@@ -74,59 +87,56 @@ public class Zone {
         //   for zones with few/no takeovers
         int totalTakeovers = info.getInt("totalTakeovers") + 1;
 
-        // Find the expected amount of hours the zone will be held for
-        // The first calculation ignores the fact that the round might end, resetting ownership prematurely
-        //   (also I really wanted to use ï in a variable name)
-        double naïveHoursHeld = hoursExisted / (double) totalTakeovers;
-        double expectedHoursHeld = Math.min(naïveHoursHeld, hoursLeftInRound);
+        // Final calculations
+        naïveHoursHeld = hoursExisted / (double) totalTakeovers;
+        expectedHoursHeld = Math.min(naïveHoursHeld, hoursLeftInRound);
 
-
-        /* Everything else */
-
-        boolean userControlsZone = false;
-        int neutralPoints = 0;
-
-        // If the zone has no owner ("currentOwner" does not exist), it's neutral and a bonus is added
-        boolean hasOwner = info.has("currentOwner");
-        if (!hasOwner)
-            neutralPoints = 50;
+        /* Calculate other stuff */
         
-        else {
-            // If the zone's owner is the user, points are calculated differently
-            String owner = info.getJSONObject("currentOwner").getString("name");
-            if (owner.equals(username))
-                userControlsZone = true;
+        takeoverPoints = info.getInt("takeoverPoints");
+        hourlyPoints = info.getInt("pointsPerHour");
+
+        String lastTakenTimestamp = info.getString("dateLastTaken");
+        long lastTakenTime = parseTimestamp(lastTakenTimestamp);
+        double hoursSinceTaken = asHours(currentTime - lastTakenTime);
+        if (hoursSinceTaken > 23)
+            revisitable = true;
+        else
+            revisitable = false;
+
+        if (info.has("currentOwner"))
+            owner = info.getJSONObject("currentOwner").getString("name");
+        else
+            owner = null;
+
+        this.type = ZoneType.REAL;
+    }
+
+    // Returns the amount of points the zone is worth for the given user
+    // If naïve is true, ignores the fact that Turf rounds end
+    public int getPoints(String username, boolean naïve) {
+        if (type == ZoneType.CROSSING)
+            return 0;
+        double hoursHeld;
+        if (naïve)
+            hoursHeld = naïveHoursHeld;
+        else
+            hoursHeld = expectedHoursHeld;
+
+        int points = 0;
+
+        if (owner == null) {
+            points += takeoverPoints;
+            points += hourlyPoints * hoursHeld;
+            points += 50;
+        } else if (!owner.equals(username)) {
+            points += takeoverPoints;
+            points += hourlyPoints * hoursHeld;
+        } else if (revisitable) {
+            points += takeoverPoints / 2; // integer division
         }
 
-        // One time point payout for taking over the zone
-        int takeoverPoints = info.getInt("takeoverPoints");
-
-        // Ordinary calculation
-        if (!userControlsZone) {
-            int pointsPerHour = info.getInt("pointsPerHour");
-
-            // Stored as int because Turf doesn't do fractional points B)
-            int holdingPoints = (int) expectedHoursHeld * pointsPerHour;
-
-            this.points = takeoverPoints + holdingPoints + neutralPoints;
-            this.type = ZoneType.REAL;
-        }
-
-        // Special calculation for when the user controls the zone
-        else {
-            // If 23 hours have passed since the zone was taken, grant revisit points, otherwise nothing
-            String lastTakenTimestamp = info.getString("dateLastTaken");
-            long lastTakenTime = parseTimestamp(lastTakenTimestamp);
-            double hoursSinceTaken = asHours(currentTime - lastTakenTime);
-
-            if (hoursSinceTaken > 23) {
-                this.points = takeoverPoints / 2; // integer division
-                this.type = ZoneType.REAL;
-            } else {
-                this.points = 0;
-                // Stays as crossing
-            }
-        }
+        return points;
     }
 
     /* Time methods */

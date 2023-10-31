@@ -8,7 +8,7 @@ import zone.Zone;
 public class Test {
     public static void main(String[] args) throws Exception {
         Path kmlPath = Turf.getRootFilePath("example.kml");
-        Turf turf = new Turf("icicle", kmlPath, "Zones", "Crossings", "Connections");
+        Turf turf = new Turf(kmlPath, "Zones", "Crossings", "Connections");
         Conditions conditions = new Conditions("k-klassrum", "k-nösnäs", 90.0);
         conditions.speed = 64.0;
         conditions.username = "user";
@@ -18,10 +18,10 @@ public class Test {
         // Solver solver = new BruteForceSolver();
         // solver.solve(scenario);
         
-        for (Zone zone : turf.zones) {
-            System.out.println(zone + " " + zone.points);
+        for (Zone zone : scenario.zones) {
+            System.out.println(zone + " " + scenario.points.get(zone));
         }
-        for (Connection connection : turf.connections) {
+        for (Connection connection : scenario.connections) {
             System.out.println(connection + " " + connection.distance);
         }
     }
