@@ -76,8 +76,9 @@ public class Zone {
         // Days until sunday = 7 - weekday number
         LocalDateTime firstSunday = firstDay.plusDays(7 - firstDay.getDayOfWeek().getValue());
         // If the first sunday has already passed, change month to next month
-        if (firstSunday.isBefore(now))
+        if (firstSunday.isBefore(now)) {
             firstSunday = firstSunday.plusMonths(1);
+        }
         // This is then guaranteed to be the next round end datetime
         long roundEndTime = parseDatetime(firstSunday);
         double hoursLeftInRound = asHours(roundEndTime - currentTime);
@@ -99,15 +100,17 @@ public class Zone {
         String lastTakenTimestamp = info.getString("dateLastTaken");
         long lastTakenTime = parseTimestamp(lastTakenTimestamp);
         double hoursSinceTaken = asHours(currentTime - lastTakenTime);
-        if (hoursSinceTaken > 23)
+        if (hoursSinceTaken > 23) {
             revisitable = true;
-        else
+        } else {
             revisitable = false;
+        }
 
-        if (info.has("currentOwner"))
+        if (info.has("currentOwner")) {
             owner = info.getJSONObject("currentOwner").getString("name");
-        else
+        } else {
             owner = null;
+        }
 
         this.type = ZoneType.REAL;
     }
@@ -115,13 +118,15 @@ public class Zone {
     // Returns the amount of points the zone is worth for the given user
     // If naïve is true, ignores the fact that Turf rounds end
     public int getPoints(String username, boolean naïve) {
-        if (type == ZoneType.CROSSING)
+        if (type == ZoneType.CROSSING) {
             return 0;
+        }
         double hoursHeld;
-        if (naïve)
+        if (naïve) {
             hoursHeld = naïveHoursHeld;
-        else
+        } else {
             hoursHeld = expectedHoursHeld;
+        }
 
         int points = 0;
 

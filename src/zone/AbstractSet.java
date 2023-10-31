@@ -30,8 +30,9 @@ public class AbstractSet<T> implements Iterable<T> {
     /* Add/remove (ignores null objects) */
 
     public boolean add(T element) {
-        if (this.set.contains(element) || element == null)
+        if (this.set.contains(element) || element == null) {
             return false;
+        }
         list.add(element);
         set.add(element);
         return true;
@@ -45,8 +46,9 @@ public class AbstractSet<T> implements Iterable<T> {
     }
 
     public boolean remove(T element) {
-        if (!this.set.contains(element) || element == null)
+        if (!this.set.contains(element) || element == null) {
             return false;
+        }
         list.remove(element);
         set.remove(element);
         return true;
