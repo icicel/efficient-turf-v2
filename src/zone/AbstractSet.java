@@ -18,6 +18,10 @@ public class AbstractSet<T> implements Iterable<T> {
         this.set = new HashSet<>(elements);
         this.list = new ArrayList<>(elements);
     }
+    public AbstractSet(AbstractSet<T> abstractSet) {
+        this.set = new HashSet<>(abstractSet.set);
+        this.list = new ArrayList<>(abstractSet.list);
+    }
     public AbstractSet() {
         this.set = new HashSet<>();
         this.list = new ArrayList<>();

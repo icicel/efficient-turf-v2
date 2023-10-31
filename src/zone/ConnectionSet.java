@@ -14,6 +14,9 @@ public class ConnectionSet extends AbstractSet<Connection> {
             addLine(line, zones);
         }
     }
+    public ConnectionSet(ConnectionSet connectionSet) {
+        super(connectionSet);
+    }
     public ConnectionSet() {
         super();
     }

@@ -25,6 +25,10 @@ public class ZoneSet extends AbstractSet<Zone> {
             nameMap.put(zone.name, zone);
         }
     }
+    public ZoneSet(ZoneSet zoneSet) {
+        super(zoneSet);
+        this.nameMap = new HashMap<>(zoneSet.nameMap);
+    }
     public ZoneSet() {
         super();
         this.nameMap = new HashMap<>();

@@ -1,4 +1,5 @@
 package turf;
+import zone.Connection;
 import zone.ConnectionSet;
 import zone.Zone;
 import zone.ZoneSet;
@@ -21,9 +22,8 @@ public class Scenario {
     public ZoneSet priority;
     
     public Scenario(Turf turf, Conditions conditions) {
-        // TODO: copy instead
-        this.zones = turf.zones;
-        this.connections = turf.connections;
+        this.zones = new ZoneSet(turf.zones);
+        this.connections = new ConnectionSet(turf.connections);
 
         this.start = this.zones.findByName(conditions.start);
         this.end = this.zones.findByName(conditions.end);
@@ -33,12 +33,15 @@ public class Scenario {
         this.waitTime = conditions.waitTime;
         this.username = new String(conditions.username);
 
-        deleteZones(namesToZones(conditions.blacklist));
-        if (conditions.whitelist != null)
-            inverseDeleteZones(namesToZones(conditions.whitelist));
+        if (conditions.whitelist != null) {
+            inverseRemoveZones(namesToZones(conditions.whitelist));
+        } else if (conditions.blacklist != null) {
+            removeZones(namesToZones(conditions.blacklist));
+        }
         this.priority = namesToZones(conditions.priority);
     }
 
+    // Convert an array of zone names to a ZoneSet
     private ZoneSet namesToZones(String[] names) {
         ZoneSet zones = new ZoneSet();
         for (String name : names) {
@@ -48,27 +51,31 @@ public class Scenario {
         return zones;
     }
 
-    // Delete all Zones in a ZoneSet
-    private void deleteZones(ZoneSet zones) {
+    // Remove all Zones in a ZoneSet from this.zones and this.connections
+    private void removeZones(ZoneSet zones) {
         for (Zone zone : zones) {
-            deleteZone(zone);
+            removeZone(zone);
         }
     }
 
-    // Delete all Zones except those in a ZoneSet
-    private void inverseDeleteZones(ZoneSet safeZones) {
+    // Remove all Zones in this except those in a ZoneSet
+    private void inverseRemoveZones(ZoneSet safeZones) {
         for (Zone zone : this.zones) {
             if (!safeZones.contains(zone)) {
-                deleteZone(zone);
+                removeZone(zone);
             }
         }
     }
 
     // Completely remove all references to a Zone from this.zones and this.connections
-    private void deleteZone(Zone zone) {
+    private void removeZone(Zone zone) {
         if (zone == null) {
             return;
         }
-        // TODO
+        this.zones.remove(zone);
+        for (Connection connection : zone.connections) {
+            this.connections.remove(connection);
+            this.connections.remove(connection.reverse);
+        };
     }
 }
