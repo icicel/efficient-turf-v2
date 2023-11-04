@@ -43,6 +43,7 @@ public class Scenario {
         }
         this.priority = namesToZones(conditions.priority);
 
+        this.points = new java.util.HashMap<>();
         for (Zone zone : this.zones) {
             points.put(zone, zone.getPoints(conditions.username, conditions.infiniteRounds));
         }
