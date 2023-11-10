@@ -1,9 +1,9 @@
 package turf;
 import java.util.Map;
+import java.util.Set;
+import util.ListSet;
 import zone.Connection;
-import zone.ConnectionSet;
 import zone.Zone;
-import zone.ZoneSet;
 
 // Represents a combination of a Turf object (Zone and Connection data)
 //   and a set of Conditions that specify the problem definition
@@ -11,8 +11,8 @@ public class Scenario {
 
     // Base Turf/Conditions data
 
-    public ZoneSet zones;
-    public ConnectionSet connections;
+    public Set<Zone> zones;
+    public Set<Connection> connections;
 
     public Zone start;
     public Zone end;
@@ -21,27 +21,27 @@ public class Scenario {
     public double speed;
     public double waitTime;
 
-    public ZoneSet priority;
+    public Set<Zone> priority;
 
     // Scenario-specific information
 
     public Map<Zone, Integer> points;
     
     public Scenario(Turf turf, Conditions conditions) {
-        this.zones = new ZoneSet(turf.zones);
-        this.connections = new ConnectionSet(turf.connections);
+        this.zones = new ListSet<>(turf.zones);
+        this.connections = new ListSet<>(turf.connections);
 
-        this.start = this.zones.findByName(conditions.start);
-        this.end = this.zones.findByName(conditions.end);
+        this.start = turf.getZone(conditions.start);
+        this.end = turf.getZone(conditions.end);
         this.timeLimit = conditions.timeLimit;
         this.speed = conditions.speed;
         this.waitTime = conditions.waitTime;
         if (conditions.whitelist != null) {
-            inverseRemoveZones(namesToZones(conditions.whitelist));
+            inverseRemoveZones(turf.getZones(conditions.whitelist));
         } else if (conditions.blacklist != null) {
-            removeZones(namesToZones(conditions.blacklist));
+            removeZones(turf.getZones(conditions.blacklist));
         }
-        this.priority = namesToZones(conditions.priority);
+        this.priority = turf.getZones(conditions.priority);
 
         this.points = new java.util.HashMap<>();
         for (Zone zone : this.zones) {
@@ -49,25 +49,15 @@ public class Scenario {
         }
     }
 
-    // Convert an array of zone names to a ZoneSet
-    private ZoneSet namesToZones(String[] names) {
-        ZoneSet zones = new ZoneSet();
-        for (String name : names) {
-            Zone zone = this.zones.findByName(name.toLowerCase());
-            zones.add(zone);
-        }
-        return zones;
-    }
-
     // Remove all Zones in a ZoneSet from this.zones and this.connections
-    private void removeZones(ZoneSet zones) {
+    private void removeZones(Set<Zone> zones) {
         for (Zone zone : zones) {
             removeZone(zone);
         }
     }
 
     // Remove all Zones in this except those in a ZoneSet
-    private void inverseRemoveZones(ZoneSet safeZones) {
+    private void inverseRemoveZones(Set<Zone> safeZones) {
         for (Zone zone : this.zones) {
             if (!safeZones.contains(zone)) {
                 removeZone(zone);

@@ -10,9 +10,7 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import map.Line;
-import zone.ConnectionSet;
 import zone.Zone;
-import zone.ZoneSet;
 
 // Takes and parses a KML file
 public class KML {
@@ -45,19 +43,14 @@ public class KML {
         parser.parse(kmlSource);
     }
 
-    // Get all Zones in layerName
+    // Get all Zones/Lines in layerName
     // Submit "!ALL" as layerName to parse every layer
-    public ZoneSet getZones(String layerName) throws IOException, SAXException {
+    public Set<Zone> getZones(String layerName) throws IOException, SAXException {
         parse(layerName);
-        Set<Zone> zones = handler.getZones();
-        return new ZoneSet(zones);
+        return handler.getZones();
     }
-    
-    // Get all Connections in layerName, requires a ZoneSet to connect to
-    // Submit "!ALL" as layerName to parse every layer
-    public ConnectionSet getConnections(String layerName, ZoneSet zones) throws IOException, SAXException {
+    public Set<Line> getLines(String layerName) throws IOException, SAXException {
         parse(layerName);
-        Set<Line> lines = handler.getLines();
-        return new ConnectionSet(lines, zones);
+        return handler.getLines();
     }
 }

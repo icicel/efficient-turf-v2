@@ -3,13 +3,15 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashSet;
+import java.util.Set;
 import org.json.JSONObject;
 import map.Coords;
 
 public class Zone {
 
     public String name;
-    public ConnectionSet connections;
+    public Set<Connection> connections;
 
     public ZoneType type;
 
@@ -35,7 +37,7 @@ public class Zone {
     public Zone(String name, String coordinates) {
         this.name = name.toLowerCase();
         this.coords = new Coords(coordinates);
-        this.connections = new ConnectionSet();
+        this.connections = new HashSet<>();
         this.type = ZoneType.CROSSING;
     }
 
