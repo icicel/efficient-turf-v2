@@ -23,12 +23,11 @@ public class ListSet<T> implements Set<T> {
     /* Add/remove (ignores null objects) */
 
     public boolean add(T element) {
-        if (this.set.contains(element) || element == null) {
+        if (set.contains(element) || element == null) {
             return false;
         }
         list.add(element);
-        set.add(element);
-        return true;
+        return set.add(element);
     }
     public boolean addAll(Collection<? extends T> elements) {
         boolean added = false;
@@ -39,12 +38,11 @@ public class ListSet<T> implements Set<T> {
     }
 
     public boolean remove(Object element) {
-        if (!this.set.contains(element) || element == null) {
+        if (!set.contains(element) || element == null) {
             return false;
         }
         list.remove(element);
-        set.remove(element);
-        return true;
+        return set.remove(element);
     }
     public boolean removeAll(Collection<?> elements) {
         boolean removed = false;
@@ -53,14 +51,6 @@ public class ListSet<T> implements Set<T> {
         }
         return removed;
     }
-
-    /* Retain */
-
-    public boolean retainAll(Collection<?> elements) {
-        list.retainAll(elements);
-        return set.retainAll(elements);
-    }
-
 
     /* Other methods */
 
@@ -82,6 +72,10 @@ public class ListSet<T> implements Set<T> {
     }
     public boolean containsAll(Collection<?> elements) {
         return set.containsAll(elements);
+    }
+    public boolean retainAll(Collection<?> elements) {
+        list.retainAll(elements);
+        return set.retainAll(elements);
     }
     public Object[] toArray() {
         return list.toArray();
