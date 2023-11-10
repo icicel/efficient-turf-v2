@@ -1,10 +1,14 @@
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import turf.Turf;
 import zone.Zone;
 import zone.ZoneType;
 
 public class Export {
     public static void main(String[] args) throws Exception {
-        Turf turf = new Turf("icicle", "example.kml", "Zones", "Crossings", "Connections");
+        String home = System.getProperty("user.home");
+        Path path = Paths.get(home, "Downloads", "example.kml");
+        Turf turf = new Turf(path, "Zones", "Crossings", "Connections");
     
         exportZones(turf);
     }
@@ -13,7 +17,7 @@ public class Export {
         System.out.println("WKT,name,description,Points");
         for (Zone zone : turf.zones) {
             if (zone.type != ZoneType.CROSSING)
-                System.out.println("\"POINT (" + zone.coords.lon + " " + zone.coords.lat + ")\"," + zone.name + ",," + zone.points);
+                System.out.println("\"POINT (" + zone.coords.lon + " " + zone.coords.lat + ")\"," + zone.name + ",," + zone.getPoints("name", true));
         }
     }
 

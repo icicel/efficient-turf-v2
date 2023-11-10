@@ -1,1 +1,8 @@
 *.class
+test/*.java
+*.kml
+
+# exceptions
+!test/Example.java
+!test/Export.java
+!example.kml

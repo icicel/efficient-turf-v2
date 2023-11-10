@@ -5,7 +5,7 @@ import turf.Turf;
 import zone.Connection;
 import zone.Zone;
 
-public class Test {
+public class Example {
     public static void main(String[] args) throws Exception {
         Path kmlPath = Turf.getRootFilePath("example.kml");
         Turf turf = new Turf(kmlPath, "Zones", "Crossings", "Connections");

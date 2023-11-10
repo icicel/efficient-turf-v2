@@ -10,9 +10,9 @@
         },
         {
             "type": "java",
-            "name": "Test",
+            "name": "Example",
             "request": "launch",
-            "mainClass": "Test",
+            "mainClass": "Example",
             "projectName": "efficientturf_f744c3e3"
         }
     ]
