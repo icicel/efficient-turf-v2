@@ -3,15 +3,12 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashSet;
-import java.util.Set;
 import org.json.JSONObject;
 import map.Coords;
 
 public class Zone {
 
     public String name;
-    public Set<Connection> connections;
 
     public ZoneType type;
 
@@ -37,7 +34,6 @@ public class Zone {
     public Zone(String name, String coordinates) {
         this.name = name.toLowerCase();
         this.coords = new Coords(coordinates);
-        this.connections = new HashSet<>();
         this.type = ZoneType.CROSSING;
     }
 
@@ -99,19 +95,15 @@ public class Zone {
         takeoverPoints = info.getInt("takeoverPoints");
         hourlyPoints = info.getInt("pointsPerHour");
 
-        String lastTakenTimestamp = info.getString("dateLastTaken");
-        long lastTakenTime = parseTimestamp(lastTakenTimestamp);
-        double hoursSinceTaken = asHours(currentTime - lastTakenTime);
-        if (hoursSinceTaken > 23) {
-            revisitable = true;
-        } else {
-            revisitable = false;
-        }
-
         if (info.has("currentOwner")) {
             owner = info.getJSONObject("currentOwner").getString("name");
+            String lastTakenTimestamp = info.getString("dateLastTaken");
+            long lastTakenTime = parseTimestamp(lastTakenTimestamp);
+            double hoursSinceTaken = asHours(currentTime - lastTakenTime);
+            revisitable = hoursSinceTaken > 23;
         } else {
             owner = null;
+            revisitable = false;
         }
 
         this.type = ZoneType.REAL;
@@ -123,24 +115,16 @@ public class Zone {
         if (type == ZoneType.CROSSING) {
             return 0;
         }
-        double hoursHeld;
-        if (naïve) {
-            hoursHeld = naïveHoursHeld;
-        } else {
-            hoursHeld = expectedHoursHeld;
-        }
+        double hoursHeld = naïve ? naïveHoursHeld : expectedHoursHeld;
 
         int points = 0;
 
         if (owner == null) {
-            points += takeoverPoints;
-            points += hourlyPoints * hoursHeld;
-            points += 50;
+            points = takeoverPoints + (int) (hourlyPoints * hoursHeld) + 50;
         } else if (!owner.equals(username)) {
-            points += takeoverPoints;
-            points += hourlyPoints * hoursHeld;
+            points = takeoverPoints + (int) (hourlyPoints * hoursHeld);
         } else if (revisitable) {
-            points += takeoverPoints / 2; // integer division
+            points = takeoverPoints / 2; // integer division
         }
 
         return points;

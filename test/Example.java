@@ -1,9 +1,9 @@
 import java.nio.file.Path;
 import turf.Conditions;
+import turf.Link;
+import turf.Node;
 import turf.Scenario;
 import turf.Turf;
-import zone.Connection;
-import zone.Zone;
 
 public class Example {
     public static void main(String[] args) throws Exception {
@@ -18,11 +18,11 @@ public class Example {
         // Solver solver = new BruteForceSolver();
         // solver.solve(scenario);
         
-        for (Zone zone : scenario.zones) {
-            System.out.println(zone + " " + scenario.points.get(zone));
+        for (Node node : scenario.nodes) {
+            System.out.println(node + " " + node.points);
         }
-        for (Connection connection : scenario.connections) {
-            System.out.println(connection + " " + connection.distance);
+        for (Link link : scenario.links) {
+            System.out.println(link + " " + link.distance);
         }
     }
 }

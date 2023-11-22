@@ -1,35 +1,30 @@
 package zone;
 import map.Line;
 
-// Represents a one-way connection from a parent zone to its neighbor
+// Represents a two-way connection between two Zones
 public class Connection {
     
     // meters
     public double distance;
 
-    public Zone parent;
-    public Zone neighbor;
-
-    // The connection from neighbor to parent (if it exists)
-    public Connection reverse;
+    public Zone left;
+    public Zone right;
 
     // Convert a Line to a Connection
     // parent.coords and neighbor.coords don't necessarily have to correspond to line.left and line.right
-    public Connection(Line line, Zone parent, Zone neighbor) {
+    public Connection(Line line, Zone zone1, Zone zone2) {
         this.distance = line.distance;
-        this.parent = parent;
-        this.neighbor = neighbor;
-
-        this.parent.connections.add(this);
+        this.left = zone1;
+        this.right = zone2;
     }
 
     @Override
     public String toString() {
-        return parent.name + " -> " + neighbor.name;
+        return left.name + " <-> " + right.name;
     }
 
     @Override
     public int hashCode() {
-        return this.parent.hashCode() + this.neighbor.hashCode();
+        return this.left.hashCode() + this.right.hashCode();
     }
 }

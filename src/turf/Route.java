@@ -1,13 +1,14 @@
 package turf;
 import java.util.LinkedList;
 import java.util.List;
-import zone.Zone;
 
 public class Route {
 
-    public List<Zone> zones;
+    public List<Node> nodes;
+    public List<Link> links;
 
     public Route() {
-        zones = new LinkedList<>();
+        nodes = new LinkedList<>();
+        links = new LinkedList<>();
     }
 }

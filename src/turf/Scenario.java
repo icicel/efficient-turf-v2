@@ -1,79 +1,119 @@
 package turf;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import util.ListSet;
 import zone.Connection;
 import zone.Zone;
 
-// Represents a combination of a Turf object (Zone and Connection data)
+// Represents a combination of a Turf object (Zone and Link data)
 //   and a set of Conditions that specify the problem definition
 public class Scenario {
 
     // Base Turf/Conditions data
 
-    public Set<Zone> zones;
-    public Set<Connection> connections;
+    public Set<Node> nodes;
+    public Set<Link> links;
 
-    public Zone start;
-    public Zone end;
+    public Node start;
+    public Node end;
     public double timeLimit;
 
     public double speed;
     public double waitTime;
 
-    public Set<Zone> priority;
+    public Set<Node> priority;
 
-    // Scenario-specific information
-
-    public Map<Zone, Integer> points;
+    // node names -> nodes
+    private Map<String, Node> nodeName;
     
     public Scenario(Turf turf, Conditions conditions) {
-        this.zones = new ListSet<>(turf.zones);
-        this.connections = new ListSet<>(turf.connections);
+        // Create a Node for each Zone in the Turf
+        // Also create a temporary map from Zones to respective Nodes
+        this.nodes = new ListSet<>();
+        this.nodeName = new HashMap<>();
+        Map<Zone, Node> childNode = new HashMap<>();
+        for (Zone zone : turf.zones) {
+            Node node = new Node(zone, conditions.username, conditions.infiniteRounds);
+            this.nodes.add(node);
+            this.nodeName.put(node.name, node);
+            childNode.put(zone, node);
+        }
 
-        this.start = turf.getZone(conditions.start);
-        this.end = turf.getZone(conditions.end);
+        // Create a Link for each Connection
+        this.links = new ListSet<>();
+        for (Connection connection : turf.connections) {
+            Node leftNode = childNode.get(connection.left);
+            Node rightNode = childNode.get(connection.right);
+            Link leftLink = new Link(connection.distance, leftNode, rightNode);
+            Link rightLink = new Link(connection.distance, rightNode, leftNode);
+            leftLink.reverse = rightLink;
+            rightLink.reverse = leftLink;
+            this.links.add(leftLink);
+            this.links.add(rightLink);
+        }
+
+        // Fill in other things
+        this.start = getNode(conditions.start);
+        this.end = getNode(conditions.end);
         this.timeLimit = conditions.timeLimit;
         this.speed = conditions.speed;
         this.waitTime = conditions.waitTime;
         if (conditions.whitelist != null) {
-            inverseRemoveZones(turf.getZones(conditions.whitelist));
+            inverseRemoveNodes(getNodes(conditions.whitelist));
         } else if (conditions.blacklist != null) {
-            removeZones(turf.getZones(conditions.blacklist));
+            removeNodes(getNodes(conditions.blacklist));
         }
-        this.priority = turf.getZones(conditions.priority);
+        this.priority = getNodes(conditions.priority);
+    }
 
-        this.points = new java.util.HashMap<>();
-        for (Zone zone : this.zones) {
-            points.put(zone, zone.getPoints(conditions.username, conditions.infiniteRounds));
+    /* Utility functions */
+    
+    // Find a zone by name
+    public Node getNode(String name) {
+        return this.nodeName.get(name);
+    }
+
+    // Convert an array of names to a set of nodes
+    public Set<Node> getNodes(String[] names) {
+        Set<Node> nodes = new HashSet<>();
+        if (names == null) {
+            return nodes;
+        }
+        for (String name : names) {
+            Node node = getNode(name);
+            nodes.add(node);
+        }
+        return nodes;
+    }
+
+    // Remove all nodes in a set
+    private void removeNodes(Set<Node> nodes) {
+        for (Node node : nodes) {
+            removeNode(node);
         }
     }
 
-    // Remove all Zones in a ZoneSet from this.zones and this.connections
-    private void removeZones(Set<Zone> zones) {
-        for (Zone zone : zones) {
-            removeZone(zone);
-        }
-    }
-
-    // Remove all Zones in this except those in a ZoneSet
-    private void inverseRemoveZones(Set<Zone> safeZones) {
-        for (Zone zone : this.zones) {
-            if (!safeZones.contains(zone)) {
-                removeZone(zone);
+    // Remove all nodes EXCEPT those in a set
+    private void inverseRemoveNodes(Set<Node> safeNodes) {
+        for (Node node : nodes) {
+            if (!safeNodes.contains(node)) {
+                removeNode(node);
             }
         }
     }
 
-    // Completely remove all references to a Zone from this.zones and this.connections
-    private void removeZone(Zone zone) {
-        if (zone == null) {
+    // Completely remove all references to a node
+    // Includes removing all connections to/from the node
+    private void removeNode(Node node) {
+        if (node == null) {
             return;
         }
-        this.zones.remove(zone);
-        for (Connection connection : zone.connections) {
-            this.connections.remove(connection);
-            this.connections.remove(connection.reverse);
+        this.nodes.remove(node);
+        for (Link connection : node.links) {
+            this.links.remove(connection);
+            this.links.remove(connection.reverse);
         };
     }
 }

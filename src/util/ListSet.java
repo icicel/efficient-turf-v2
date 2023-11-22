@@ -14,10 +14,9 @@ public class ListSet<T> implements Set<T> {
     private Set<T> set; // For other methods
     private List<T> list; // For iteration
 
-    public ListSet(Collection<T> elements) {
-        this.set = new HashSet<>(elements);
-        this.set.remove(null);
-        this.list = new ArrayList<>(this.set);
+    public ListSet() {
+        this.set = new HashSet<>();
+        this.list = new ArrayList<>();
     }
 
     /* Add/remove (ignores null objects) */

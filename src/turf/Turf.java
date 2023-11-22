@@ -6,7 +6,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import javax.xml.parsers.ParserConfigurationException;
 import org.json.JSONArray;
@@ -25,6 +27,8 @@ public class Turf {
     public Set<Zone> zones;
     public Set<Connection> connections;
 
+    private Map<String, Zone> names;
+
     // Initialize zones and connections from the given KML file
     // Username is required but can be set to null
     // Give layer names of layers containing real zones, crossings, and connections for the
@@ -35,6 +39,14 @@ public class Turf {
     throws IOException, InterruptedException, SAXException, ParserConfigurationException {
         KML kml = new KML(kmlPath);
         this.zones = kml.getZones(realZoneLayer);
+
+        // Init names
+        this.names = new HashMap<>();
+        for (Zone zone : zones) {
+            names.put(zone.name, zone);
+        }
+
+        // Init points
         initPoints();
 
         // Only add crossings if crossingLayer is given
@@ -48,17 +60,10 @@ public class Turf {
         for (Line line : kml.getLines(connectionLayer)) {
             Zone leftZone = closestZoneTo(line.left);
             Zone rightZone = closestZoneTo(line.right);
-            Connection leftConnection = new Connection(line, leftZone, rightZone);
-            Connection rightConnection = new Connection(line, rightZone, leftZone);
-            leftConnection.reverse = rightConnection;
-            rightConnection.reverse = leftConnection;
-            boolean addedLeft = connections.add(leftConnection);
-            boolean addedRight = connections.add(rightConnection);
-            if (!addedLeft) {
-                System.out.println("WARNING: Duplicate connection " + leftConnection);
-            }
-            if (!addedRight) {
-                System.out.println("WARNING: Duplicate connection " + rightConnection);
+            Connection connection = new Connection(line, leftZone, rightZone);
+            boolean added = connections.add(connection);
+            if (!added) {
+                System.out.println("WARNING: Duplicate connection " + connection);
             }
         }
     }
@@ -66,7 +71,6 @@ public class Turf {
     /* Turf API interfacing */
 
     // Get points values of zones from the Turf API
-    // Only use on Zones objects that contain real zones
     private void initPoints() throws IOException, InterruptedException {
         
         // Create a JSON body with all zone names
@@ -100,7 +104,7 @@ public class Turf {
         for (int i = 0; i < resultJson.length(); i++) {
             JSONObject zoneInfo = resultJson.getJSONObject(i);
             String name = zoneInfo.getString("name").toLowerCase();
-            Zone zone = getZone(name);
+            Zone zone = getNode(name);
             zone.initPoints(zoneInfo);
         }
     }
@@ -111,7 +115,7 @@ public class Turf {
         for (int i = 0; i < resultJson.length(); i++) {
             JSONObject zoneInfo = resultJson.getJSONObject(i);
             String name = zoneInfo.getString("name").toLowerCase();
-            Zone zone = getZone(name);
+            Zone zone = getNode(name);
             foundZones.add(zone);
         }
         boolean foundFakeZone = false;
@@ -129,23 +133,8 @@ public class Turf {
     /* Utility functions */
 
     // Find a zone by name
-    public Zone getZone(String name) {
-        name = name.toLowerCase();
-        for (Zone zone : zones) {
-            if (zone.name.equals(name))
-                return zone;
-        }
-        return null;
-    }
-
-    // Convert an array of zone names to a set of zones
-    public Set<Zone> getZones(String[] names) {
-        Set<Zone> zones = new HashSet<>();
-        for (String name : names) {
-            Zone zone = getZone(name);
-            zones.add(zone);
-        }
-        return zones;
+    public Zone getNode(String name) {
+        return names.get(name);
     }
 
     // Returns the closest Zone to a given Coords
