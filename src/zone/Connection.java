@@ -1,5 +1,4 @@
 package zone;
-import map.Line;
 
 // Represents a two-way connection between two Zones
 public class Connection {
@@ -12,10 +11,10 @@ public class Connection {
 
     // Convert a Line to a Connection
     // parent.coords and neighbor.coords don't necessarily have to correspond to line.left and line.right
-    public Connection(Line line, Zone zone1, Zone zone2) {
-        this.distance = line.distance;
-        this.left = zone1;
-        this.right = zone2;
+    public Connection(double distance, Zone left, Zone right) {
+        this.distance = distance;
+        this.left = left;
+        this.right = right;
     }
 
     @Override

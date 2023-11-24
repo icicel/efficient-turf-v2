@@ -27,7 +27,7 @@ public class Turf {
     public Set<Zone> zones;
     public Set<Connection> connections;
 
-    private Map<String, Zone> names;
+    private Map<String, Zone> zoneNames;
 
     // Initialize zones and connections from the given KML file
     // Username is required but can be set to null
@@ -41,9 +41,9 @@ public class Turf {
         this.zones = kml.getZones(realZoneLayer);
 
         // Init names
-        this.names = new HashMap<>();
+        this.zoneNames = new HashMap<>();
         for (Zone zone : zones) {
-            names.put(zone.name, zone);
+            zoneNames.put(zone.name, zone);
         }
 
         // Init points
@@ -60,7 +60,7 @@ public class Turf {
         for (Line line : kml.getLines(connectionLayer)) {
             Zone leftZone = closestZoneTo(line.left);
             Zone rightZone = closestZoneTo(line.right);
-            Connection connection = new Connection(line, leftZone, rightZone);
+            Connection connection = new Connection(line.distance, leftZone, rightZone);
             boolean added = connections.add(connection);
             if (!added) {
                 System.out.println("WARNING: Duplicate connection " + connection);
@@ -104,7 +104,7 @@ public class Turf {
         for (int i = 0; i < resultJson.length(); i++) {
             JSONObject zoneInfo = resultJson.getJSONObject(i);
             String name = zoneInfo.getString("name").toLowerCase();
-            Zone zone = getNode(name);
+            Zone zone = getZone(name);
             zone.initPoints(zoneInfo);
         }
     }
@@ -115,7 +115,7 @@ public class Turf {
         for (int i = 0; i < resultJson.length(); i++) {
             JSONObject zoneInfo = resultJson.getJSONObject(i);
             String name = zoneInfo.getString("name").toLowerCase();
-            Zone zone = getNode(name);
+            Zone zone = getZone(name);
             foundZones.add(zone);
         }
         boolean foundFakeZone = false;
@@ -133,8 +133,8 @@ public class Turf {
     /* Utility functions */
 
     // Find a zone by name
-    public Zone getNode(String name) {
-        return names.get(name);
+    public Zone getZone(String name) {
+        return zoneNames.get(name);
     }
 
     // Returns the closest Zone to a given Coords
