@@ -9,8 +9,8 @@ import javax.xml.parsers.SAXParserFactory;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
+import map.Coords;
 import map.Line;
-import turf.Zone;
 
 // Takes and parses a KML file
 public class KML {
@@ -43,11 +43,11 @@ public class KML {
         parser.parse(kmlSource);
     }
 
-    // Get all Zones/Lines in layerName
+    // Get all Points/Lines in layerName
     // Submit "!ALL" as layerName to parse every layer
-    public Set<Zone> getZones(String layerName) throws IOException, SAXException {
+    public Set<Coords> getPoints(String layerName) throws IOException, SAXException {
         parse(layerName);
-        return handler.getZones();
+        return handler.getPoints();
     }
     public Set<Line> getLines(String layerName) throws IOException, SAXException {
         parse(layerName);

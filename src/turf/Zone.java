@@ -31,9 +31,9 @@ public class Zone {
 
     // Create a zone from a Point
     // type defaults to CROSSING until points are set
-    public Zone(String name, String coordinates) {
-        this.name = name.toLowerCase();
-        this.coords = new Coords(coordinates);
+    public Zone(Coords coords) {
+        this.name = coords.name;
+        this.coords = coords;
         this.type = ZoneType.CROSSING;
     }
 

@@ -4,13 +4,13 @@ import java.util.Set;
 import org.xml.sax.Attributes;
 import org.xml.sax.helpers.DefaultHandler;
 import map.Line;
-import turf.Zone;
+import map.Coords;
 
 // This class's methods are called by an XMLReader parsing a KML whenever certain
 //  events occur, such as at the start or end of a tag (element)
 // Google My Maps-exported KMLs use <Folder> to store each layer
 // Objects in layers are stored in <Placemark> elements in these folders that contain
-//  either <Point> (for Zones) or <LineString> (for Lines)
+//  either <Point> or <LineString>
 // Both <Point> and <LineString> elements contain <coordinates>
 // Both <Folder> and <Placemark> elements contain <name>
 //
@@ -29,7 +29,7 @@ public class KMLHandler extends DefaultHandler {
     // If targetLayer is null, all layers are parsed
     private String targetLayer;
 
-    private Set<Zone> zones;
+    private Set<Coords> points;
     private Set<Line> lines;
 
     // True if in a <Folder> tag and <name> has not been parsed yet
@@ -40,7 +40,7 @@ public class KMLHandler extends DefaultHandler {
     // True if in the target layer
     private boolean inTargetLayer;
     // True if in a <Point> element
-    private boolean parsingZone;
+    private boolean parsingPoint;
     // True if in a <LineString> element
     private boolean parsingLine;
 
@@ -58,14 +58,14 @@ public class KMLHandler extends DefaultHandler {
     public void reset() {
         targetLayer = null;
 
-        zones = new HashSet<>();
+        points = new HashSet<>();
         lines = new HashSet<>();
 
         searchingForLayerName = false;
         searchingForObjectName = false;
 
         inTargetLayer = false;
-        parsingZone = false;
+        parsingPoint = false;
         parsingLine = false;
 
         currentChars = "";
@@ -73,8 +73,8 @@ public class KMLHandler extends DefaultHandler {
     }
 
     // A KMLParser uses these methods to get the results of a parse
-    public Set<Zone> getZones() {
-        return zones;
+    public Set<Coords> getPoints() {
+        return points;
     }
     public Set<Line> getLines() {
         return lines;
@@ -102,7 +102,7 @@ public class KMLHandler extends DefaultHandler {
             
             case "Point":
                 if (inTargetLayer) {
-                    parsingZone = true;
+                    parsingPoint = true;
                 }
                 break;
             
@@ -140,11 +140,9 @@ public class KMLHandler extends DefaultHandler {
                 break;
             
             case "coordinates":
-                if (parsingZone) {
-                    Zone newZone = new Zone(objectName, currentChars);
-                    if (!zones.add(newZone)) {
-                        System.out.println("WARNING: Duplicate zone " + newZone.name);
-                    }
+                if (parsingPoint) {
+                    Coords newPoint = new Coords(objectName, currentChars);
+                    points.add(newPoint);
                 } 
                 if (parsingLine) {
                     Line newLine = new Line(currentChars);
@@ -159,7 +157,7 @@ public class KMLHandler extends DefaultHandler {
             case "Placemark":
                 objectName = null;
                 parsingLine = false;
-                parsingZone = false;
+                parsingPoint = false;
                 break;
 
             default:

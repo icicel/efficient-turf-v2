@@ -36,11 +36,14 @@ public class Turf {
     public Turf(Path kmlPath, String realZoneLayer, String crossingLayer, String connectionLayer)
     throws IOException, InterruptedException, SAXException, ParserConfigurationException {
         KML kml = new KML(kmlPath);
-        this.zones = kml.getZones(realZoneLayer);
-
-        // Init names
+        this.zones = new HashSet<>();
         this.zoneNames = new HashMap<>();
-        for (Zone zone : zones) {
+        for (Coords coords : kml.getPoints(realZoneLayer)) {
+            Zone zone = new Zone(coords);
+            boolean added = zones.add(zone);
+            if (!added) {
+                System.err.println("WARNING: Duplicate zone " + zone);
+            }
             zoneNames.put(zone.name, zone);
         }
 
@@ -49,8 +52,14 @@ public class Turf {
 
         // Only add crossings if crossingLayer is given
         if (crossingLayer != null) {
-            Set<Zone> crossings = kml.getZones(crossingLayer);
-            zones.addAll(crossings);
+            for (Coords coords : kml.getPoints(crossingLayer)) {
+                Zone zone = new Zone(coords);
+                boolean added = zones.add(zone);
+                if (!added) {
+                    System.err.println("WARNING: Duplicate crossing " + zone);
+                }
+                zoneNames.put(zone.name, zone);
+            }
         }
 
         // Add connections
@@ -61,7 +70,7 @@ public class Turf {
             Connection connection = new Connection(line.distance, leftZone, rightZone);
             boolean added = connections.add(connection);
             if (!added) {
-                System.out.println("WARNING: Duplicate connection " + connection);
+                System.err.println("WARNING: Duplicate connection " + connection);
             }
         }
     }
