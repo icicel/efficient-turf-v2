@@ -1,4 +1,4 @@
-package zone;
+package turf;
 
 // Represents if the zone has points
 // REAL: gives points (exists in the API)

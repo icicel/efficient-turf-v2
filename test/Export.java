@@ -1,8 +1,8 @@
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import turf.Turf;
-import zone.Zone;
-import zone.ZoneType;
+import turf.Zone;
+import turf.ZoneType;
 
 public class Export {
     public static void main(String[] args) throws Exception {

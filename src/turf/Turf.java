@@ -17,8 +17,6 @@ import org.xml.sax.SAXException;
 import kml.KML;
 import map.Coords;
 import map.Line;
-import zone.Connection;
-import zone.Zone;
 
 // Represents a collection of real zones, user-defined zones (optionally), and connections between them
 //   all extracted from the given KML file

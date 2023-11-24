@@ -10,7 +10,7 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import map.Line;
-import zone.Zone;
+import turf.Zone;
 
 // Takes and parses a KML file
 public class KML {

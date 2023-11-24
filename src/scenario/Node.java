@@ -1,7 +1,7 @@
-package turf;
+package scenario;
 import java.util.HashSet;
 import java.util.Set;
-import zone.Zone;
+import turf.Zone;
 
 // Represents a node in the graph
 // Basically a Zone in a Scenario

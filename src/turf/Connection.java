@@ -1,4 +1,4 @@
-package zone;
+package turf;
 
 // Represents a two-way connection between two Zones
 public class Connection {

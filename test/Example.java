@@ -1,8 +1,8 @@
 import java.nio.file.Path;
-import turf.Conditions;
-import turf.Link;
-import turf.Node;
-import turf.Scenario;
+import scenario.Conditions;
+import scenario.Link;
+import scenario.Node;
+import scenario.Scenario;
 import turf.Turf;
 
 public class Example {

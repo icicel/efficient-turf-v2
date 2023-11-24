@@ -1,4 +1,4 @@
-package turf;
+package scenario;
 
 // Represents a one-way connection from a parent Node to its neighbor
 public class Link {

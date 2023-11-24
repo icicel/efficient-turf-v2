@@ -1,11 +1,12 @@
-package turf;
+package scenario;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import turf.Connection;
+import turf.Turf;
+import turf.Zone;
 import util.ListSet;
-import zone.Connection;
-import zone.Zone;
 
 // Represents a combination of a Turf object (Zone and Link data)
 //   and a set of Conditions that specify the problem definition
