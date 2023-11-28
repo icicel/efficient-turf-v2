@@ -13,6 +13,10 @@ Try to take as many zones as you can to rack up points, earn medals, level up an
 
 ## Basics
 
+Sometimes, I have been in the situation where I have one or two hours of free time and I decide to take a walk and play some Turf.
+I then face the dilemma where I want to get as many points as possible in order to maximize my time efficiency, but I also want to make it back on time.
+In order to help solve this conundrum, this tool exists.
+
 In order to generate a route, Turf zones are treated as nodes on a graph, with edges (**connections**) having weights according to their length in the real world.
 Of course, Turf zones and the streets between them don't correspond as well to a simple graph as we'd like.
 Luckily, we can also define **crossings** - custom, non-point giving, purely functional zones - to keep the amount of edges in control.
@@ -36,30 +40,52 @@ The example KML corresponds to [this map of southern Stenungsund, Sweden](https:
 
 ## How to use
 
-The basic process consists of three steps, corresponding to the Turf class, the Conditions and Scenario classes, and the Solver classes. 
-First some common variables are defined, then problem-specific variables are added, and then the defined problem is solved.
-
-Note that forcing the user to pipeline the process like this (in particular, differentiating between common and problem-specific variables) was intentional. 
-I wanted to be able to quickly create different problem variants based on the same underlying zone data, without having to reimport everything for every new problem variant.
+The basic process consists of three steps.
 
 ### Create the baseline
 
-The baseline, the common variables, are stored in a Turf object.
+The baseline (common variables) is stored in a Turf object.
 The object only contains raw zone and connection information, and doesn't contain information such as the time limit or the start or end zone.
-This information will instead be given later on in the pipeline.
+That information will be given later.
 
 The Turf constructor takes four arguments. 
 `kmlPath` is a path to a KML file that is assumed to have a format consistent with KMLs exported by the method above. 
-`realZoneLayer`, `crossingLayer` and `connectionLayer` are simply the names of the relevant layers in that KML file. 
+`realZoneLayer`, `crossingLayer` and `connectionLayer` are the names of the relevant layers in that KML file. 
 The KML is scanned for zone and connection data, and the Turf API is accessed for zone points values.
+All this is stored in the Turf using Zone and Connection objects.
 
 ### Define the variant
 
-WIP
+A Conditions object is now created, which contains various problem-specific customization.
+The absolute minimum information that can be given is the start zone, the end zone, and the time limit.
+These are also the three arguments taken by the constructor.
+All other variables can be optionally changed/defined.
+
+- `speed` defines the simulated "Turfing speed", in m/min.
+  It is 60 by default.
+- `waitTime` defines how long to wait at every zone in minutes, a.k.a. the time it takes to take the zone.
+  It is 1 by default.
+- `username` is your username.
+  It is used to take zone ownership into account when calculating how many points they are worth.
+- `infiniteRounds` is a bool which defines if zone point calculation should ignore the fact that zone ownership is reset at the end of every round.
+- `blacklist` is the names of all zones that should be ignored completely, including connections to and from them.
+- `whitelist` is the same as `blacklist`, but every zone that ISN'T in it is ignored (unless the array is null, of course).
+- `priority` is the names of zones that must be visited.
+  Take care when using this; if too many zones are prioritized there may be no valid route to visit them all within the time limit.
 
 ### Solve the problem
 
+Lastly, a Scenario is created from the Turf object and the Conditions.
+This represents the complete problem that needs solving.
+To emphasize the difference, Scenarios use Node and Link objects to store its zone information instead of Zones and Connections.
+It's the "final simplification" of the graph, in a way.
+
 WIP
+
+### Structural notes
+
+Forcing users to pipeline the process like this by adding the unnecessary Conditions/Scenario step was intentional.
+I wanted to be able to quickly create different problem variants based on the same underlying zone data, without having to reimport everything for every new problem variant.
 
 ## Implemented solvers
 
