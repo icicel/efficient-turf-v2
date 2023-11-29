@@ -36,41 +36,49 @@ public class Turf extends Logging {
     // Set a layer name to "!ALL" to search through all layers
     public Turf(Path kmlPath, String realZoneLayer, String crossingLayer, String connectionLayer)
     throws IOException, InterruptedException, SAXException, ParserConfigurationException {
+        int c = 0; // counter
+
         log("Turf: Initializing KML at " + kmlPath + "...");
         KML kml = new KML(kmlPath);
 
         // Init zones
-        log("Turf: Collecting zones...");
         this.zones = new HashSet<>();
         this.zoneNames = new HashMap<>();
         for (Coords coords : kml.getPoints(realZoneLayer)) {
             Zone zone = new Zone(coords);
             boolean added = zones.add(zone);
             if (!added) {
-                System.err.println("WARNING: Duplicate zone " + zone);
+                warn("WARNING: Duplicate zone " + zone);
+            } else {
+                c++;
             }
             zoneNames.put(zone.name, zone);
         }
+        log("Turf: Found " + c + " zones");
+        c = 0;
 
         // Init points
         log("Turf: Getting points from API...");
         initPoints();
+        log("Turf: Points set");
 
         // Only add crossings if crossingLayer is given
         if (crossingLayer != null) {
-            log("Turf: Collecting crossings...");
             for (Coords coords : kml.getPoints(crossingLayer)) {
                 Zone zone = new Zone(coords);
                 boolean added = zones.add(zone);
                 if (!added) {
-                    System.err.println("WARNING: Duplicate crossing " + zone);
+                    warn("WARNING: Duplicate crossing " + zone);
+                } else {
+                    c++;
                 }
                 zoneNames.put(zone.name, zone);
             }
+            log("Turf: Found " + c + " crossings");
+            c = 0;
         }
 
         // Add connections
-        log("Turf: Collecting connections...");
         this.connections = new HashSet<>();
         for (Line line : kml.getLines(connectionLayer)) {
             Zone leftZone = closestZoneTo(line.left);
@@ -78,9 +86,12 @@ public class Turf extends Logging {
             Connection connection = new Connection(line.distance, leftZone, rightZone);
             boolean added = connections.add(connection);
             if (!added) {
-                System.err.println("WARNING: Duplicate connection " + connection);
+                warn("WARNING: Duplicate connection " + connection);
+            } else {
+                c++;
             }
         }
+        log("Turf: Found " + c + " connections");
     }
 
     /* Turf API interfacing */
@@ -111,7 +122,7 @@ public class Turf extends Logging {
         // Should always be less - the API will ignore nonexistant zones
         // If not, tries to find those nonexistant zones
         if (resultJson.length() != zones.size()) {
-            System.err.println("WARNING: API response contains less zones than requested! Investigating...");
+            warn("WARNING: API response contains less zones than requested! Investigating...");
             findFakeZones(resultJson);
         }
 
@@ -136,12 +147,12 @@ public class Turf extends Logging {
         boolean foundFakeZone = false;
         for (Zone zone : zones) {
             if (!foundZones.contains(zone)) {
-                System.err.println("ERROR: Zone " + zone.name + " does not exist in the API");
+                warn("ERROR: Zone " + zone.name + " does not exist in the API");
                 foundFakeZone = true;
             }
         }
         if (foundFakeZone) {
-            throw new RuntimeException("Found fake zones");
+            throw new RuntimeException("Tried to set points for nonexistant zones");
         }
     }
 

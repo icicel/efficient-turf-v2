@@ -1,6 +1,5 @@
 package scenario;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import turf.Connection;
@@ -29,24 +28,32 @@ public class Scenario extends Logging {
 
     // node names -> nodes
     private Map<String, Node> nodeName;
+
+    // two counters
+    private int c;
+    private int d;
     
     public Scenario(Turf turf, Conditions conditions) {
+        log("Scenario: Initializing...");
+
         // Create a Node for each Zone in the Turf
         // Also create a temporary map from Zones to respective Nodes
-        log("Scenario: Creating nodes...");
         this.nodes = new ListSet<>();
         this.nodeName = new HashMap<>();
         Map<Zone, Node> childNode = new HashMap<>();
+        c = 0;
         for (Zone zone : turf.zones) {
             Node node = new Node(zone, conditions.username, conditions.infiniteRounds);
             this.nodes.add(node);
             this.nodeName.put(node.name, node);
             childNode.put(zone, node);
+            c++;
         }
+        log("Scenario: Created " + c + " nodes");
 
         // Create a Link for each Connection
-        log("Scenario: Creating links...");
         this.links = new ListSet<>();
+        c = 0;
         for (Connection connection : turf.connections) {
             Node leftNode = childNode.get(connection.left);
             Node rightNode = childNode.get(connection.right);
@@ -56,18 +63,21 @@ public class Scenario extends Logging {
             rightLink.reverse = leftLink;
             this.links.add(leftLink);
             this.links.add(rightLink);
+            c += 2;
         }
+        log("Scenario: Created " + c + " links");
 
         // Fill in other things
-        log("Scenario: Parsing conditions...");
         this.start = getNode(conditions.start);
         this.end = getNode(conditions.end);
         this.timeLimit = conditions.timeLimit;
         this.speed = conditions.speed;
         this.waitTime = conditions.waitTime;
         if (conditions.whitelist != null) {
+            log("Scenario: Applying whitelist...");
             inverseRemoveNodes(getNodes(conditions.whitelist));
         } else if (conditions.blacklist != null) {
+            log("Scenario: Applying blacklist...");
             removeNodes(getNodes(conditions.blacklist));
         }
         this.priority = getNodes(conditions.priority);
@@ -82,7 +92,7 @@ public class Scenario extends Logging {
 
     // Convert an array of names to a set of nodes
     public Set<Node> getNodes(String[] names) {
-        Set<Node> nodes = new HashSet<>();
+        Set<Node> nodes = new ListSet<>();
         if (names == null) {
             return nodes;
         }
@@ -95,18 +105,24 @@ public class Scenario extends Logging {
 
     // Remove all nodes in a set
     private void removeNodes(Set<Node> nodes) {
+        c = 0;
+        d = 0;
         for (Node node : nodes) {
             removeNode(node);
         }
+        log("Scenario: Removed " + c + " nodes and " + d + " links");
     }
 
     // Remove all nodes EXCEPT those in a set
     private void inverseRemoveNodes(Set<Node> safeNodes) {
+        c = 0;
+        d = 0;
         for (Node node : nodes) {
             if (!safeNodes.contains(node)) {
                 removeNode(node);
             }
         }
+        log("Scenario: Removed " + c + " nodes and " + d + " links");
     }
 
     // Completely remove all references to a node
@@ -115,10 +131,15 @@ public class Scenario extends Logging {
         if (node == null) {
             return;
         }
+        if (node == start || node == end) {
+            throw new RuntimeException("Tried to remove start or end node");
+        }
         this.nodes.remove(node);
+        c++;
         for (Link connection : node.links) {
             this.links.remove(connection);
             this.links.remove(connection.reverse);
+            d += 2;
         };
     }
 }
