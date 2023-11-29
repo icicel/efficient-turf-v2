@@ -7,10 +7,11 @@ import turf.Connection;
 import turf.Turf;
 import turf.Zone;
 import util.ListSet;
+import util.Logging;
 
 // Represents a combination of a Turf object (Zone and Link data)
 //   and a set of Conditions that specify the problem definition
-public class Scenario {
+public class Scenario extends Logging {
 
     // Base Turf/Conditions data
 
@@ -32,6 +33,7 @@ public class Scenario {
     public Scenario(Turf turf, Conditions conditions) {
         // Create a Node for each Zone in the Turf
         // Also create a temporary map from Zones to respective Nodes
+        log("Scenario: Creating nodes...");
         this.nodes = new ListSet<>();
         this.nodeName = new HashMap<>();
         Map<Zone, Node> childNode = new HashMap<>();
@@ -43,6 +45,7 @@ public class Scenario {
         }
 
         // Create a Link for each Connection
+        log("Scenario: Creating links...");
         this.links = new ListSet<>();
         for (Connection connection : turf.connections) {
             Node leftNode = childNode.get(connection.left);
@@ -56,6 +59,7 @@ public class Scenario {
         }
 
         // Fill in other things
+        log("Scenario: Parsing conditions...");
         this.start = getNode(conditions.start);
         this.end = getNode(conditions.end);
         this.timeLimit = conditions.timeLimit;

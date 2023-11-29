@@ -42,6 +42,8 @@ The example KML corresponds to [this map of southern Stenungsund, Sweden](https:
 
 The basic process consists of three steps.
 
+Use `Logging.logging` to enable/disable debug output.
+
 ### Create the baseline
 
 The baseline (common variables) is stored in a Turf object.

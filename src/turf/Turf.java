@@ -17,10 +17,11 @@ import org.xml.sax.SAXException;
 import kml.KML;
 import map.Coords;
 import map.Line;
+import util.Logging;
 
 // Represents a collection of real zones, user-defined zones (optionally), and connections between them
 //   all extracted from the given KML file
-public class Turf {
+public class Turf extends Logging {
     
     public Set<Zone> zones;
     public Set<Connection> connections;
@@ -35,7 +36,11 @@ public class Turf {
     // Set a layer name to "!ALL" to search through all layers
     public Turf(Path kmlPath, String realZoneLayer, String crossingLayer, String connectionLayer)
     throws IOException, InterruptedException, SAXException, ParserConfigurationException {
+        log("Turf: Initializing KML at " + kmlPath + "...");
         KML kml = new KML(kmlPath);
+
+        // Init zones
+        log("Turf: Collecting zones...");
         this.zones = new HashSet<>();
         this.zoneNames = new HashMap<>();
         for (Coords coords : kml.getPoints(realZoneLayer)) {
@@ -48,10 +53,12 @@ public class Turf {
         }
 
         // Init points
+        log("Turf: Getting points from API...");
         initPoints();
 
         // Only add crossings if crossingLayer is given
         if (crossingLayer != null) {
+            log("Turf: Collecting crossings...");
             for (Coords coords : kml.getPoints(crossingLayer)) {
                 Zone zone = new Zone(coords);
                 boolean added = zones.add(zone);
@@ -63,6 +70,7 @@ public class Turf {
         }
 
         // Add connections
+        log("Turf: Collecting connections...");
         this.connections = new HashSet<>();
         for (Line line : kml.getLines(connectionLayer)) {
             Zone leftZone = closestZoneTo(line.left);
@@ -103,7 +111,7 @@ public class Turf {
         // Should always be less - the API will ignore nonexistant zones
         // If not, tries to find those nonexistant zones
         if (resultJson.length() != zones.size()) {
-            System.out.println("WARNING: API response contains less zones than requested");
+            System.err.println("WARNING: API response contains less zones than requested! Investigating...");
             findFakeZones(resultJson);
         }
 
@@ -128,7 +136,7 @@ public class Turf {
         boolean foundFakeZone = false;
         for (Zone zone : zones) {
             if (!foundZones.contains(zone)) {
-                System.out.println("ERROR: Zone " + zone.name + " does not exist in the API");
+                System.err.println("ERROR: Zone " + zone.name + " does not exist in the API");
                 foundFakeZone = true;
             }
         }

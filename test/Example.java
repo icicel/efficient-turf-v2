@@ -1,12 +1,13 @@
 import java.nio.file.Path;
 import scenario.Conditions;
-import scenario.Link;
-import scenario.Node;
 import scenario.Scenario;
 import turf.Turf;
+import util.Logging;
 
 public class Example {
     public static void main(String[] args) throws Exception {
+        Logging.logging = true;
+
         Path kmlPath = Turf.getRootFilePath("example.kml");
         Turf turf = new Turf(kmlPath, "Zones", "Crossings", "Connections");
         Conditions conditions = new Conditions("k-klassrum", "k-nösnäs", 90.0);
@@ -17,12 +18,5 @@ public class Example {
         Scenario scenario = new Scenario(turf, conditions);
         // Solver solver = new BruteForceSolver();
         // solver.solve(scenario);
-        
-        for (Node node : scenario.nodes) {
-            System.out.println(node + " " + node.points);
-        }
-        for (Link link : scenario.links) {
-            System.out.println(link + " " + link.distance);
-        }
     }
 }
