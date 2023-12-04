@@ -6,7 +6,7 @@ import util.Logging;
 
 public class Example {
     public static void main(String[] args) throws Exception {
-        Logging.logging = true;
+        Logging.init();
 
         Path kmlPath = Turf.getRootFilePath("example.kml");
         Turf turf = new Turf(kmlPath, "Zones", "Crossings", "Connections");
