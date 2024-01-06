@@ -81,6 +81,14 @@ public class Scenario extends Logging {
             removeNodes(getNodes(conditions.blacklist));
         }
         this.priority = getNodes(conditions.priority);
+
+        // Fastest routes
+        log("Scenario: Creating fastest routes...");
+        for (Node node : this.nodes) {
+            if (node.isZone) {
+                node.createFastestRoutes();
+            }
+        }
     }
 
     /* Utility functions */
