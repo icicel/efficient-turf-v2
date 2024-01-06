@@ -2,7 +2,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import turf.Turf;
 import turf.Zone;
-import turf.ZoneType;
 
 public class Export {
     public static void main(String[] args) throws Exception {
@@ -16,7 +15,7 @@ public class Export {
     public static void exportZonesPoints(Turf turf) {
         System.out.println("WKT,name,description,Points");
         for (Zone zone : turf.zones) {
-            if (zone.type != ZoneType.CROSSING)
+            if (!zone.isCrossing())
                 System.out.println("\"POINT (" + zone.coords.lon + " " + zone.coords.lat + ")\"," + zone.name + ",," + zone.getPoints("name", true));
         }
     }
@@ -24,7 +23,7 @@ public class Export {
     public static void exportZones(Turf turf) {
         System.out.println("WKT,name");
         for (Zone zone : turf.zones) {
-            if (zone.type != ZoneType.CROSSING)
+            if (!zone.isCrossing())
                 System.out.println("\"POINT (" + zone.coords.lon + " " + zone.coords.lat + ")\"," + zone.name);
         }
     }
@@ -32,7 +31,7 @@ public class Export {
     public static void exportCrossings(Turf turf) {
         System.out.println("WKT,name");
         for (Zone zone : turf.zones) {
-            if (zone.type == ZoneType.CROSSING)
+            if (!zone.isCrossing())
                 System.out.println("\"POINT (" + zone.coords.lon + " " + zone.coords.lat + ")\"," + zone.name);
         }
     }

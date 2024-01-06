@@ -9,9 +9,6 @@ import map.Coords;
 public class Zone {
 
     public String name;
-
-    public ZoneType type;
-
     public Coords coords;
 
     // Points-related values
@@ -34,7 +31,6 @@ public class Zone {
     public Zone(Coords coords) {
         this.name = coords.name;
         this.coords = coords;
-        this.type = ZoneType.CROSSING;
     }
 
     // Calculates a total point value for the zone from the given API JSON object
@@ -105,18 +101,16 @@ public class Zone {
             owner = null;
             revisitable = false;
         }
-
-        this.type = ZoneType.REAL;
     }
 
     // Returns the amount of points the zone is worth for the given user
     // If naïve is true, ignores the fact that Turf rounds end
     public int getPoints(String username, boolean naïve) {
-        if (type == ZoneType.CROSSING) {
+        if (isCrossing()) {
             return 0;
         }
-        double hoursHeld = naïve ? naïveHoursHeld : expectedHoursHeld;
 
+        double hoursHeld = naïve ? naïveHoursHeld : expectedHoursHeld;
         int points = 0;
 
         if (owner == null) {
@@ -128,6 +122,12 @@ public class Zone {
         }
 
         return points;
+    }
+
+    // Returns true if the zone is a crossing
+    // This implies that zones with uninitialized points are crossings
+    public boolean isCrossing() {
+        return takeoverPoints == 0;
     }
 
     /* Time methods */
