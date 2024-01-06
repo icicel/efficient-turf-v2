@@ -3,7 +3,7 @@
 A Java library/tool to calculate the route between two Turf zones which maximizes earned points, while not exceeding the given time limit.
 
 This is a rewrite/remake of my older project [Efficient Turf v1](https://github.com/icicel/efficient-turf), originally written in Python.
-A rewrite was done to untangle the spaghetti code of the original.
+A rewrite was done to untangle the spaghetti code of the original and allow for some cool optimizations.
 
 ### What's a Turf?
 
@@ -15,6 +15,7 @@ Try to take as many zones as you can to rack up points, earn medals, level up an
 
 Sometimes, I have been in the situation where I have one or two hours of free time and I decide to take a walk and play some Turf.
 I then face the dilemma where I want to get as many points as possible in order to maximize my time efficiency, but I also want to make it back on time.
+I want the optimal route to take.
 In order to help solve this conundrum, this tool exists.
 
 In order to generate a route, Turf zones are treated as nodes on a graph, with edges (**connections**) having weights according to their length in the real world.
@@ -54,35 +55,26 @@ The Turf constructor takes four arguments.
 `kmlPath` is a path to a KML file that is assumed to have a format consistent with KMLs exported by the method above. 
 `realZoneLayer`, `crossingLayer` and `connectionLayer` are the names of the relevant layers in that KML file. 
 The KML is scanned for zone and connection data, and the Turf API is accessed for zone points values.
-All this is stored in the Turf using Zone and Connection objects.
+All this is stored in the Turf using Zone and Connection objects (yes, even crossings are stored as Zones for now).
 
 ### Define the variant
 
-A Conditions object is now created, which contains various problem-specific customization.
+A Conditions object is now created, which contains various problem-specific information.
 The absolute minimum information that can be given is the start zone, the end zone, and the time limit.
 These are also the three arguments taken by the constructor.
 All other variables can be optionally changed/defined.
 
-- `speed` defines the simulated "Turfing speed", in m/min.
-  It is 60 by default.
-- `waitTime` defines how long to wait at every zone in minutes, a.k.a. the time it takes to take the zone.
-  It is 1 by default.
-- `username` is your username.
-  It is used to take zone ownership into account when calculating how many points they are worth.
-- `infiniteRounds` is a bool which defines if zone point calculation should ignore the fact that zone ownership is reset at the end of every round.
-- `blacklist` is the names of all zones that should be ignored completely, including connections to and from them.
-- `whitelist` is the same as `blacklist`, but every zone that ISN'T in it is ignored (unless the array is null, of course).
-- `priority` is the names of zones that must be visited.
-  Take care when using this; if too many zones are prioritized there may be no valid route to visit them all within the time limit.
+Using this Conditions object and the Turf object from earlier, a Scenario is created.
+This represents the complete problem that needs solving.
+To emphasize the difference, Scenarios use Node and Link objects to store zone information instead of Zones and Connections.
+It's the "final simplification" of the graph, in a way.
+It also lets us distinguish between a Node, a zone and a crossing again (it would've been confusing if it was a Zone object).
 
 ### Solve the problem
 
-Lastly, a Scenario is created from the Turf object and the Conditions.
-This represents the complete problem that needs solving.
-To emphasize the difference, Scenarios use Node and Link objects to store its zone information instead of Zones and Connections.
-It's the "final simplification" of the graph, in a way.
-
-WIP
+Lastly, a Scenario can be solved using anything that extends the abstract Solver class.
+Simply call `Solver.solve` and pass the Scenario as the argument.
+It returns a Route, a list of Nodes visited.
 
 ### Structural notes
 
