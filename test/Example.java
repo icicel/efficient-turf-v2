@@ -1,6 +1,9 @@
 import java.nio.file.Path;
 import scenario.Conditions;
+import scenario.Route;
 import scenario.Scenario;
+import solver.BruteForceSolver;
+import solver.Solver;
 import turf.Turf;
 import util.Logging;
 
@@ -16,7 +19,9 @@ public class Example {
         conditions.blacklist = new String[] {"black", "list"};
         conditions.priority = new String[] {"priority", "zones"};
         Scenario scenario = new Scenario(turf, conditions);
-        // Solver solver = new BruteForceSolver();
-        // solver.solve(scenario);
+        Solver solver = new BruteForceSolver();
+        Route result = solver.solve(scenario);
+        
+        System.out.println(result);
     }
 }

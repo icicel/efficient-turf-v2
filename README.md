@@ -43,7 +43,7 @@ The example KML corresponds to [this map of southern Stenungsund, Sweden](https:
 
 The basic process consists of three steps.
 
-Use `Logging.logging` to enable/disable debug output.
+Use `Logging.init` to enable debug output.
 
 ### Create the baseline
 
@@ -72,7 +72,7 @@ It also lets us distinguish between a Node, a zone and a crossing again (it woul
 
 ### Solve the problem
 
-Lastly, a Scenario can be solved using anything that extends the abstract Solver class.
+Lastly, a Scenario can be solved using any implementation of Solver.
 Simply call `Solver.solve` and pass the Scenario as the argument.
 It returns a Route, a list of Nodes visited.
 
@@ -84,5 +84,7 @@ I wanted to be able to quickly create different problem variants based on the sa
 ## Implemented solvers
 
 This is a list of all Solvers that have currently been implemented.
+
+### BruteForceSolver
 
 WIP
