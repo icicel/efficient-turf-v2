@@ -1,4 +1,5 @@
 *.class
+launch.json
 test/*.java
 *.kml
 
