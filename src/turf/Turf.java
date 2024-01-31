@@ -36,7 +36,6 @@ public class Turf extends Logging {
     // Set a layer name to "!ALL" to search through all layers
     public Turf(Path kmlPath, String realZoneLayer, String crossingLayer, String connectionLayer)
     throws IOException, InterruptedException, SAXException, ParserConfigurationException {
-        int c = 0; // counter
 
         log("Turf: Initializing KML at " + kmlPath + "...");
         KML kml = new KML(kmlPath);
@@ -49,13 +48,10 @@ public class Turf extends Logging {
             boolean added = zones.add(zone);
             if (!added) {
                 warn("WARNING: Duplicate zone " + zone);
-            } else {
-                c++;
             }
             zoneNames.put(zone.name, zone);
         }
-        log("Turf: Found " + c + " zones");
-        c = 0;
+        log("Turf: Found " + zones.size() + " zones");
 
         // Init points
         log("Turf: Getting points from API...");
@@ -64,18 +60,16 @@ public class Turf extends Logging {
 
         // Only add crossings if crossingLayer is given
         if (crossingLayer != null) {
+            int oldSize = zones.size(); // temporary
             for (Coords coords : kml.getPoints(crossingLayer)) {
                 Zone zone = new Zone(coords);
                 boolean added = zones.add(zone);
                 if (!added) {
                     warn("WARNING: Duplicate crossing " + zone);
-                } else {
-                    c++;
                 }
                 zoneNames.put(zone.name, zone);
             }
-            log("Turf: Found " + c + " crossings");
-            c = 0;
+            log("Turf: Found " + (zones.size() - oldSize) + " crossings");
         }
 
         // Add connections
@@ -87,11 +81,9 @@ public class Turf extends Logging {
             boolean added = connections.add(connection);
             if (!added) {
                 warn("WARNING: Duplicate connection " + connection);
-            } else {
-                c++;
             }
         }
-        log("Turf: Found " + c + " connections");
+        log("Turf: Found " + connections.size() + " connections");
     }
 
     /* Turf API interfacing */
