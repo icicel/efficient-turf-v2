@@ -115,8 +115,6 @@ public class Scenario extends Logging {
         return nodes;
     }
 
-    // Check all links to see if their parent and neighbor still exists
-
     // Remove all nodes in a set
     private void removeNodes(Set<Node> nodes) {
         for (Node node : nodes) {
