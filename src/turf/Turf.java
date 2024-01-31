@@ -53,43 +53,9 @@ public class Turf extends Logging {
         }
         log("Turf: Found " + zones.size() + " zones");
 
+
         // Init points
         log("Turf: Getting points from API...");
-        initPoints();
-        log("Turf: Points set");
-
-        // Only add crossings if crossingLayer is given
-        if (crossingLayer != null) {
-            int oldSize = zones.size(); // temporary
-            for (Coords coords : kml.getPoints(crossingLayer)) {
-                Zone zone = new Zone(coords);
-                boolean added = zones.add(zone);
-                if (!added) {
-                    warn("WARNING: Duplicate crossing " + zone);
-                }
-                zoneNames.put(zone.name, zone);
-            }
-            log("Turf: Found " + (zones.size() - oldSize) + " crossings");
-        }
-
-        // Add connections
-        this.connections = new HashSet<>();
-        for (Line line : kml.getLines(connectionLayer)) {
-            Zone leftZone = closestZoneTo(line.left);
-            Zone rightZone = closestZoneTo(line.right);
-            Connection connection = new Connection(line.distance, leftZone, rightZone);
-            boolean added = connections.add(connection);
-            if (!added) {
-                warn("WARNING: Duplicate connection " + connection);
-            }
-        }
-        log("Turf: Found " + connections.size() + " connections");
-    }
-
-    /* Turf API interfacing */
-
-    // Get points values of zones from the Turf API
-    private void initPoints() throws IOException, InterruptedException {
         
         // Create a JSON body with all zone names
         // [{"name": "zonea"}, {"name": "zoneb"}, ...]
@@ -115,7 +81,19 @@ public class Turf extends Logging {
         // If not, tries to find those nonexistant zones
         if (resultJson.length() != zones.size()) {
             warn("WARNING: API response contains less zones than requested! Investigating...");
-            findFakeZones(resultJson);
+            Set<Zone> foundZones = new HashSet<>();
+            for (int i = 0; i < resultJson.length(); i++) {
+                JSONObject zoneInfo = resultJson.getJSONObject(i);
+                String name = zoneInfo.getString("name").toLowerCase();
+                Zone zone = getZone(name);
+                foundZones.add(zone);
+            }
+            for (Zone zone : zones) {
+                if (!foundZones.contains(zone)) {
+                    warn("ERROR: Zone " + zone.name + " does not exist in the API");
+                }
+            }
+            throw new RuntimeException("Tried to set points for nonexistant zones");
         }
 
         // Set points values to Zone objects
@@ -125,27 +103,36 @@ public class Turf extends Logging {
             Zone zone = getZone(name);
             zone.initPoints(zoneInfo);
         }
-    }
+        log("Turf: Points set");
 
-    // Find Zones that aren't real, a.k.a. don't exist in the API
-    private void findFakeZones(JSONArray resultJson) {
-        Set<Zone> foundZones = new HashSet<>();
-        for (int i = 0; i < resultJson.length(); i++) {
-            JSONObject zoneInfo = resultJson.getJSONObject(i);
-            String name = zoneInfo.getString("name").toLowerCase();
-            Zone zone = getZone(name);
-            foundZones.add(zone);
+
+        // Init crossings only if crossingLayer is given
+        if (crossingLayer != null) {
+            int oldSize = zones.size(); // temporary
+            for (Coords coords : kml.getPoints(crossingLayer)) {
+                Zone zone = new Zone(coords);
+                boolean added = zones.add(zone);
+                if (!added) {
+                    warn("WARNING: Duplicate crossing " + zone);
+                }
+                zoneNames.put(zone.name, zone);
+            }
+            log("Turf: Found " + (zones.size() - oldSize) + " crossings");
         }
-        boolean foundFakeZone = false;
-        for (Zone zone : zones) {
-            if (!foundZones.contains(zone)) {
-                warn("ERROR: Zone " + zone.name + " does not exist in the API");
-                foundFakeZone = true;
+
+
+        // Init connections
+        this.connections = new HashSet<>();
+        for (Line line : kml.getLines(connectionLayer)) {
+            Zone leftZone = closestZoneTo(line.left);
+            Zone rightZone = closestZoneTo(line.right);
+            Connection connection = new Connection(line.distance, leftZone, rightZone);
+            boolean added = connections.add(connection);
+            if (!added) {
+                warn("WARNING: Duplicate connection " + connection);
             }
         }
-        if (foundFakeZone) {
-            throw new RuntimeException("Tried to set points for nonexistant zones");
-        }
+        log("Turf: Found " + connections.size() + " connections");
     }
 
     /* Utility functions */
