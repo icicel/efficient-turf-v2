@@ -174,4 +174,41 @@ public class Scenario extends Logging {
             }
         };
     }
+
+    // Remove a Link (but not its reverse)
+    private void removeLink(Link link) {
+        this.links.remove(link);
+        link.parent.links.remove(link);
+    }
+
+    /* Graph optimizations */
+
+    // Remove redundant links/nodes (not used in any optimal routes)
+    public void removeUnusedConnections() {
+        Set<Node> unusedNodes = new HashSet<>(this.nodes);
+        Set<Link> unusedLinks = new HashSet<>(this.links);
+        for (Node node : this.nodes) {
+            if (!node.isZone) {
+                continue;
+            }
+            unusedNodes.remove(node);
+            // Iterate through all fastest routes and remove the nodes and links from the unused sets
+            for (Route route : node.fastestRoutes.values()) {
+                Route current = route;
+                while (current != null) {
+                    unusedNodes.remove(current.node);
+                    unusedLinks.remove(current.link);
+                    current = current.previous;
+                }
+            }
+        }
+        for (Node node : unusedNodes) {
+            log("Scenario: Removing unused node " + node);
+            removeNode(node);
+        }
+        for (Link link : unusedLinks) {
+            log("Scenario: Removing unused link " + link);
+            removeLink(link);
+        }
+    }
 }

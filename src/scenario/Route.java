@@ -7,6 +7,7 @@ package scenario;
 public class Route {
 
     public Node node;
+    public Link link; // the Link that connects this Route's node to the previous Route's node
     public Route previous;
 
     public double length;
@@ -16,6 +17,7 @@ public class Route {
     // (the "root Route" :P)
     public Route(Node root) {
         this.node = root;
+        this.link = null;
         this.previous = null;
         this.length = 0.0;
         if (this.node.isZone) {
@@ -31,6 +33,7 @@ public class Route {
             throw new IllegalArgumentException("Link does not extend Route");
         }
         this.node = extension.neighbor;
+        this.link = extension;
         this.previous = previous;
         this.length = previous.length + extension.distance;
         if (this.node.isZone) {
