@@ -15,8 +15,8 @@ public class Node {
     public int points;
     public boolean isZone; // as in a real zone
 
-    // Used in scenario graph optimization, contains the fastest Route to every other Node n 
-    //  such that n.isZone == true and the route contains no other Nodes with isZone == true
+    // Should store the shortest Route to every other Node that is a zone, 
+    //  but only if that Route contains no other zones
     public Map<Node, Route> fastestRoutes;
 
     // Create a node from a zone
@@ -27,9 +27,11 @@ public class Node {
         this.isZone = this.points != 0;
     }
 
-    // Dijkstra's, I think
-    // Keep a priority queue of all possible Routes based on their length
-    // After getting a Link, add the neighbor's outgoing Links to the queue
+    // Fill up fastestRoutes using Dijkstra's (I think?)
+    // Keep a priority queue of all possible Route extensions (the frontier)
+    //  sorted by their length
+    // After finding the shortest Route, extend it further with all outgoing Links
+    //  from its Node and add the new Routes to the queue
     public void createFastestRoutes() {
         this.fastestRoutes = new HashMap<>();
         PriorityQueue<Route> queue = new PriorityQueue<>(
@@ -55,7 +57,7 @@ public class Node {
                 queue.add(new Route(link, route));
             }
 
-            // If the neighbor isZone and the Route contains no other zones,
+            // If the neighbor is a zone and the Route contains no other zones,
             //  add route to fastestRoutes
             if (neighbor.isZone && route.zones == 2 && !this.fastestRoutes.containsKey(neighbor)) {
                 this.fastestRoutes.put(neighbor, route);
