@@ -1,6 +1,9 @@
 package scenario;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import turf.Connection;
 import turf.Turf;
@@ -78,13 +81,30 @@ public class Scenario extends Logging {
         if (conditions.whitelist != null) {
             log("Scenario: Applying whitelist...");
             inverseRemoveNodes(getNodes(conditions.whitelist));
-            log("Scenario: Removed " + removedNodes + " nodes and " + removedLinks + " links");
         } else if (conditions.blacklist != null) {
             log("Scenario: Applying blacklist...");
             removeNodes(getNodes(conditions.blacklist));
-            log("Scenario: Removed " + removedNodes + " nodes and " + removedLinks + " links");
         }
         this.priority = getNodes(conditions.priority);
+
+        // Check so all nodes can be reached from start
+        log("Scenario: Checking reachability...");
+        Set<Node> unreached = new HashSet<>(this.nodes);
+        Queue<Link> frontier = new LinkedList<>(this.start.links);
+        while (!frontier.isEmpty()) {
+            Link link = frontier.remove();
+            if (!unreached.contains(link.neighbor)) {
+                continue;
+            }
+            unreached.remove(link.neighbor);
+            frontier.addAll(link.neighbor.links);
+        }
+        if (!unreached.isEmpty()) {
+            for (Node node : unreached) {
+                warn("ERROR: Unreachable node " + node);
+            }
+            throw new IllegalArgumentException("Not all nodes can be reached from start");
+        }
 
         // Fastest routes
         log("Scenario: Creating fastest routes...");
@@ -120,6 +140,7 @@ public class Scenario extends Logging {
         for (Node node : nodes) {
             removeNode(node);
         }
+        log("Scenario: Removed " + removedNodes + " nodes and " + removedLinks + " links");
     }
 
     // Remove all nodes EXCEPT those in a set
@@ -129,10 +150,11 @@ public class Scenario extends Logging {
                 removeNode(node);
             }
         }
+        log("Scenario: Removed " + removedNodes + " nodes and " + removedLinks + " links");
     }
 
-    // Completely remove all references to a node
-    // Includes removing all connections to/from the node
+    // Completely remove all references to a Node, includes removing all Links to/from the Node
+    // Increments removedNodes and removedLinks
     private void removeNode(Node node) {
         if (node == null) {
             return;
@@ -142,13 +164,13 @@ public class Scenario extends Logging {
         }
         this.nodes.remove(node);
         removedNodes++;
-        for (Link connection : node.links) {
-            this.links.remove(connection);
+        for (Link link : node.links) {
+            this.links.remove(link);
             removedLinks++;
-            if (this.links.remove(connection.reverse)) {
-                // If the reverse connection exists, additionally remove it from its parent's links
+            // If the reverse Link exists, remove it from its parent's Links
+            if (this.links.remove(link.reverse)) {
                 removedLinks++;
-                connection.reverse.parent.links.remove(connection.reverse); // oh lords
+                link.reverse.parent.links.remove(link.reverse); // oh lords
             }
         };
     }
