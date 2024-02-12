@@ -26,6 +26,14 @@ public class Link {
         return parent.name + " -> " + neighbor.name;
     }
 
+    // Pretend the Link is a Connection if its reverse exists
+    public String pairString() {
+        if (this.reverse == null) {
+            return this.toString();
+        }
+        return parent.name + " <-> " + neighbor.name;
+    }
+
     @Override
     public int hashCode() {
         return this.parent.hashCode() + this.neighbor.hashCode();

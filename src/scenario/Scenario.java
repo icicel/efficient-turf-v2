@@ -31,10 +31,6 @@ public class Scenario extends Logging {
 
     // node names -> nodes
     private Map<String, Node> nodeName;
-
-    // two global counters
-    private int removedNodes;
-    private int removedLinks;
     
     public Scenario(Turf turf, Conditions conditions) {
         log("Scenario: Initializing...");
@@ -76,18 +72,25 @@ public class Scenario extends Logging {
         this.timeLimit = conditions.timeLimit;
         this.speed = conditions.speed;
         this.waitTime = conditions.waitTime;
-        removedNodes = 0;
-        removedLinks = 0;
         if (conditions.whitelist != null) {
             log("Scenario: Applying whitelist...");
-            inverseRemoveNodes(getNodes(conditions.whitelist));
+            Set<Node> safeNodes = getNodes(conditions.whitelist);
+            for (Node node : this.nodes) {
+                if (!safeNodes.contains(node)) {
+                    removeNode(node);
+                    log("Scenario: Removed unwhitelisted node " + node);
+                }
+            }
         } else if (conditions.blacklist != null) {
             log("Scenario: Applying blacklist...");
-            removeNodes(getNodes(conditions.blacklist));
+            for (Node node : getNodes(conditions.blacklist)) {
+                removeNode(node);
+                log("Scenario: Removed blacklisted node " + node);
+            }
         }
         this.priority = getNodes(conditions.priority);
 
-        // Check so all nodes can be reached from start
+        // Remove unreachable nodes
         log("Scenario: Checking reachability...");
         Set<Node> unreached = new HashSet<>(this.nodes);
         Queue<Link> frontier = new LinkedList<>(this.start.links);
@@ -99,11 +102,9 @@ public class Scenario extends Logging {
             unreached.remove(link.neighbor);
             frontier.addAll(link.neighbor.links);
         }
-        if (!unreached.isEmpty()) {
-            for (Node node : unreached) {
-                warn("ERROR: Unreachable node " + node);
-            }
-            throw new IllegalArgumentException("Not all nodes can be reached from start");
+        for (Node node : unreached) {
+            removeNode(node);
+            log("Scenario: Removed unreachable node " + node);
         }
 
         // Fastest routes
@@ -113,6 +114,8 @@ public class Scenario extends Logging {
                 node.createFastestRoutes();
             }
         }
+
+        log("Scenario: Initialized");
     }
 
     /* Utility functions */
@@ -135,26 +138,7 @@ public class Scenario extends Logging {
         return nodes;
     }
 
-    // Remove all nodes in a set
-    private void removeNodes(Set<Node> nodes) {
-        for (Node node : nodes) {
-            removeNode(node);
-        }
-        log("Scenario: Removed " + removedNodes + " nodes and " + removedLinks + " links");
-    }
-
-    // Remove all nodes EXCEPT those in a set
-    private void inverseRemoveNodes(Set<Node> safeNodes) {
-        for (Node node : this.nodes) {
-            if (!safeNodes.contains(node)) {
-                removeNode(node);
-            }
-        }
-        log("Scenario: Removed " + removedNodes + " nodes and " + removedLinks + " links");
-    }
-
     // Completely remove all references to a Node, includes removing all Links to/from the Node
-    // Increments removedNodes and removedLinks
     private void removeNode(Node node) {
         if (node == null) {
             return;
@@ -163,22 +147,28 @@ public class Scenario extends Logging {
             throw new RuntimeException("Tried to remove start or end node");
         }
         this.nodes.remove(node);
-        removedNodes++;
         for (Link link : node.links) {
             this.links.remove(link);
-            removedLinks++;
             // If the reverse Link exists, remove it from its parent's Links
             if (this.links.remove(link.reverse)) {
-                removedLinks++;
                 link.reverse.parent.links.remove(link.reverse); // oh lords
             }
         };
     }
 
-    // Remove a Link (but not its reverse)
+    // Completely remove all references to a Link (but not its reverse)
     private void removeLink(Link link) {
+        if (link == null) {
+            return;
+        }
         this.links.remove(link);
         link.parent.links.remove(link);
+    }
+
+    // Completely remove all references to a Link and its reverse
+    private void removeLinkPair(Link link) {
+        removeLink(link);
+        removeLink(link.reverse);
     }
 
     /* Graph optimizations */
@@ -203,12 +193,15 @@ public class Scenario extends Logging {
             }
         }
         for (Node node : unusedNodes) {
-            log("Scenario: Removing unused node " + node);
             removeNode(node);
+            log("Scenario: Removed unused node " + node);
         }
         for (Link link : unusedLinks) {
-            log("Scenario: Removing unused link " + link);
-            removeLink(link);
+            if (!this.links.contains(link.reverse)) {
+                continue; // this is just to not log an already removed link
+            }
+            removeLinkPair(link);
+            log("Scenario: Removed unused link " + link.pairString());
         }
     }
 }
