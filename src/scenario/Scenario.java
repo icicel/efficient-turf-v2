@@ -204,4 +204,30 @@ public class Scenario extends Logging {
             log("Scenario: Removed unused link " + link.pairString());
         }
     }
+
+    // remove crossings and redistribute if doing so reduces the amount of links
+    //   without reducing connectivity
+    // simplify if 2*(inlinks + outlinks) > inlinks * outlinks
+    // when we say inlink and outlink we ignore links that aren't part of an optimal route
+    public void simplifyCrossings() {
+        // TODO
+    }
+
+    // rework cases where coming from a link A to a crossing, there is only one
+    //   choice (link B) if following previously generated optimal routes
+    //   by replacing A and B with a new link between A.parent and B.neighbor
+    public void optimizeCrossings() {
+        // TODO
+    }
+
+    // remove crossings entirely
+    // links between zones are instead the optimal routes between them
+    public void removeCrossings() {
+        // TODO
+    }
+
+    // remove short connections
+    public void removeShortConnections(double minLength) {
+        // TODO
+    }
 }
