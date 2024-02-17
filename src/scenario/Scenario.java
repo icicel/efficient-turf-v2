@@ -35,7 +35,7 @@ public class Scenario extends Logging {
     private Map<Node, Map<Node, Route>> nodeFastestRoutes;
     
     public Scenario(Turf turf, Conditions conditions) {
-        log("Scenario: Initializing...");
+        log("Scenario: *** Initializing...");
 
         // Create a Node for each Zone in the Turf
         // Also create a temporary map from Zones to respective Nodes
@@ -112,7 +112,7 @@ public class Scenario extends Logging {
         log("Scenario: Updating fastest routes...");
         updateFastestRoutes();
 
-        log("Scenario: Initialized");
+        log("Scenario: *** Initialized");
     }
 
     /* Utility functions */
@@ -182,7 +182,7 @@ public class Scenario extends Logging {
 
     // Remove redundant links/nodes (not used in any optimal routes)
     public void removeUnusedConnections() {
-        log("Scenario: Removing unused connections...");
+        log("Scenario: ** Removing unused connections...");
         Set<Node> unusedNodes = new HashSet<>(this.nodes);
         Set<Link> unusedLinks = new HashSet<>(this.links);
         for (Node node : this.nodes) {
@@ -213,6 +213,8 @@ public class Scenario extends Logging {
         }
         log("Scenario: Updating fastest routes...");
         updateFastestRoutes();
+
+        log("Scenario: ** Complete");
     }
 
     // remove crossings and redistribute if doing so reduces the amount of links
