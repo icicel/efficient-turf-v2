@@ -31,6 +31,9 @@ public class Scenario extends Logging {
     // node names -> nodes
     private Map<String, Node> nodeName;
     
+    // For storing the result of Node.fastestRoutes() for each zone
+    private Map<Node, Map<Node, Route>> nodeFastestRoutes;
+    
     public Scenario(Turf turf, Conditions conditions) {
         log("Scenario: Initializing...");
 
@@ -106,13 +109,8 @@ public class Scenario extends Logging {
             log("Scenario: Removed unreachable node " + node);
         }
 
-        // Fastest routes
-        log("Scenario: Creating fastest routes...");
-        for (Node node : this.nodes) {
-            if (node.isZone) {
-                node.createFastestRoutes();
-            }
-        }
+        log("Scenario: Updating fastest routes...");
+        updateFastestRoutes();
 
         log("Scenario: Initialized");
     }
@@ -170,10 +168,22 @@ public class Scenario extends Logging {
         removeLink(link.reverse);
     }
 
+    // Update nodeFastestRoutes
+    private void updateFastestRoutes() {
+        this.nodeFastestRoutes = new HashMap<>();
+        for (Node node : this.nodes) {
+            if (!node.isZone) {
+                continue;
+            }
+            this.nodeFastestRoutes.put(node, node.findFastestRoutes());
+        }
+    }
+
     /* Graph optimizations */
 
     // Remove redundant links/nodes (not used in any optimal routes)
     public void removeUnusedConnections() {
+        log("Scenario: Removing unused connections...");
         Set<Node> unusedNodes = new HashSet<>(this.nodes);
         Set<Link> unusedLinks = new HashSet<>(this.links);
         for (Node node : this.nodes) {
@@ -182,7 +192,7 @@ public class Scenario extends Logging {
             }
             unusedNodes.remove(node);
             // Iterate through all fastest routes and remove the nodes and links from the unused sets
-            for (Route route : node.fastestRoutes.values()) {
+            for (Route route : nodeFastestRoutes.get(node).values()) {
                 Route current = route;
                 while (current != null) {
                     unusedNodes.remove(current.node);
@@ -202,6 +212,8 @@ public class Scenario extends Logging {
             removeLinkPair(link);
             log("Scenario: Removed unused link " + link.pairString());
         }
+        log("Scenario: Updating fastest routes...");
+        updateFastestRoutes();
     }
 
     // remove crossings and redistribute if doing so reduces the amount of links

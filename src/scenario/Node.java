@@ -15,10 +15,6 @@ public class Node {
     public int points;
     public boolean isZone; // as in a real zone
 
-    // Should store the shortest Route to every other Node that is a zone, 
-    //  but only if that Route contains no other zones
-    public Map<Node, Route> fastestRoutes;
-
     // Create a node from a zone
     public Node(Zone zone, String username, boolean naïve) {
         this.name = zone.name;
@@ -27,13 +23,13 @@ public class Node {
         this.isZone = this.points != 0;
     }
 
-    // Fill up fastestRoutes using Dijkstra's (I think?)
-    // Keep a priority queue of all possible Route extensions (the frontier)
-    //  sorted by their length
-    // After finding the shortest Route, extend it further with all outgoing Links
-    //  from its Node and add the new Routes to the queue
-    public void createFastestRoutes() {
-        this.fastestRoutes = new HashMap<>();
+    // Returns the shortest Route to every other zone, but only if that Route
+    //  contains no other zones than the start and end
+    // This is done by keeping a priority queue of all Nodes neighboring
+    //  already visited Nodes, (in the form of Routes) and extending them
+    //  when visiting a new Node
+    public Map<Node, Route> findFastestRoutes() {
+        Map<Node, Route> fastestRoutes = new HashMap<>();
         PriorityQueue<Route> queue = new PriorityQueue<>(
             (a, b) -> Double.compare(a.length, b.length));
         Set<Node> visited = new HashSet<>();
@@ -59,10 +55,11 @@ public class Node {
 
             // If the neighbor is a zone and the Route contains no other zones,
             //  add route to fastestRoutes
-            if (neighbor.isZone && route.zones == 2 && !this.fastestRoutes.containsKey(neighbor)) {
-                this.fastestRoutes.put(neighbor, route);
+            if (neighbor.isZone && route.zones == 2 && !fastestRoutes.containsKey(neighbor)) {
+                fastestRoutes.put(neighbor, route);
             }
         }
+        return fastestRoutes;
     }
 
     @Override
