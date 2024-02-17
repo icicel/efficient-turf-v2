@@ -72,7 +72,9 @@ It also lets us distinguish between a Node, a zone and a crossing again (it woul
 
 ### Solve the problem
 
-[graph optimizations]
+The graph can often be further optimized by taking into account that we only want to travel on the fastest possible routes between zones, and ignore everything else.
+These routes are called "direct routes" for short, and only become relevant on graphs with many crossings.
+
 Keep in mind that zones are counted as crossings if they give zero points (that is, if you own them and the revisit timer hasn't passed yet).
 
 Lastly, a Scenario can be solved using any implementation of Solver.

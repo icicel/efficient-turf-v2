@@ -23,18 +23,18 @@ public class Node {
         this.isZone = this.points != 0;
     }
 
-    // Returns the shortest Route to every other zone, but only if that Route
-    //  contains no other zones than the start and end
+    // Returns the shortest Route to every other zone
     // This is done by keeping a priority queue of all Nodes neighboring
     //  already visited Nodes, (in the form of Routes) and extending them
-    //  when visiting a new Node
+    //  when visiting a new Node (AKA Dijkstra's)
     public Map<Node, Route> findFastestRoutes() {
         Map<Node, Route> fastestRoutes = new HashMap<>();
         PriorityQueue<Route> queue = new PriorityQueue<>(
             (a, b) -> Double.compare(a.length, b.length));
         Set<Node> visited = new HashSet<>();
-        visited.add(this);
         Route start = new Route(this);
+        visited.add(this);
+        fastestRoutes.put(this, start);
         for (Link link : this.links) {
             queue.add(new Route(link, start));
         }
@@ -46,17 +46,12 @@ public class Node {
                 continue;
             }
             visited.add(neighbor);
+            fastestRoutes.put(neighbor, route);
 
             // Extend the Route with all outgoing Links from the neighbor
             //  and add them to the queue
             for (Link link : neighbor.links) {
                 queue.add(new Route(link, route));
-            }
-
-            // If the neighbor is a zone and the Route contains no other zones,
-            //  add route to fastestRoutes
-            if (neighbor.isZone && route.zones == 2 && !fastestRoutes.containsKey(neighbor)) {
-                fastestRoutes.put(neighbor, route);
             }
         }
         return fastestRoutes;

@@ -14,7 +14,7 @@ import util.Logging;
 //   and a set of Conditions that specify the problem definition
 public class Scenario extends Logging {
 
-    // Base Turf/Conditions data
+    /* Base Turf/Conditions data */
 
     public Set<Node> nodes;
     public Set<Link> links;
@@ -26,15 +26,22 @@ public class Scenario extends Logging {
 
     public Set<Node> priority;
 
-    // Derived
+    /* Derived date */
 
     public double distanceLimit;
 
     // node names -> nodes
     private Map<String, Node> nodeName;
+
+    /* Route caches */
     
-    // For storing the result of Node.fastestRoutes() for each zone
-    private Map<Node, Map<Node, Route>> nodeFastestRoutes;
+    // The result of Node.fastestRoutes() for each zone
+    public Map<Node, Map<Node, Route>> nodeFastestRoutes;
+    // Filtered version of nodeFastestRoutes, only containing fastest routes
+    //  between two zones with no intermediate zones
+    public Map<Node, Map<Node, Route>> nodeDirectRoutes;
+    // The distance between each node and the end node
+    public Map<Node, Double> nodeEndDistance;
     
     public Scenario(Turf turf, Conditions conditions) {
         log("Scenario: *** Initializing...");
@@ -96,25 +103,8 @@ public class Scenario extends Logging {
             }
         }
 
-        // Remove unreachable nodes
-        log("Scenario: Checking reachability...");
-        Set<Node> unreached = new HashSet<>(this.nodes);
-        Queue<Link> frontier = new LinkedList<>(this.start.links);
-        while (!frontier.isEmpty()) {
-            Link link = frontier.remove();
-            if (!unreached.contains(link.neighbor)) {
-                continue;
-            }
-            unreached.remove(link.neighbor);
-            frontier.addAll(link.neighbor.links);
-        }
-        for (Node node : unreached) {
-            removeNode(node);
-            log("Scenario: Removed unreachable node " + node);
-        }
-
-        log("Scenario: Updating fastest routes...");
-        updateFastestRoutes();
+        log("Scenario: Updating routes...");
+        updateRoutes();
 
         log("Scenario: *** Initialized");
     }
@@ -171,15 +161,52 @@ public class Scenario extends Logging {
         removeLink(link.reverse);
     }
 
-    // Update nodeFastestRoutes
-    private void updateFastestRoutes() {
+    // Update graph information after changes
+    private void updateRoutes() {
+
+        // Check for unreachable nodes
+        Set<Node> unreached = new HashSet<>(this.nodes);
+        Queue<Link> frontier = new LinkedList<>(this.start.links);
+        while (!frontier.isEmpty()) {
+            Link link = frontier.remove();
+            if (!unreached.contains(link.neighbor)) {
+                continue;
+            }
+            unreached.remove(link.neighbor);
+            frontier.addAll(link.neighbor.links);
+        }
+        for (Node node : unreached) {
+            removeNode(node);
+            log("Scenario: Removed unreachable node " + node);
+        }
+
+        // Update route caches
         this.nodeFastestRoutes = new HashMap<>();
+        this.nodeDirectRoutes = new HashMap<>();
+        this.nodeEndDistance = new HashMap<>();
         for (Node node : this.nodes) {
+            Map<Node, Route> fastestRoutes = node.findFastestRoutes();
+            this.nodeFastestRoutes.put(node, fastestRoutes);
+            if (node.isZone) {
+                this.nodeDirectRoutes.put(node, getDirectRoutes(fastestRoutes));
+            }
+            this.nodeEndDistance.put(node, fastestRoutes.get(this.end).length);
+        }
+    }
+
+    // Assumes that the fastestRoutes is from a zone Node
+    private Map<Node, Route> getDirectRoutes(Map<Node, Route> fastestRoutes) {
+        Map<Node, Route> directRoutes = new HashMap<>();
+        for (Node node : fastestRoutes.keySet()) {
             if (!node.isZone) {
                 continue;
             }
-            this.nodeFastestRoutes.put(node, node.findFastestRoutes());
+            Route route = fastestRoutes.get(node);
+            if (route.zones == 2) {
+                directRoutes.put(node, route);
+            }
         }
+        return directRoutes;
     }
 
     /* Graph optimizations */
@@ -195,7 +222,7 @@ public class Scenario extends Logging {
             }
             unusedNodes.remove(node);
             // Iterate through all fastest routes and remove the nodes and links from the unused sets
-            for (Route route : nodeFastestRoutes.get(node).values()) {
+            for (Route route : nodeDirectRoutes.get(node).values()) {
                 Route current = route;
                 while (current != null) {
                     unusedNodes.remove(current.node);
@@ -215,8 +242,9 @@ public class Scenario extends Logging {
             removeLinkPair(link);
             log("Scenario: Removed unused link " + link.pairString());
         }
-        log("Scenario: Updating fastest routes...");
-        updateFastestRoutes();
+
+        log("Scenario: Updating routes...");
+        updateRoutes();
 
         log("Scenario: ** Complete");
     }
