@@ -36,6 +36,6 @@ public class Link {
 
     @Override
     public int hashCode() {
-        return this.parent.hashCode() + this.neighbor.hashCode();
+        return this.parent.hashCode() - this.neighbor.hashCode();
     }
 }
