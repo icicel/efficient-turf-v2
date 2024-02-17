@@ -145,12 +145,8 @@ public class Scenario extends Logging {
         }
         this.nodes.remove(node);
         for (Link link : node.links) {
-            this.links.remove(link);
-            // If the reverse Link exists, remove it from its parent's Links
-            if (this.links.remove(link.reverse)) {
-                link.reverse.parent.links.remove(link.reverse); // oh lords
-            }
-        };
+            removeLinkPair(link);
+        }
     }
 
     // Completely remove all references to a Link (but not its reverse)
@@ -164,6 +160,9 @@ public class Scenario extends Logging {
 
     // Completely remove all references to a Link and its reverse
     private void removeLinkPair(Link link) {
+        if (link == null) {
+            return;
+        }
         removeLink(link);
         removeLink(link.reverse);
     }
@@ -206,7 +205,7 @@ public class Scenario extends Logging {
             log("Scenario: Removed unused node " + node);
         }
         for (Link link : unusedLinks) {
-            if (!this.links.contains(link.reverse)) {
+            if (!this.links.contains(link)) {
                 continue; // this is just to not log an already removed link
             }
             removeLinkPair(link);
