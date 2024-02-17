@@ -22,11 +22,13 @@ public class Scenario extends Logging {
     public Node start;
     public Node end;
     public double timeLimit;
-
     public double speed;
-    public double waitTime;
 
     public Set<Node> priority;
+
+    // Derived
+
+    public double distanceLimit;
 
     // node names -> nodes
     private Map<String, Node> nodeName;
@@ -52,6 +54,14 @@ public class Scenario extends Logging {
         }
         log("Scenario: Created " + nodes + " nodes");
 
+        // Fill in other things
+        this.start = getNode(conditions.start);
+        this.end = getNode(conditions.end);
+        this.timeLimit = conditions.timeLimit;
+        this.speed = conditions.speed;
+        this.priority = getNodes(conditions.priority);
+        this.distanceLimit = this.timeLimit * this.speed;
+
         // Create a Link for each Connection
         this.links = new HashSet<>();
         int links = 0;
@@ -68,12 +78,7 @@ public class Scenario extends Logging {
         }
         log("Scenario: Created " + links + " links");
 
-        // Fill in other things
-        this.start = getNode(conditions.start);
-        this.end = getNode(conditions.end);
-        this.timeLimit = conditions.timeLimit;
-        this.speed = conditions.speed;
-        this.waitTime = conditions.waitTime;
+        // Apply white/blacklist
         if (conditions.whitelist != null) {
             log("Scenario: Applying whitelist...");
             Set<Node> safeNodes = getNodes(conditions.whitelist);
@@ -90,7 +95,6 @@ public class Scenario extends Logging {
                 log("Scenario: Removed blacklisted node " + node);
             }
         }
-        this.priority = getNodes(conditions.priority);
 
         // Remove unreachable nodes
         log("Scenario: Checking reachability...");

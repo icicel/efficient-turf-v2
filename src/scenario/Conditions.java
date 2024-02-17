@@ -13,9 +13,6 @@ public class Conditions {
     // Speed in meters per minute (ignoring wait times at zones)
     public double speed;
 
-    // Time in minutes to wait at each zone
-    public double waitTime;
-
     // Username to use for zone ownership calculation
     public String username;
 
@@ -41,7 +38,6 @@ public class Conditions {
 
         // Default values
         this.speed = 60.0;
-        this.waitTime = 1.0;
         this.infiniteRounds = false;
     }
 }
