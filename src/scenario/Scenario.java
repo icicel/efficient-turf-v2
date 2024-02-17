@@ -8,7 +8,6 @@ import java.util.Set;
 import turf.Connection;
 import turf.Turf;
 import turf.Zone;
-import util.ListSet;
 import util.Logging;
 
 // Represents a combination of a Turf object (Zone and Link data)
@@ -37,7 +36,7 @@ public class Scenario extends Logging {
 
         // Create a Node for each Zone in the Turf
         // Also create a temporary map from Zones to respective Nodes
-        this.nodes = new ListSet<>();
+        this.nodes = new HashSet<>();
         this.nodeName = new HashMap<>();
         Map<Zone, Node> childNode = new HashMap<>();
         int nodes = 0;
@@ -51,7 +50,7 @@ public class Scenario extends Logging {
         log("Scenario: Created " + nodes + " nodes");
 
         // Create a Link for each Connection
-        this.links = new ListSet<>();
+        this.links = new HashSet<>();
         int links = 0;
         for (Connection connection : turf.connections) {
             Node leftNode = childNode.get(connection.left);
@@ -127,7 +126,7 @@ public class Scenario extends Logging {
 
     // Convert an array of names to a set of nodes
     public Set<Node> getNodes(String[] names) {
-        Set<Node> nodes = new ListSet<>();
+        Set<Node> nodes = new HashSet<>();
         if (names == null) {
             return nodes;
         }
