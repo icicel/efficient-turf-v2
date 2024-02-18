@@ -42,6 +42,13 @@ public class Route {
             this.zones = previous.zones;
         }
     }
+    
+    public boolean hasVisited(Node node) {
+        if (this.previous == null) {
+            return this.node == node;
+        }
+        return this.node == node || this.previous.hasVisited(node);
+    }
 
     @Override
     public String toString() {
