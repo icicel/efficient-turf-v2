@@ -12,6 +12,7 @@ public class Route {
 
     public double length;
     public int zones;
+    public int points;
 
     // begin a Route with a start Node
     // (the "root Route" :P)
@@ -20,6 +21,7 @@ public class Route {
         this.link = null;
         this.previous = null;
         this.length = 0.0;
+        this.points = root.points;
         if (this.node.isZone) {
             this.zones = 1;
         } else {
@@ -36,6 +38,7 @@ public class Route {
         this.link = extension;
         this.previous = previous;
         this.length = previous.length + extension.distance;
+        this.points = previous.points + this.node.points;
         if (this.node.isZone) {
             this.zones = previous.zones + 1;
         } else {
@@ -56,5 +59,20 @@ public class Route {
             return this.node.name;
         }
         return this.previous.toString() + " -> " + this.node.name;
+    }
+
+    // Only show the zones captured, in the order they were captured (and start and end)
+    public String asResult() {
+        return this.onlyZones() + " -> " + this.node.name + "\n(" 
+            + this.points + " points, " + this.zones + " zones, " + (int) this.length + "m)";
+    }
+    private String onlyZones() {
+        if (this.previous == null) {
+            return this.node.name;
+        }
+        if (this.node.isZone && !this.previous.hasVisited(node)) {
+            return this.previous.onlyZones() + " -> " + this.node.name;
+        }
+        return this.previous.onlyZones();
     }
 }

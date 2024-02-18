@@ -77,6 +77,10 @@ These routes are called "direct routes" for short, and only become relevant on g
 
 Keep in mind that zones are counted as crossings if they give zero points (that is, if you own them and the revisit timer hasn't passed yet).
 
+The optimizations offered are:
+- `removeUnusedConnections` - Removes ALL crossings and connections that don't lie on any direct route
+- (WIP)
+
 Lastly, a Scenario can be solved using any implementation of Solver.
 Simply call `Solver.solve` and pass the Scenario as the argument.
 It returns a Route, a list of Nodes visited.
@@ -92,4 +96,8 @@ This is a list of all Solvers that have currently been implemented.
 
 ### BruteForceSolver
 
-WIP
+This is the original solving algorithm, from v1.
+It simply tries every possible route, skipping routes that are guaranteed to be worse than a potential other route.
+This can happen for example when the route has a non-direct path between two zones.
+
+While the original was breadth-first search, this implementation is depth-first.

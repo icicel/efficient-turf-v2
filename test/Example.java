@@ -22,6 +22,6 @@ public class Example {
         Solver solver = new BruteForceSolver();
         Route result = solver.solve(scenario);
         
-        System.out.println(result);
+        System.out.println(result.asResult());
     }
 }
