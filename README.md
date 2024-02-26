@@ -83,7 +83,7 @@ The optimizations offered are:
 
 Lastly, a Scenario can be solved using any implementation of Solver.
 Simply call `Solver.solve` and pass the Scenario as the argument.
-It returns a Route, a list of Nodes visited.
+It returns a Result, which is is a list of routes.
 
 ### Structural notes
 

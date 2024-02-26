@@ -15,13 +15,13 @@ public class BruteForceSolver implements Solver {
     public Scenario scenario;
     public List<AdvancedRoute> finishedRoutes;
     
-    public Route solve(Scenario scenario) {
+    public Result solve(Scenario scenario) {
         this.scenario = scenario;
         finishedRoutes = new ArrayList<>();
         search(new AdvancedRoute(scenario.start));
         finishedRoutes.sort(
             (a, b) -> Double.compare(b.points, a.points));
-        return finishedRoutes.get(0);
+        return new Result(finishedRoutes);
     }
 
     // Recursively searches for valid, finished routes
