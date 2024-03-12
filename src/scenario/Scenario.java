@@ -132,7 +132,7 @@ public class Scenario extends Logging {
     // Completely remove all references to a Node, includes removing all Links to/from the Node
     private void removeNode(Node node) {
         if (node == null) {
-            return;
+            throw new RuntimeException("Tried to remove nonexistant node");
         }
         if (node == start || node == end) {
             throw new RuntimeException("Tried to remove start or end node");
@@ -146,19 +146,22 @@ public class Scenario extends Logging {
     // Completely remove all references to a Link (but not its reverse)
     private void removeLink(Link link) {
         if (link == null) {
-            return;
+            throw new RuntimeException("Tried to remove nonexistant link");
         }
         this.links.remove(link);
         link.parent.links.remove(link);
+        if (link.reverse != null) {
+            link.reverse.reverse = null;
+        }
     }
 
-    // Completely remove all references to a Link and its reverse
+    // Completely remove all references to a Link and its reverse (if it exists)
+    // DOESN'T THROW ERROR if the reverse doesn't exist
     private void removeLinkPair(Link link) {
-        if (link == null) {
-            return;
-        }
         removeLink(link);
-        removeLink(link.reverse);
+        if (link.reverse != null) {
+            removeLink(link.reverse);
+        }
     }
 
     // Update graph information after changes
