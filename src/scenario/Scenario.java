@@ -260,11 +260,68 @@ public class Scenario extends Logging {
         // TODO
     }
 
-    // rework cases where coming from a link A to a crossing, there is only one
-    //   choice (link B) if following previously generated optimal routes
-    //   by replacing A and B with a new link between A.parent and B.neighbor
+    // Rework cases where coming from a link A to a crossing, there is only one
+    //   reasonable choice of next link, B, if following previously generated optimal routes
+    // This is done by replacing A and B with a new link between A.parent and B.neighbor
+    // Using this optimization will therefore remove the guarantee that all links have a reverse
     public void optimizeCrossings() {
-        // TODO
+        log("Scenario: ** Optimizing crossings...");
+
+        // Generate link pairs from fastest routes
+        // routeSuccessors stores, per link A->B where B is a crossing, all links B->C where A->B->C
+        //   is part of any fastest route ("route successors" to A->B)
+        log("Generating link pairs...");
+        Map<Link, Set<Link>> routeSuccessors = new HashMap<>();
+        for (Link link : this.links) {
+            if (!link.neighbor.isZone) {
+                routeSuccessors.put(link, new HashSet<>());
+            }
+        }
+        for (Node node : this.nodes) {
+            if (!node.isZone) {
+                continue;
+            }
+            for (Route fastestRoute : this.nodeFastestRoutes.get(node).values()) {
+                if (fastestRoute.previous == null) {
+                    continue;
+                }
+                Route current = fastestRoute;
+                // Iterate through the route, finding all link pairs A->B, B->C where B is a crossing
+                while (current.previous.link != null) {
+                    if (!current.previous.node.isZone) {
+                        routeSuccessors.get(current.previous.link).add(current.link);
+                    }
+                    current = current.previous;
+                }
+            }
+        }
+
+        // Combine all links that only have one route successor, with their route successor
+        // Remove all links that have no route successors
+        log("Combining links...");
+        System.out.println(routeSuccessors);
+        for (Link link : routeSuccessors.keySet()) {
+            Set<Link> successors = routeSuccessors.get(link);
+            if (successors.size() == 0) {
+                removeLink(link);
+                log("Scenario: Removed link " + link);
+            } else if (successors.size() == 1) {
+                Link successor = successors.iterator().next();
+                removeLink(link);
+                removeLink(successor);
+                // måste också byta ut link OCH successor i routeSuccessors
+                // kan behöva nytt format
+                Link newLink = new Link(link.distance + successor.distance, link.parent, successor.neighbor);
+                link.parent.links.add(newLink);
+                this.links.add(newLink);
+                log("Scenario: Added link " + newLink + " bypassing " + link.neighbor);
+            }
+        }
+
+        log("Scenario: Updating routes...");
+        updateRoutes();
+
+        log("Scenario: ** Complete");
     }
 
     // remove crossings entirely
