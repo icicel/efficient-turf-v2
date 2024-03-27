@@ -26,7 +26,7 @@ public class BruteForceSolver implements Solver {
 
     // Recursively searches for valid, finished routes
     private void search(AdvancedRoute base) {
-        for (Link link : base.node.links) {
+        for (Link link : base.node.out) {
             int error = invalidRouteExtension(base, link);
             if (error != 0) {
                 continue;

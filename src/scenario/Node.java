@@ -11,14 +11,16 @@ import turf.Zone;
 public class Node {
 
     public String name;
-    public Set<Link> links;
+    public Set<Link> in;
+    public Set<Link> out;
     public int points;
     public boolean isZone; // as in a real zone
 
     // Create a node from a zone
     public Node(Zone zone, String username, boolean naïve) {
         this.name = zone.name;
-        this.links = new HashSet<>();
+        this.in = new HashSet<>();
+        this.out = new HashSet<>();
         this.points = zone.getPoints(username, naïve);
         this.isZone = this.points != 0;
     }
@@ -35,7 +37,7 @@ public class Node {
         Route start = new Route(this);
         visited.add(this);
         fastestRoutes.put(this, start);
-        for (Link link : this.links) {
+        for (Link link : this.out) {
             queue.add(new Route(link, start));
         }
         while (!queue.isEmpty()) {
@@ -50,7 +52,7 @@ public class Node {
 
             // Extend the Route with all outgoing Links from the neighbor
             //  and add them to the queue
-            for (Link link : neighbor.links) {
+            for (Link link : neighbor.out) {
                 queue.add(new Route(link, route));
             }
         }

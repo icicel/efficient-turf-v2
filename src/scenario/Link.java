@@ -18,7 +18,8 @@ public class Link {
         this.parent = parent;
         this.neighbor = neighbor;
 
-        this.parent.links.add(this);
+        this.parent.out.add(this);
+        this.neighbor.in.add(this);
     }
 
     @Override

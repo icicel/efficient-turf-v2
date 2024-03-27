@@ -138,7 +138,7 @@ public class Scenario extends Logging {
             throw new RuntimeException("Tried to remove start or end node");
         }
         this.nodes.remove(node);
-        for (Link link : node.links) {
+        for (Link link : node.out) {
             removeLinkPair(link);
         }
     }
@@ -149,7 +149,8 @@ public class Scenario extends Logging {
             throw new RuntimeException("Tried to remove nonexistant link");
         }
         this.links.remove(link);
-        link.parent.links.remove(link);
+        link.parent.out.remove(link);
+        link.neighbor.in.remove(link);
         if (link.reverse != null) {
             link.reverse.reverse = null;
         }
@@ -169,14 +170,14 @@ public class Scenario extends Logging {
 
         // Check for unreachable nodes
         Set<Node> unreached = new HashSet<>(this.nodes);
-        Queue<Link> frontier = new LinkedList<>(this.start.links);
+        Queue<Link> frontier = new LinkedList<>(this.start.out);
         while (!frontier.isEmpty()) {
             Link link = frontier.remove();
             if (!unreached.contains(link.neighbor)) {
                 continue;
             }
             unreached.remove(link.neighbor);
-            frontier.addAll(link.neighbor.links);
+            frontier.addAll(link.neighbor.out);
         }
         for (Node node : unreached) {
             removeNode(node);
@@ -312,7 +313,7 @@ public class Scenario extends Logging {
                 // måste också byta ut link OCH successor i routeSuccessors
                 // kan behöva nytt format
                 Link newLink = new Link(link.distance + successor.distance, link.parent, successor.neighbor);
-                link.parent.links.add(newLink);
+                link.parent.out.add(newLink);
                 this.links.add(newLink);
                 log("Scenario: Added link " + newLink + " bypassing " + link.neighbor);
             }
