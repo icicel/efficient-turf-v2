@@ -75,12 +75,7 @@ public class Scenario extends Logging {
         for (Connection connection : turf.connections) {
             Node leftNode = childNode.get(connection.left);
             Node rightNode = childNode.get(connection.right);
-            Link leftLink = new Link(connection.distance, leftNode, rightNode);
-            Link rightLink = new Link(connection.distance, rightNode, leftNode);
-            leftLink.reverse = rightLink;
-            rightLink.reverse = leftLink;
-            this.links.add(leftLink);
-            this.links.add(rightLink);
+            addLinkPair(leftNode, rightNode, connection.distance);
             links += 2;
         }
         log("Scenario: Created " + links + " links");
@@ -127,6 +122,21 @@ public class Scenario extends Logging {
             nodes.add(node);
         }
         return nodes;
+    }
+
+    // Add and return a link between two nodes
+    private Link addLink(Node from, Node to, double distance) {
+        Link link = new Link(distance, from, to);
+        this.links.add(link);
+        return link;
+    }
+
+    // Add two links between two nodes, one in each direction
+    private void addLinkPair(Node node1, Node node2, double distance) {
+        Link link1 = addLink(node1, node2, distance);
+        Link link2 = addLink(node2, node1, distance);
+        link1.reverse = link2;
+        link2.reverse = link1;
     }
 
     // Completely remove all references to a Node, includes removing all Links to/from the Node
