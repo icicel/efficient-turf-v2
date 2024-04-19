@@ -55,6 +55,9 @@ public class Scenario extends Logging {
         for (Zone zone : turf.zones) {
             Node node = new Node(zone, conditions.username, conditions.infiniteRounds);
             this.nodes.add(node);
+            if (this.nodeName.containsKey(node.name)) {
+                throw new RuntimeException("Duplicate node name: " + node.name);
+            }
             this.nodeName.put(node.name, node);
             childNode.put(zone, node);
             nodes++;
