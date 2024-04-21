@@ -274,7 +274,7 @@ public class Scenario extends Logging {
         log("Scenario: Updating routes...");
         updateRoutes();
 
-        log("Scenario: ** Complete");
+        log("Scenario: ** Removal complete");
     }
 
     // remove crossings and redistribute if doing so reduces the amount of links
@@ -293,10 +293,19 @@ public class Scenario extends Logging {
     public void optimizeCrossings() {
         log("Scenario: ** Optimizing crossings...");
 
+        optimizeCrossings(1);
+    
+        log("Scenario: ** Optimization complete");
+    }
+
+    // Used to optimize over and over until no more optimizations can be made
+    // There are definitely prettier ways to do this
+    private void optimizeCrossings(int attempt) {
+
         // Generate link pairs from fastest routes
         // routeSuccessors stores, per link A->B where B is a crossing, all links B->C where A->B->C
         //   is part of any fastest route ("route successors" to A->B)
-        log("Generating link successors...");
+        log("Scenario: Generating link successors...");
         Map<Link, Set<Link>> routeSuccessors = new HashMap<>();
         for (Link link : this.links) {
             if (!link.neighbor.isZone) {
@@ -331,8 +340,9 @@ public class Scenario extends Logging {
         //      if x is a crossing, replace x->Q with x->y in L[w->x] for all w!=Q
         //   >1 - do nothing
         // (since w->x exists, "all w" is necessarily the same as "all neighbors of x w")
-        log("Combining links...");
+        log("Scenario: Combining links, attempt " + attempt + "...");
         Queue<Link> successorQueue = new LinkedList<>(routeSuccessors.keySet());
+        boolean changed = false;
         while (!successorQueue.isEmpty()) {
             Link x_Q = successorQueue.remove();
             if (!this.links.contains(x_Q)) {
@@ -345,11 +355,13 @@ public class Scenario extends Logging {
             Set<Link> successors = routeSuccessors.get(x_Q);
 
             if (successors.size() == 0) {
+                changed = true;
                 // remove x->Q
                 removeLink(x_Q);
                 log("Scenario: Removed link " + x_Q);
 
             } else if (successors.size() == 1) {
+                changed = true;
                 // replace x->Q with x->y
                 Link Q_y = successors.iterator().next();
                 Node y = Q_y.neighbor;
@@ -378,7 +390,9 @@ public class Scenario extends Logging {
         log("Scenario: Updating routes...");
         updateRoutes();
 
-        log("Scenario: ** Complete");
+        if (changed) {
+            optimizeCrossings(attempt + 1);
+        }
     }
 
     // remove crossings entirely
