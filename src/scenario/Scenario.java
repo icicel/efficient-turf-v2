@@ -182,20 +182,30 @@ public class Scenario extends Logging {
     // Update graph information after changes
     private void updateRoutes() {
 
-        // Check for unreachable nodes
-        Set<Node> unreached = new HashSet<>(this.nodes);
+        // Check for unreachable nodes and links
+        Set<Node> unreachedNodes = new HashSet<>(this.nodes);
+        Set<Link> unreachedLinks = new HashSet<>(this.links);
         Queue<Link> frontier = new LinkedList<>(this.start.out);
+        unreachedNodes.remove(this.start);
         while (!frontier.isEmpty()) {
             Link link = frontier.remove();
-            if (!unreached.contains(link.neighbor)) {
+            unreachedLinks.remove(link);
+            if (!unreachedNodes.contains(link.neighbor)) {
                 continue;
             }
-            unreached.remove(link.neighbor);
+            unreachedNodes.remove(link.neighbor);
             frontier.addAll(link.neighbor.out);
         }
-        for (Node node : unreached) {
+        for (Node node : unreachedNodes) {
             removeNode(node);
             log("Scenario: Removed unreachable node " + node);
+        }
+        for (Link link : unreachedLinks) {
+            if (!this.links.contains(link)) {
+                continue; // links could be removed by removing nodes
+            }
+            removeLink(link);
+            log("Scenario: Removed unreachable link " + link);
         }
 
         // Update route caches
