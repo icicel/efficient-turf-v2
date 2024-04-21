@@ -277,7 +277,8 @@ public class Scenario extends Logging {
 
     // Rework cases where coming from a link A to a crossing, there is only one
     //   reasonable choice of next link, B, if following previously generated optimal routes
-    // This is done by replacing A and B with a new link between A.parent and B.neighbor
+    // This is done by replacing A with a new link between A.parent and B.neighbor, bypassing
+    //   the crossing while keeping A.reverse and B intact
     // Using this optimization will therefore remove the guarantee that all links have a reverse
     public void optimizeCrossings() {
         log("Scenario: ** Optimizing crossings...");
@@ -285,7 +286,7 @@ public class Scenario extends Logging {
         // Generate link pairs from fastest routes
         // routeSuccessors stores, per link A->B where B is a crossing, all links B->C where A->B->C
         //   is part of any fastest route ("route successors" to A->B)
-        log("Generating link pairs...");
+        log("Generating link successors...");
         Map<Link, Set<Link>> routeSuccessors = new HashMap<>();
         for (Link link : this.links) {
             if (!link.neighbor.isZone) {
@@ -296,14 +297,15 @@ public class Scenario extends Logging {
             if (!node.isZone) {
                 continue;
             }
-            for (Route fastestRoute : this.nodeFastestRoutes.get(node).values()) {
-                if (fastestRoute.previous == null) {
+            for (Route fastestRoute : this.nodeDirectRoutes.get(node).values()) {
+                if (fastestRoute.previous == null) { // route of length 0
                     continue;
                 }
                 Route current = fastestRoute;
                 // Iterate through the route, finding all link pairs A->B, B->C where B is a crossing
+                // current.link is B->C, current.previous.link is A->B
                 while (current.previous.link != null) {
-                    if (!current.previous.node.isZone) {
+                    if (!current.link.parent.isZone) {
                         routeSuccessors.get(current.previous.link).add(current.link);
                     }
                     current = current.previous;
@@ -311,25 +313,55 @@ public class Scenario extends Logging {
             }
         }
 
-        // Combine all links that only have one route successor, with their route successor
-        // Remove all links that have no route successors
+        // for every link x->Q in L:
+        //   get the size of the set of route successors of x, L[x->Q]
+        //   0 - remove x->Q
+        //   1 - remove x->Q, create x->y
+        //      if y is a crossing, create L[x->y] = L[Q->y]
+        //      if x is a crossing, replace x->Q with x->y in L[w->x] for all w!=Q
+        //   >1 - do nothing
+        // (since w->x exists, "all w" is necessarily the same as "all neighbors of x w")
         log("Combining links...");
-        System.out.println(routeSuccessors);
-        for (Link link : routeSuccessors.keySet()) {
-            Set<Link> successors = routeSuccessors.get(link);
+        Queue<Link> successorQueue = new LinkedList<>(routeSuccessors.keySet());
+        while (!successorQueue.isEmpty()) {
+            Link x_Q = successorQueue.remove();
+            if (!this.links.contains(x_Q)) {
+                // the link was removed
+                continue;
+            }
+
+            Node x = x_Q.parent;
+            Node Q = x_Q.neighbor; // Q is a crossing
+            Set<Link> successors = routeSuccessors.get(x_Q);
+
             if (successors.size() == 0) {
-                removeLink(link);
-                log("Scenario: Removed link " + link);
+                // remove x->Q
+                removeLink(x_Q);
+                log("Scenario: Removed link " + x_Q);
+
             } else if (successors.size() == 1) {
-                Link successor = successors.iterator().next();
-                removeLink(link);
-                removeLink(successor);
-                // måste också byta ut link OCH successor i routeSuccessors
-                // kan behöva nytt format
-                Link newLink = new Link(link.distance + successor.distance, link.parent, successor.neighbor);
-                link.parent.out.add(newLink);
-                this.links.add(newLink);
-                log("Scenario: Added link " + newLink + " bypassing " + link.neighbor);
+                // replace x->Q with x->y
+                Link Q_y = successors.iterator().next();
+                Node y = Q_y.neighbor;
+                Link x_y = addLink(x, y, x_Q.distance + Q_y.distance);
+                removeLink(x_Q);
+                log("Scenario: Added link " + x_y + " bypassing " + Q);
+                // update routeSuccessors
+                if (!x.isZone) {
+                    for (Link w_x : x.in) {
+                        Node w = w_x.parent;
+                        if (w == Q) {
+                            continue;
+                        }
+                        if (routeSuccessors.get(w_x).remove(x_Q)) {
+                            routeSuccessors.get(w_x).add(x_y);
+                        }
+                    }
+                }
+                if (!y.isZone) {
+                    routeSuccessors.put(x_y, routeSuccessors.get(Q_y));
+                    successorQueue.add(x_y);
+                }
             }
         }
 
