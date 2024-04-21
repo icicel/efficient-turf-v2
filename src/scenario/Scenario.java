@@ -151,7 +151,8 @@ public class Scenario extends Logging {
             throw new RuntimeException("Tried to remove start or end node");
         }
         this.nodes.remove(node);
-        for (Link link : node.out) {
+        Queue<Link> toRemove = new LinkedList<>(node.in);
+        for (Link link : toRemove) {
             removeLinkPair(link);
         }
     }
