@@ -37,7 +37,7 @@ public class Turf extends Logging {
     public Turf(Path kmlPath, String realZoneLayer, String crossingLayer, String connectionLayer)
     throws IOException, InterruptedException, SAXException, ParserConfigurationException {
 
-        log("Turf: Initializing KML at " + kmlPath + "...");
+        info("Turf: Initializing KML at " + kmlPath + "...");
         KML kml = new KML(kmlPath);
 
         // Init zones
@@ -51,11 +51,11 @@ public class Turf extends Logging {
             }
             zoneNames.put(zone.name, zone);
         }
-        log("Turf: Found " + zones.size() + " zones");
+        info("Turf: Found " + zones.size() + " zones");
 
 
         // Init points
-        log("Turf: Getting points from API...");
+        info("Turf: Getting points from API...");
         
         // Create a JSON body with all zone names
         // [{"name": "zonea"}, {"name": "zoneb"}, ...]
@@ -103,7 +103,7 @@ public class Turf extends Logging {
             Zone zone = getZone(name);
             zone.initPoints(zoneInfo);
         }
-        log("Turf: Points set");
+        info("Turf: Points set");
 
 
         // Init crossings only if crossingLayer is given
@@ -117,7 +117,7 @@ public class Turf extends Logging {
                 }
                 zoneNames.put(zone.name, zone);
             }
-            log("Turf: Found " + (zones.size() - oldSize) + " crossings");
+            info("Turf: Found " + (zones.size() - oldSize) + " crossings");
         }
 
 
@@ -132,7 +132,7 @@ public class Turf extends Logging {
                 warn("WARNING: Duplicate connection " + connection);
             }
         }
-        log("Turf: Found " + connections.size() + " connections");
+        info("Turf: Found " + connections.size() + " connections");
     }
 
     /* Utility functions */

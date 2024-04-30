@@ -44,7 +44,7 @@ public class Scenario extends Logging {
     public Map<Node, Double> nodeEndDistance;
     
     public Scenario(Turf turf, Conditions conditions) {
-        log("Scenario: *** Initializing...");
+        info("Scenario: *** Initializing...");
 
         // Create a Node for each Zone in the Turf
         // Also create a temporary map from Zones to respective Nodes
@@ -62,7 +62,7 @@ public class Scenario extends Logging {
             childNode.put(zone, node);
             nodes++;
         }
-        log("Scenario: Created " + nodes + " nodes");
+        info("Scenario: Created " + nodes + " nodes");
 
         // Fill in other things
         this.start = getNode(conditions.start);
@@ -81,30 +81,30 @@ public class Scenario extends Logging {
             addLinkPair(leftNode, rightNode, connection.distance);
             links += 2;
         }
-        log("Scenario: Created " + links + " links");
+        info("Scenario: Created " + links + " links");
 
         // Apply white/blacklist
         if (conditions.whitelist != null) {
-            log("Scenario: Applying whitelist...");
+            info("Scenario: Applying whitelist...");
             Set<Node> safeNodes = getNodes(conditions.whitelist);
             for (Node node : this.nodes) {
                 if (!safeNodes.contains(node)) {
                     removeNode(node);
-                    log("Scenario: Removed unwhitelisted node " + node);
+                    debug("Removed unwhitelisted node " + node);
                 }
             }
         } else if (conditions.blacklist != null) {
-            log("Scenario: Applying blacklist...");
+            info("Scenario: Applying blacklist...");
             for (Node node : getNodes(conditions.blacklist)) {
                 removeNode(node);
-                log("Scenario: Removed blacklisted node " + node);
+                debug("Removed blacklisted node " + node);
             }
         }
 
-        log("Scenario: Updating routes...");
+        info("Scenario: Updating routes...");
         updateRoutes();
 
-        log("Scenario: *** Initialized");
+        info("Scenario: *** Initialized");
     }
 
     /* Utility functions */
@@ -198,14 +198,14 @@ public class Scenario extends Logging {
         }
         for (Node node : unreachedNodes) {
             removeNode(node);
-            log("Scenario: Removed unreachable node " + node);
+            debug("Removed unreachable node " + node);
         }
         for (Link link : unreachedLinks) {
             if (!this.links.contains(link)) {
                 continue; // links could be removed by removing nodes
             }
             removeLink(link);
-            log("Scenario: Removed unreachable link " + link);
+            debug("Removed unreachable link " + link);
         }
 
         // Update route caches
@@ -241,7 +241,7 @@ public class Scenario extends Logging {
 
     // Remove redundant links/nodes (not used in any optimal routes)
     public void removeUnusedConnections() {
-        log("Scenario: ** Removing unused connections...");
+        info("Scenario: ** Removing unused connections...");
         Set<Node> unusedNodes = new HashSet<>(this.nodes);
         Set<Link> unusedLinks = new HashSet<>(this.links);
         for (Node node : this.nodes) {
@@ -261,20 +261,20 @@ public class Scenario extends Logging {
         }
         for (Node node : unusedNodes) {
             removeNode(node);
-            log("Scenario: Removed unused node " + node);
+            debug("Removed unused node " + node);
         }
         for (Link link : unusedLinks) {
             if (!this.links.contains(link)) {
                 continue; // this is just to not log an already removed link
             }
             removeLinkPair(link);
-            log("Scenario: Removed unused link " + link.pairString());
+            debug("Removed unused link " + link.pairString());
         }
 
-        log("Scenario: Updating routes...");
+        info("Scenario: Updating routes...");
         updateRoutes();
 
-        log("Scenario: ** Removal complete");
+        info("Scenario: ** Removal complete");
     }
 
     // remove crossings and redistribute if doing so reduces the amount of links
@@ -291,11 +291,11 @@ public class Scenario extends Logging {
     //   the crossing while keeping A.reverse and B intact
     // Using this optimization will therefore remove the guarantee that all links have a reverse
     public void optimizeCrossings() {
-        log("Scenario: ** Optimizing crossings...");
+        info("Scenario: ** Optimizing crossings...");
 
         optimizeCrossings(1);
     
-        log("Scenario: ** Optimization complete");
+        info("Scenario: ** Optimization complete");
     }
 
     // Used to optimize over and over until no more optimizations can be made
@@ -305,7 +305,7 @@ public class Scenario extends Logging {
         // Generate link pairs from fastest routes
         // routeSuccessors stores, per link A->B where B is a crossing, all links B->C where A->B->C
         //   is part of any fastest route ("route successors" to A->B)
-        log("Scenario: Generating link successors...");
+        info("Scenario: Generating link successors...");
         Map<Link, Set<Link>> routeSuccessors = new HashMap<>();
         for (Link link : this.links) {
             if (!link.neighbor.isZone) {
@@ -340,7 +340,7 @@ public class Scenario extends Logging {
         //      if x is a crossing, replace x->Q with x->y in L[w->x] for all w!=Q
         //   >1 - do nothing
         // (since w->x exists, "all w" is necessarily the same as "all neighbors of x w")
-        log("Scenario: Combining links, attempt " + attempt + "...");
+        info("Scenario: Combining links, attempt " + attempt + "...");
         Queue<Link> successorQueue = new LinkedList<>(routeSuccessors.keySet());
         boolean changed = false;
         while (!successorQueue.isEmpty()) {
@@ -358,7 +358,7 @@ public class Scenario extends Logging {
                 changed = true;
                 // remove x->Q
                 removeLink(x_Q);
-                log("Scenario: Removed link " + x_Q);
+                debug("Removed link " + x_Q);
 
             } else if (successors.size() == 1) {
                 changed = true;
@@ -367,7 +367,7 @@ public class Scenario extends Logging {
                 Node y = Q_y.neighbor;
                 Link x_y = addLink(x, y, x_Q.distance + Q_y.distance);
                 removeLink(x_Q);
-                log("Scenario: Added link " + x_y + " bypassing " + Q);
+                debug("Added link " + x_y + " bypassing " + Q);
                 // update routeSuccessors
                 if (!x.isZone) {
                     for (Link w_x : x.in) {
@@ -387,7 +387,7 @@ public class Scenario extends Logging {
             }
         }
 
-        log("Scenario: Updating routes...");
+        info("Scenario: Updating routes...");
         updateRoutes();
 
         if (changed) {

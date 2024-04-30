@@ -6,10 +6,11 @@ import solver.Result;
 import solver.Solver;
 import turf.Turf;
 import util.Logging;
+import util.Logging.Level;
 
 public class Example {
     public static void main(String[] args) throws Exception {
-        Logging.init();
+        Logging.init(Level.WARN);
 
         Path kmlPath = Turf.getRootFilePath("example.kml");
         Turf turf = new Turf(kmlPath, "Zones", "Crossings", "Connections");

@@ -5,24 +5,45 @@ import java.time.LocalTime;
 // Extend to enable logging for a class
 public class Logging {
 
-    private static boolean logging = false;
+    private static Level level = Level.NONE;
 
-    public static void init() {
-        logging = true;
+    // NONE = only critical errors
+    // INFO = above plus program flow information
+    // WARN = above plus non-critical errors
+    // DEBUG = above plus information about objects
+    // TRACE = above plus detailed information
+    public enum Level { 
+        NONE, INFO, WARN, DEBUG, TRACE;
     }
 
-    public static void log(String message) {
-        if (logging) {
+    public static void init(Level level) {
+        Logging.level = level;
+    }
+
+    // log messages at the different levels
+    public static void info(String message) {
+        if (level != Level.NONE) {
+            System.out.println(withTimestamp(message));
+        }
+    }
+    public static void warn(String message) {
+        if (level != Level.NONE && level != Level.INFO) {
+            System.out.println(withTimestamp(message));
+        }
+    }
+    public static void debug(String message) {
+        if (level == Level.DEBUG || level == Level.TRACE) {
+            System.out.println(withTimestamp(message));
+        }
+    }
+    public static void trace(String message) {
+        if (level == Level.TRACE) {
             System.out.println(withTimestamp(message));
         }
     }
 
-    public static void warn(String message) {
-        if (logging) {
-            System.err.println(withTimestamp(message));
-        }
-    }
-
+    // An infernal creation sanctioned by Satan himself
+    // string handling!!!!!! :DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
     private static String withTimestamp(String message) {
         LocalTime now = LocalTime.now();
         int hour = now.getHour();
