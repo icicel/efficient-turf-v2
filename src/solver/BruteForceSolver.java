@@ -21,7 +21,7 @@ public class BruteForceSolver implements Solver {
         search(new AdvancedRoute(scenario.start));
         finishedRoutes.sort(
             (a, b) -> Double.compare(b.points, a.points));
-        return new Result(finishedRoutes);
+        return new Result(finishedRoutes, scenario.speed);
     }
 
     // Recursively searches for valid, finished routes
