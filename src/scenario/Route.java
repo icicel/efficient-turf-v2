@@ -60,19 +60,4 @@ public class Route {
         }
         return this.previous.toString() + " -> " + this.node.name;
     }
-
-    // Only show the zones captured, in the order they were captured (and start and end)
-    public String asResult() {
-        return this.onlyZones() + " -> " + this.node.name + "\n(" 
-            + this.points + " points, " + this.zones + " zones, " + (int) this.length + "m)";
-    }
-    private String onlyZones() {
-        if (this.previous == null) {
-            return this.node.name;
-        }
-        if (this.node.isZone && !this.previous.hasVisited(node)) {
-            return this.previous.onlyZones() + " -> " + this.node.name;
-        }
-        return this.previous.onlyZones();
-    }
 }

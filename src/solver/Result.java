@@ -21,9 +21,24 @@ public class Result {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         for (Route route : this.routes) {
-            sb.append(route.asResult());
+            sb.append(routeString(route));
             sb.append("\n");
         }
         return sb.toString();
+    }
+
+    // Only show the zones captured, in the order they were captured (and start and end)
+    private String routeString(Route result) {
+        return routeZones(result) + " -> " + result.node.name + "\n(" 
+            + result.points + " points, " + result.zones + " zones, " + (int) result.length + "m, )";
+    }
+    private String routeZones(Route result) {
+        if (result.previous == null) {
+            return result.node.name;
+        }
+        if (result.node.isZone && !result.previous.hasVisited(result.node)) {
+            return routeZones(result.previous) + " -> " + result.node.name;
+        }
+        return routeZones(result.previous);
     }
 }
