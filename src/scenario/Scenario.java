@@ -179,36 +179,49 @@ public class Scenario extends Logging {
         }
     }
 
+    /* Graph setup */
+
     // Update graph information after changes
     private void updateRoutes() {
 
-        // Check for unreachable nodes and links
-        Set<Node> unreachedNodes = new HashSet<>(this.nodes);
-        Set<Link> unreachedLinks = new HashSet<>(this.links);
-        Queue<Link> frontier = new LinkedList<>(this.start.out);
-        unreachedNodes.remove(this.start);
-        while (!frontier.isEmpty()) {
-            Link link = frontier.remove();
-            unreachedLinks.remove(link);
-            if (!unreachedNodes.contains(link.neighbor)) {
+        // Generate initial caches
+        updateCaches();
+
+        // Check for unreachable nodes
+        Set<Node> distantNodes = new HashSet<>();
+        Set<Node> unreachableNodes = new HashSet<>();
+        for (Node node : nodes) {
+            Map<Node, Route> fastestRoutes = this.nodeFastestRoutes.get(node);
+
+            // The route start->node->end isn't possible at all
+            if (fastestRoutes.get(this.end) == null || fastestRoutes.get(this.start) == null) {
+                unreachableNodes.add(node);
                 continue;
             }
-            unreachedNodes.remove(link.neighbor);
-            frontier.addAll(link.neighbor.out);
+
+            // The route start->node->end isn't possible within time limit
+            double startToNode = fastestRoutes.get(this.start).length;
+            double nodeToEnd = fastestRoutes.get(this.end).length;
+            if (startToNode + nodeToEnd > this.distanceLimit) {
+                distantNodes.add(node);
+                continue;
+            }
         }
-        for (Node node : unreachedNodes) {
+        for (Node node : distantNodes) {
+            removeNode(node);
+            log("Scenario: Removed distant node " + node);
+        }
+        for (Node node : unreachableNodes) {
             removeNode(node);
             log("Scenario: Removed unreachable node " + node);
         }
-        for (Link link : unreachedLinks) {
-            if (!this.links.contains(link)) {
-                continue; // links could be removed by removing nodes
-            }
-            removeLink(link);
-            log("Scenario: Removed unreachable link " + link);
-        }
 
-        // Update route caches
+        // Generate final caches
+        updateCaches();
+    }
+
+    // Update route caches
+    private void updateCaches() {
         this.nodeFastestRoutes = new HashMap<>();
         this.nodeDirectRoutes = new HashMap<>();
         this.nodeEndDistance = new HashMap<>();
@@ -218,7 +231,11 @@ public class Scenario extends Logging {
             if (node.isZone) {
                 this.nodeDirectRoutes.put(node, getDirectRoutes(fastestRoutes));
             }
-            this.nodeEndDistance.put(node, fastestRoutes.get(this.end).length);
+            if (fastestRoutes.get(this.end) != null) {
+                this.nodeEndDistance.put(node, fastestRoutes.get(this.end).length);
+            } else {
+                this.nodeEndDistance.put(node, null);
+            }
         }
     }
 
