@@ -17,11 +17,11 @@ public class Node {
     public boolean isZone; // as in a real zone
 
     // Create a node from a zone
-    public Node(Zone zone, String username, boolean naïve) {
+    public Node(Zone zone, String username, boolean isNow) {
         this.name = zone.name;
         this.in = new HashSet<>();
         this.out = new HashSet<>();
-        this.points = zone.getPoints(username, naïve);
+        this.points = zone.getPoints(username, isNow);
         this.isZone = this.points != 0;
     }
 

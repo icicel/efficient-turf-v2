@@ -17,17 +17,16 @@ public class Zone {
     private int takeoverPoints;
     // Hourly point payout for holding the zone
     private int hourlyPoints;
-    // Expected amount of hours the zone will be held for
-    private double expectedHoursHeld;
-    // expectedHoursHeld, but without taking into account Turf rounds ending
-    private double naïveHoursHeld;
+    // Expected amount of hours the zone will be held for, if taken over now
+    private double expectedHoursHeldFromNow;
+    // Expected amount of hours the zone will be held for, if taken over at the start of a 30-day round
+    private double expectedHoursHeldMax;
     // Can be revisited by owner
     private boolean revisitable;
     // The user who controls the zone
     private String owner;
 
     // Create a zone from a Point
-    // type defaults to CROSSING until points are set
     public Zone(Coords coords) {
         this.name = coords.name;
         this.coords = coords;
@@ -83,8 +82,9 @@ public class Zone {
         int totalTakeovers = info.getInt("totalTakeovers") + 1;
 
         // Final calculations
-        naïveHoursHeld = hoursExisted / (double) totalTakeovers;
-        expectedHoursHeld = Math.min(naïveHoursHeld, hoursLeftInRound);
+        double naïveHoursHeld = hoursExisted / (double) totalTakeovers;
+        expectedHoursHeldMax = Math.min(naïveHoursHeld, 840.0); // 5 weeks - the max possible round length
+        expectedHoursHeldFromNow = Math.min(naïveHoursHeld, hoursLeftInRound);
 
         /* Calculate other stuff */
         
@@ -104,19 +104,20 @@ public class Zone {
     }
 
     // Returns the amount of points the zone is worth for the given user
-    // If naïve is true, ignores the fact that Turf rounds end
-    public int getPoints(String username, boolean naïve) {
+    // If isNow is false, ignores premature end-of-round resets, revisitability, and the neutral bonus
+    public int getPoints(String username, boolean isNow) {
         if (isCrossing()) {
             return 0;
         }
 
-        double hoursHeld = naïve ? naïveHoursHeld : expectedHoursHeld;
         int points = 0;
 
-        if (owner == null) {
-            points = takeoverPoints + (int) (hourlyPoints * hoursHeld) + 50;
+        if (!isNow) {
+            points = takeoverPoints + (int) (hourlyPoints * expectedHoursHeldMax);
+        } else if (owner == null) {
+            points = takeoverPoints + (int) (hourlyPoints * expectedHoursHeldFromNow) + 50;
         } else if (!owner.equals(username)) {
-            points = takeoverPoints + (int) (hourlyPoints * hoursHeld);
+            points = takeoverPoints + (int) (hourlyPoints * expectedHoursHeldFromNow);
         } else if (revisitable) {
             points = takeoverPoints / 2; // integer division
         }

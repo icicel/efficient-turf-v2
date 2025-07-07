@@ -53,7 +53,7 @@ public class Scenario extends Logging {
         Map<Zone, Node> childNode = new HashMap<>();
         int nodes = 0;
         for (Zone zone : turf.zones) {
-            Node node = new Node(zone, conditions.username, conditions.infiniteRounds);
+            Node node = new Node(zone, conditions.username, conditions.isNow);
             this.nodes.add(node);
             if (this.nodeName.containsKey(node.name)) {
                 throw new RuntimeException("Duplicate node name: " + node.name);

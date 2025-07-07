@@ -16,8 +16,9 @@ public class Conditions {
     // Username to use for zone ownership calculation
     public String username;
 
-    // Ignore end of Turf rounds when calculating Zone points
-    public boolean infiniteRounds;
+    // Count varying factors like revisitability or neutral bonuses
+    // Essentially, if true, use data from exactly now, otherwise use more general data
+    public boolean isNow;
 
     /* Zone adjustments */
 
@@ -38,6 +39,6 @@ public class Conditions {
 
         // Default values
         this.speed = 60.0;
-        this.infiniteRounds = false;
+        this.isNow = true;
     }
 }
