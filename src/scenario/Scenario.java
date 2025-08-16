@@ -1,7 +1,9 @@
 package scenario;
+import java.io.Console;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
@@ -426,5 +428,88 @@ public class Scenario extends Logging {
     // remove short connections
     public void removeShortConnections(double minLength) {
         // TODO
+    }
+
+    /* Debug */
+
+    // Easily view the graph structure via console, quickly and dirtily
+    public void nodeViewer() {
+        Console in = System.console(); // BufferedReader requires Charset shenanigans
+        System.out.println(
+            "out <node>\tView outgoing links\n" +
+            "in <node>\tView incoming links\n" +
+            "links <node>\tView outgoing/incoming links\n" +
+            "route <node> <node>\tView fastest route\n" +
+            "routes <node>\tView all fastest routes"
+        );
+        String[] input;
+        Node node;
+        Node node2;
+        while (true) {
+            System.out.print("> ");
+            input = in.readLine().split(" ");
+            node = getNode(input[1]);
+            if (node == null) {
+                System.out.println("Node not found: " + input[1]);
+                continue;
+            }
+            switch (input[0]) {
+                case "out":
+                    for (Link link : node.out) {
+                        System.out.println("\t" + link.neighbor.name + " (" + link.distance + ")");
+                    }
+                    break;
+                
+                case "in":
+                    for (Link link : node.in) {
+                        System.out.println("\t" + link.parent.name + " (" + link.distance + ")");
+                    }
+                    break;
+                
+                case "links":
+                    List<Node> outNeighbors = node.out.stream()
+                        .map(link -> link.neighbor)
+                        .toList();
+                    List<Node> inNeighbors = node.in.stream()
+                        .map(link -> link.parent)
+                        .toList();
+                    for (Link outLink : node.out) {
+                        if (inNeighbors.contains(outLink.neighbor)) {
+                            System.out.println("\t<-> " + outLink.neighbor.name + " (" + outLink.distance + ")");
+                        } else {
+                            System.out.println("\t-> " + outLink.neighbor.name + " (" + outLink.distance + ")");
+                        }
+                    }
+                    for (Link inLink : node.in) {
+                        if (!outNeighbors.contains(inLink.parent)) {
+                            System.out.println("\t<- " + inLink.parent.name + " (" + inLink.distance + ")");
+                        }
+                    }
+                    break;
+                
+                case "route":
+                    node2 = getNode(input[2]);
+                    if (node2 == null) {
+                        System.out.println("Node not found: " + input[2]);
+                        continue;
+                    }
+                    Route route = this.nodeFastestRoutes.get(node).get(node2);
+                    if (route == null) {
+                        System.out.println("\tRoute not found");
+                        continue;
+                    }
+                    System.out.println("\t" + route + " (" + route.length + ")");
+                
+                case "routes":
+                    Map<Node, Route> routes = this.nodeFastestRoutes.get(node);
+                    for (Route r : routes.values()) {
+                        System.out.println("\t" + r + " (" + r.length + ")");
+                    }
+                    break;
+                
+                case "exit":
+                    return;
+            }
+        }
     }
 }
