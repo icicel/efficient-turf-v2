@@ -69,7 +69,7 @@ public class Turf extends Logging {
         // Post the JSON to the API and get a response containing zone information
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create("https://api.turfgame.com/v4/zones"))
+            .uri(URI.create("https://api.turfgame.com/v5/zones"))
             .POST(HttpRequest.BodyPublishers.ofString(requestJson.toString()))
             .build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
