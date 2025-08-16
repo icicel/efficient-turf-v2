@@ -38,7 +38,7 @@ public class Result {
         if (result.previous == null) {
             return result.node.name;
         }
-        if (result.node.isZone && !result.previous.hasVisited(result.node)) {
+        if (result.node.isZone() && !result.previous.hasVisited(result.node)) {
             return routeZones(result.previous) + " -> " + result.node.name;
         }
         return routeZones(result.previous);

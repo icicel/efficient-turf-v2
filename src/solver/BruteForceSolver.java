@@ -71,7 +71,7 @@ public class BruteForceSolver implements Solver {
 
         public AdvancedRoute(Link extension, AdvancedRoute previous) {
             super(extension, previous);
-            if (this.node.isZone && !previous.hasVisited(node)) {
+            if (this.node.isZone() && !previous.hasVisited(node)) {
                 this.lastCapture = this.node;
                 this.distanceSinceLastCapture = 0.0;
             } else {

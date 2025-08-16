@@ -22,7 +22,7 @@ public class Route {
         this.previous = null;
         this.length = 0.0;
         this.points = root.points;
-        if (this.node.isZone) {
+        if (this.node.isZone()) {
             this.zones = 1;
         } else {
             this.zones = 0;
@@ -39,7 +39,7 @@ public class Route {
         this.previous = previous;
         this.length = previous.length + extension.distance;
         this.points = previous.points + this.node.points;
-        if (this.node.isZone) {
+        if (this.node.isZone()) {
             this.zones = previous.zones + 1;
         } else {
             this.zones = previous.zones;

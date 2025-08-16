@@ -14,7 +14,6 @@ public class Node {
     public Set<Link> in;
     public Set<Link> out;
     public int points;
-    public boolean isZone; // as in a real zone
 
     // Create a node from a zone
     public Node(Zone zone, String username, boolean isNow) {
@@ -22,7 +21,6 @@ public class Node {
         this.in = new HashSet<>();
         this.out = new HashSet<>();
         this.points = zone.getPoints(username, isNow);
-        this.isZone = this.points != 0;
     }
 
     // Returns the shortest Route to every other zone
@@ -57,6 +55,10 @@ public class Node {
             }
         }
         return fastestRoutes;
+    }
+
+    public boolean isZone() {
+        return this.points > 0;
     }
 
     @Override

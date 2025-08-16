@@ -231,7 +231,7 @@ public class Scenario extends Logging {
         for (Node node : this.nodes) {
             Map<Node, Route> fastestRoutes = node.findFastestRoutes();
             this.nodeFastestRoutes.put(node, fastestRoutes);
-            if (node.isZone) {
+            if (node.isZone()) {
                 this.nodeDirectRoutes.put(node, getDirectRoutes(fastestRoutes));
             }
             if (fastestRoutes.get(this.end) != null) {
@@ -246,7 +246,7 @@ public class Scenario extends Logging {
     private Map<Node, Route> getDirectRoutes(Map<Node, Route> fastestRoutes) {
         Map<Node, Route> directRoutes = new HashMap<>();
         for (Node node : fastestRoutes.keySet()) {
-            if (!node.isZone) {
+            if (!node.isZone()) {
                 continue;
             }
             Route route = fastestRoutes.get(node);
@@ -265,7 +265,7 @@ public class Scenario extends Logging {
         Set<Node> unusedNodes = new HashSet<>(this.nodes);
         Set<Link> unusedLinks = new HashSet<>(this.links);
         for (Node node : this.nodes) {
-            if (!node.isZone) {
+            if (!node.isZone()) {
                 continue;
             }
             unusedNodes.remove(node);
@@ -328,12 +328,12 @@ public class Scenario extends Logging {
         log("Scenario: Generating link successors...");
         Map<Link, Set<Link>> routeSuccessors = new HashMap<>();
         for (Link link : this.links) {
-            if (!link.neighbor.isZone) {
+            if (!link.neighbor.isZone()) {
                 routeSuccessors.put(link, new HashSet<>());
             }
         }
         for (Node node : this.nodes) {
-            if (!node.isZone) {
+            if (!node.isZone()) {
                 continue;
             }
             for (Route fastestRoute : this.nodeDirectRoutes.get(node).values()) {
@@ -344,7 +344,7 @@ public class Scenario extends Logging {
                 // Iterate through the route, finding all link pairs A->B, B->C where B is a crossing
                 // current.link is B->C, current.previous.link is A->B
                 while (current.previous.link != null) {
-                    if (!current.link.parent.isZone) {
+                    if (!current.link.parent.isZone()) {
                         routeSuccessors.get(current.previous.link).add(current.link);
                     }
                     current = current.previous;
@@ -389,7 +389,7 @@ public class Scenario extends Logging {
                 removeLink(x_Q);
                 log("Scenario: Added link " + x_y + " bypassing " + Q);
                 // update routeSuccessors
-                if (!x.isZone) {
+                if (!x.isZone()) {
                     for (Link w_x : x.in) {
                         Node w = w_x.parent;
                         if (w == Q) {
@@ -400,7 +400,7 @@ public class Scenario extends Logging {
                         }
                     }
                 }
-                if (!y.isZone) {
+                if (!y.isZone()) {
                     routeSuccessors.put(x_y, routeSuccessors.get(Q_y));
                     successorQueue.add(x_y);
                 }
