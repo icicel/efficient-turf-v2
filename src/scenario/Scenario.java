@@ -197,18 +197,17 @@ public class Scenario extends Logging {
         Set<Node> distantNodes = new HashSet<>();
         Set<Node> unreachableNodes = new HashSet<>();
         for (Node node : nodes) {
-            Map<Node, Route> fastestRoutes = this.nodeFastestRoutes.get(node);
+            Route startToNode = this.nodeFastestRoutes.get(this.start).get(node);
+            Route nodeToEnd = this.nodeFastestRoutes.get(node).get(this.end);
 
             // The route start->node->end isn't possible at all
-            if (fastestRoutes.get(this.end) == null || fastestRoutes.get(this.start) == null) {
+            if (startToNode == null || nodeToEnd == null) {
                 unreachableNodes.add(node);
                 continue;
             }
 
             // The route start->node->end isn't possible within time limit
-            double startToNode = fastestRoutes.get(this.start).length;
-            double nodeToEnd = fastestRoutes.get(this.end).length;
-            if (startToNode + nodeToEnd > this.distanceLimit) {
+            if (startToNode.length + nodeToEnd.length > this.distanceLimit) {
                 distantNodes.add(node);
                 continue;
             }
