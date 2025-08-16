@@ -419,10 +419,44 @@ public class Scenario extends Logging {
         }
     }
 
-    // remove crossings entirely
-    // links between zones are instead the optimal routes between them
+    // Remove crossings entirely
+    // Links between zones are instead the direct routes between them
     public void removeCrossings() {
-        // TODO
+        log("Scenario: ** Removing crossings...");
+
+        // Remove all crossings
+        List<Node> crossingNodes = this.nodes.stream()
+            .filter(node -> !node.isZone())
+            .toList();
+        for (Node node : crossingNodes) {
+            removeNode(node);
+        }
+
+        // Remove all links
+        for (Node node : this.nodes) {
+            for (Link link : new LinkedList<>(node.in)) {
+                removeLinkPair(link);
+            }
+            for (Link link : new LinkedList<>(node.out)) {
+                removeLinkPair(link);
+            }
+        }
+
+        // Add direct routes as links
+        for (Node node : this.nodes) {
+            Map<Node, Route> directRoutes = this.nodeDirectRoutes.get(node);
+            for (Node target : directRoutes.keySet()) {
+                Route route = directRoutes.get(target);
+                addLinkPair(node, target, route.length);
+                // clear the reverse direct route to avoid duplicates
+                this.nodeDirectRoutes.get(target).remove(node);
+            }
+        }
+
+        // Update routes
+        updateRoutes();
+
+        log("Scenario: ** Removal complete");
     }
 
     // remove short connections
