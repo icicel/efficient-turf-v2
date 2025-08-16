@@ -50,16 +50,9 @@ public class Scenario extends Logging {
         // Also create a temporary map from Zones to respective Nodes
         this.nodes = new HashSet<>();
         this.nodeName = new HashMap<>();
-        Map<Zone, Node> childNode = new HashMap<>();
         int nodes = 0;
         for (Zone zone : turf.zones) {
-            Node node = new Node(zone, conditions.username, conditions.isNow);
-            this.nodes.add(node);
-            if (this.nodeName.containsKey(node.name)) {
-                throw new RuntimeException("Duplicate node name: " + node.name);
-            }
-            this.nodeName.put(node.name, node);
-            childNode.put(zone, node);
+            addNode(zone, conditions.username, conditions.isNow);
             nodes++;
         }
         log("Scenario: Created " + nodes + " nodes");
@@ -76,8 +69,8 @@ public class Scenario extends Logging {
         this.links = new HashSet<>();
         int links = 0;
         for (Connection connection : turf.connections) {
-            Node leftNode = childNode.get(connection.left);
-            Node rightNode = childNode.get(connection.right);
+            Node leftNode = this.getNode(connection.left.name);
+            Node rightNode = this.getNode(connection.right.name);
             addLinkPair(leftNode, rightNode, connection.distance);
             links += 2;
         }
@@ -127,7 +120,17 @@ public class Scenario extends Logging {
         return nodes;
     }
 
-    // Add and return a link between two nodes
+    // Create a Node from a Zone
+    private void addNode(Zone zone, String username, boolean isNow) {
+        Node node = new Node(zone, username, isNow);
+        if (this.nodeName.containsKey(node.name)) {
+            throw new RuntimeException("Duplicate node name: " + node.name);
+        }
+        this.nodes.add(node);
+        this.nodeName.put(node.name, node);
+    }
+
+    // Create and return a (one-way) link between two nodes
     private Link addLink(Node from, Node to, double distance) {
         Link link = new Link(distance, from, to);
         this.links.add(link);
