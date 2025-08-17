@@ -30,14 +30,10 @@ public class Node {
     public Map<Node, Route> findFastestRoutes() {
         Map<Node, Route> fastestRoutes = new HashMap<>();
         PriorityQueue<Route> queue = new PriorityQueue<>(
-            (a, b) -> Double.compare(a.length, b.length));
+            (a, b) -> Double.compare(a.length, b.length)
+        );
         Set<Node> visited = new HashSet<>();
-        Route start = new Route(this);
-        visited.add(this);
-        fastestRoutes.put(this, start);
-        for (Link link : this.out) {
-            queue.add(new Route(link, start));
-        }
+        queue.add(new Route(this));
         while (!queue.isEmpty()) {
             // Get the shortest Route from the queue
             Route route = queue.remove();
