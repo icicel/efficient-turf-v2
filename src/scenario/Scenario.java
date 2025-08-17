@@ -133,6 +133,7 @@ public class Scenario extends Logging {
     }
 
     // Create and return a (one-way) link between two nodes
+    // Fails if there already is one between the nodes
     private Link addLink(Node from, Node to, double distance) {
         Link link = new Link(distance, from, to);
         this.links.add(link);
@@ -140,6 +141,7 @@ public class Scenario extends Logging {
     }
 
     // Add two links between two nodes, one in each direction
+    // Fails if there already is one in either direction
     private void addLinkPair(Node node1, Node node2, double distance) {
         Link link1 = addLink(node1, node2, distance);
         Link link2 = addLink(node2, node1, distance);

@@ -13,13 +13,21 @@ public class Link {
     public Link reverse;
 
     // Initialization
+    // Will fail if parent already has a link to neighbor
     public Link(double distance, Node parent, Node neighbor) {
         this.distance = distance;
         this.parent = parent;
         this.neighbor = neighbor;
 
-        this.parent.out.add(this);
-        this.neighbor.in.add(this);
+        if (parent.outNodes.contains(neighbor)) {
+            // This link already exists
+            throw new IllegalArgumentException("Link already exists from " + parent.name + " to " + neighbor.name);
+        }
+
+        parent.out.add(this);
+        parent.outNodes.add(neighbor);
+        neighbor.in.add(this);
+        neighbor.inNodes.add(parent);
     }
 
     @Override

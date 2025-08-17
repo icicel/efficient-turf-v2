@@ -13,6 +13,8 @@ public class Node {
     public String name;
     public Set<Link> in;
     public Set<Link> out;
+    public Set<Node> inNodes;
+    public Set<Node> outNodes;
     public int points;
 
     // Create a node from a zone
@@ -20,6 +22,8 @@ public class Node {
         this.name = zone.name;
         this.in = new HashSet<>();
         this.out = new HashSet<>();
+        this.inNodes = new HashSet<>();
+        this.outNodes = new HashSet<>();
         this.points = zone.getPoints(username, isNow);
     }
 
