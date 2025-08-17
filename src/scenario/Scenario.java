@@ -432,24 +432,17 @@ public class Scenario extends Logging {
             removeNode(node);
         }
 
-        // Remove all links
-        for (Node node : this.nodes) {
-            for (Link link : new LinkedList<>(node.in)) {
-                removeLinkPair(link);
-            }
-            for (Link link : new LinkedList<>(node.out)) {
-                removeLinkPair(link);
-            }
-        }
-
-        // Add direct routes as links
+        // All remaining links are now direct links between zones
+        // Add the remaining direct routes as links
         for (Node node : this.nodes) {
             Map<Node, Route> directRoutes = this.nodeDirectRoutes.get(node);
             for (Node target : directRoutes.keySet()) {
+                if (node.outNodes.contains(target)) {
+                    // This link already exists
+                    continue;
+                }
                 Route route = directRoutes.get(target);
-                addLinkPair(node, target, route.length);
-                // clear the reverse direct route to avoid duplicates
-                this.nodeDirectRoutes.get(target).remove(node);
+                addLink(node, target, route.length);
             }
         }
 
