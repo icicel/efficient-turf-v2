@@ -437,7 +437,7 @@ public class Scenario extends Logging {
         for (Node node : this.nodes) {
             Map<Node, Route> directRoutes = this.nodeDirectRoutes.get(node);
             for (Node target : directRoutes.keySet()) {
-                if (node.outNodes.contains(target)) {
+                if (node.hasLinkTo(target)) {
                     // This link already exists
                     continue;
                 }

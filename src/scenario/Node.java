@@ -37,6 +37,10 @@ public class Node {
         return null; // No link to that node
     }
 
+    public boolean hasLinkTo(Node neighbor) {
+        return this.outNodes.contains(neighbor);
+    }
+
     // Returns the shortest Route to every other zone
     // This is done by keeping a priority queue of all Nodes neighboring
     //  already visited Nodes, (in the form of Routes) and extending them

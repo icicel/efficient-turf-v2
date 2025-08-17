@@ -19,7 +19,7 @@ public class Link {
         this.parent = parent;
         this.neighbor = neighbor;
 
-        if (parent.outNodes.contains(neighbor)) {
+        if (parent.hasLinkTo(neighbor)) {
             // This link already exists
             throw new IllegalArgumentException("Link already exists from " + parent.name + " to " + neighbor.name);
         }
@@ -30,7 +30,7 @@ public class Link {
         neighbor.inNodes.add(parent);
 
         // Reverse handling
-        if (neighbor.outNodes.contains(parent)) {
+        if (neighbor.hasLinkTo(parent)) {
             this.reverse = neighbor.getLinkTo(parent);
             this.reverse.reverse = this;
         }
