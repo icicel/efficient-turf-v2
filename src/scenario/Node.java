@@ -27,6 +27,16 @@ public class Node {
         this.points = zone.getPoints(username, isNow);
     }
 
+    // Retrieve an outgoing link to a neighbor node
+    public Link getLinkTo(Node neighbor) {
+        for (Link link : this.out) {
+            if (link.neighbor == neighbor) {
+                return link;
+            }
+        }
+        return null; // No link to that node
+    }
+
     // Returns the shortest Route to every other zone
     // This is done by keeping a priority queue of all Nodes neighboring
     //  already visited Nodes, (in the form of Routes) and extending them

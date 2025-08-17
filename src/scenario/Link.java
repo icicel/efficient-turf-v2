@@ -28,6 +28,12 @@ public class Link {
         parent.outNodes.add(neighbor);
         neighbor.in.add(this);
         neighbor.inNodes.add(parent);
+
+        // Reverse handling
+        if (neighbor.outNodes.contains(parent)) {
+            this.reverse = neighbor.getLinkTo(parent);
+            this.reverse.reverse = this;
+        }
     }
 
     @Override

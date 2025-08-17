@@ -143,10 +143,8 @@ public class Scenario extends Logging {
     // Add two links between two nodes, one in each direction
     // Fails if there already is one in either direction
     private void addLinkPair(Node node1, Node node2, double distance) {
-        Link link1 = addLink(node1, node2, distance);
-        Link link2 = addLink(node2, node1, distance);
-        link1.reverse = link2;
-        link2.reverse = link1;
+        addLink(node1, node2, distance);
+        addLink(node2, node1, distance);
     }
 
     // Completely remove all references to a Node, includes removing all Links to/from the Node
