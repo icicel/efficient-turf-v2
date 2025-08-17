@@ -533,6 +533,7 @@ public class Scenario extends Logging {
                         continue;
                     }
                     System.out.println("\t" + route + " (" + route.length + ")");
+                    break;
                 
                 case "routes":
                     Map<Node, Route> routes = this.nodeFastestRoutes.get(node);
