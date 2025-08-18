@@ -38,11 +38,12 @@ public class Route {
         this.link = extension;
         this.previous = previous;
         this.length = previous.length + extension.distance;
-        this.points = previous.points + this.node.points;
-        if (this.node.isZone()) {
+        if (this.node.isZone() && !previous.hasVisited(node)) {
             this.zones = previous.zones + 1;
+            this.points = previous.points + this.node.points;
         } else {
             this.zones = previous.zones;
+            this.points = previous.points;
         }
     }
     
