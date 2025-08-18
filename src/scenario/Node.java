@@ -17,9 +17,13 @@ public class Node {
     public Set<Node> outNodes;
     public int points;
 
+    // For hashing, so Nodes can be renamed
+    private String hashName;
+
     // Create a node from a zone
     public Node(Zone zone, String username, boolean isNow) {
         this.name = zone.name;
+        this.hashName = new String(zone.name);
         this.in = new HashSet<>();
         this.out = new HashSet<>();
         this.inNodes = new HashSet<>();
@@ -82,6 +86,6 @@ public class Node {
 
     @Override
     public int hashCode() {
-        return this.name.hashCode();
+        return this.hashName.hashCode();
     }
 }
