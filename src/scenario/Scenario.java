@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
 import turf.Connection;
@@ -465,24 +466,28 @@ public class Scenario extends Logging {
         log("Scenario: ** Removing short connections...");
 
         // Find all two-way links that are too short
-        List<Link> shortLinks = this.links.stream()
-            .filter(link -> link.distance < minLength && link.reverse != null)
-            .sorted((a, b) -> Double.compare(a.distance, b.distance))
-            .toList();
+        PriorityQueue<Link> linkQueue = new PriorityQueue<>(
+            (a, b) -> Double.compare(a.distance, b.distance)
+        );
+        linkQueue.addAll(this.links);
         
         // Merge each link's nodes and redistribute its length to their other links
-        for (Link mergeLink : shortLinks) {
+        while (!linkQueue.isEmpty()) {
+            Link mergeLink = linkQueue.remove();
             Node node1 = mergeLink.parent;
             Node node2 = mergeLink.neighbor;
 
-            if (!node1.hasLinkTo(node2)) {
+            if (mergeLink.distance > minLength) {
+                break; // no more links to merge
+            }
+            if (!node1.out.contains(mergeLink)) {
                 continue; // link already removed
+            }
+            if (mergeLink.reverse == null) {
+                continue; // link is one-way
             }
             if (node1.isZone() && node2.isZone()) {
                 continue; // don't merge links between zones
-            }
-            if (mergeLink.distance > minLength) {
-                continue; // link has been re-extended beyond the limit by a previous merge
             }
             removeLinkPair(mergeLink);
 
@@ -500,37 +505,58 @@ public class Scenario extends Logging {
             if (!mergeToMiddle) {
                 redistribution = mergeLink.distance;
             }
+            Map<Node, Double> outLinks = new HashMap<>();
+            Map<Node, Double> inLinks = new HashMap<>();
+            List<Link> toRemove = new LinkedList<>();
 
             // Redistribute to mergeNode's links if merging to the middle
             if (mergeToMiddle) {
                 for (Link outLink : mergedNode.out) {
-                    outLink.distance += redistribution;
+                    outLinks.put(outLink.neighbor, outLink.distance + redistribution);
+                    toRemove.add(outLink);
                 }
                 for (Link inLink : mergedNode.in) {
-                    inLink.distance += redistribution;
+                    inLinks.put(inLink.parent, inLink.distance + redistribution);
+                    toRemove.add(inLink);
                 }
             }
 
             // Redistribute to removedNode's links, moving them to mergedNode in the process
-            // If this results in creating a link that already exists (because a node is
-            //   connected to both removedNode and mergedNode), keep the shortest version
+            // If an already existing link is shorter, use its distance instead
             for (Link outLink : removedNode.out) {
                 double newDistance = outLink.distance + redistribution;
                 if (mergedNode.hasLinkTo(outLink.neighbor)) {
                     Link existingLink = mergedNode.getLinkTo(outLink.neighbor);
-                    existingLink.distance = Math.min(existingLink.distance, newDistance);
-                } else {
-                    addLink(mergedNode, outLink.neighbor, newDistance);
+                    toRemove.add(existingLink);
+                    newDistance = Math.min(existingLink.distance, newDistance);
                 }
+                outLinks.put(outLink.neighbor, newDistance);
             }
             for (Link inLink : removedNode.in) {
                 double newDistance = inLink.distance + redistribution;
                 if (inLink.parent.hasLinkTo(mergedNode)) {
                     Link existingLink = inLink.parent.getLinkTo(mergedNode);
-                    existingLink.distance = Math.min(existingLink.distance, newDistance);
-                } else {
-                    addLink(inLink.parent, mergedNode, newDistance);
+                    toRemove.add(existingLink);
+                    newDistance = Math.min(existingLink.distance, newDistance);
                 }
+                inLinks.put(inLink.parent, newDistance);
+            }
+
+            // Remove the links that are being redistributed
+            for (Link link : toRemove) {
+                removeLink(link);
+            }
+
+            // Re-add links, placing them in the queue
+            for (Node outNode : outLinks.keySet()) {
+                Double distance = outLinks.get(outNode);
+                Link newLink = addLink(mergedNode, outNode, distance);
+                linkQueue.add(newLink);
+            }
+            for (Node inNode : inLinks.keySet()) {
+                Double distance = inLinks.get(inNode);
+                Link newLink = addLink(inNode, mergedNode, distance);
+                linkQueue.add(newLink);
             }
 
             // Finally remove the second node
