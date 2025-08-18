@@ -454,9 +454,106 @@ public class Scenario extends Logging {
         log("Scenario: ** Removal complete");
     }
 
-    // remove short connections
-    public void removeShortConnections(double minLength) {
-        // TODO
+    // Optimize connections that are too short to matter
+    // Done by merging nodes connected with a two-way link shorter than the given length, and
+    //   redistributing the length of the link to the new node's other links
+    // This adds total distance to the Scenario, meaning the optimal solution may change and distant nodes
+    //   may become unreachable
+    // Does not remove links between two zones as they shouldn't be merged
+    // If keepNames is true, the merged node's name will be a combination of the two nodes' names
+    public void removeShortConnections(double minLength, boolean keepNames) {
+        log("Scenario: ** Removing short connections...");
+
+        // Find all two-way links that are too short
+        List<Link> shortLinks = this.links.stream()
+            .filter(link -> link.distance < minLength && link.reverse != null)
+            .sorted((a, b) -> Double.compare(a.distance, b.distance))
+            .toList();
+        
+        // Merge each link's nodes and redistribute its length to their other links
+        for (Link mergeLink : shortLinks) {
+            Node node1 = mergeLink.parent;
+            Node node2 = mergeLink.neighbor;
+
+            if (!node1.hasLinkTo(node2)) {
+                continue; // link already removed
+            }
+            if (node1.isZone() && node2.isZone()) {
+                continue; // don't merge links between zones
+            }
+            if (mergeLink.distance > minLength) {
+                continue; // link has been re-extended beyond the limit by a previous merge
+            }
+            removeLinkPair(mergeLink);
+
+            // Define the node to be kept and node to remove
+            Node mergedNode = node1;
+            Node removedNode = node2;
+            if (node2.isZone()) {
+                mergedNode = node2;
+                removedNode = node1;
+            }
+
+            // Calculate distance to be redistributed
+            boolean mergeToMiddle = !node1.isZone() && !node2.isZone();
+            double redistribution = mergeLink.distance / 2.0;
+            if (!mergeToMiddle) {
+                redistribution = mergeLink.distance;
+            }
+
+            // Redistribute to mergeNode's links if merging to the middle
+            if (mergeToMiddle) {
+                for (Link outLink : mergedNode.out) {
+                    outLink.distance += redistribution;
+                }
+                for (Link inLink : mergedNode.in) {
+                    inLink.distance += redistribution;
+                }
+            }
+
+            // Redistribute to removedNode's links, moving them to mergedNode in the process
+            // If this results in creating a link that already exists (because a node is
+            //   connected to both removedNode and mergedNode), keep the shortest version
+            for (Link outLink : removedNode.out) {
+                double newDistance = outLink.distance + redistribution;
+                if (mergedNode.hasLinkTo(outLink.neighbor)) {
+                    Link existingLink = mergedNode.getLinkTo(outLink.neighbor);
+                    existingLink.distance = Math.min(existingLink.distance, newDistance);
+                } else {
+                    addLink(mergedNode, outLink.neighbor, newDistance);
+                }
+            }
+            for (Link inLink : removedNode.in) {
+                double newDistance = inLink.distance + redistribution;
+                if (inLink.parent.hasLinkTo(mergedNode)) {
+                    Link existingLink = inLink.parent.getLinkTo(mergedNode);
+                    existingLink.distance = Math.min(existingLink.distance, newDistance);
+                } else {
+                    addLink(inLink.parent, mergedNode, newDistance);
+                }
+            }
+
+            // Finally remove the second node
+            removeNode(removedNode);
+            
+            // Do name handling if requested
+            if (keepNames) {
+                String mergedName = mergedNode.name + "/" + removedNode.name;
+                log("Scenario: Removed short connection " + mergeLink.pairString() +
+                    ", created " + mergedName);
+                this.nodeName.remove(mergedNode.name);
+                this.nodeName.put(mergedName, mergedNode);
+                mergedNode.name = mergedName;
+            } else {
+                log("Scenario: Removed short connection " + mergeLink.pairString() +
+                    ", merged into " + removedNode.name);
+            }
+        }
+
+        // Update routes
+        updateRoutes();
+
+        log("Scenario: ** Removal complete");
     }
 
     /* Debug */
