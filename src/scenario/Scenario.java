@@ -172,7 +172,9 @@ public class Scenario extends Logging {
         }
         this.links.remove(link);
         link.parent.out.remove(link);
+        link.parent.outNodes.remove(link.neighbor);
         link.neighbor.in.remove(link);
+        link.neighbor.inNodes.remove(link.parent);
         if (link.reverse != null) {
             link.reverse.reverse = null;
         }
