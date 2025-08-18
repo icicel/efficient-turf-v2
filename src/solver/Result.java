@@ -1,6 +1,5 @@
 package solver;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import scenario.Route;
 
@@ -13,9 +12,9 @@ public class Result {
         // Extract the 25 routes with the most points
         List<Route> sortedRoutes = new ArrayList<>(finishedRoutes);
         sortedRoutes.sort(
-            (a, b) -> Integer.compare(a.points, b.points));
-        Route[] sortedArray = sortedRoutes.toArray(new Route[0]);
-        this.routes = List.of(Arrays.copyOfRange(sortedArray, 0, Math.min(25, sortedArray.length)));
+            (a, b) -> Integer.compare(b.points, a.points)
+        );
+        this.routes = sortedRoutes.subList(0, Math.min(25, sortedRoutes.size()));
         this.speed = speed;
     }
 
