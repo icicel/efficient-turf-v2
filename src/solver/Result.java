@@ -5,7 +5,8 @@ import scenario.Route;
 
 public class Result {
     
-    private List<Route> routes;
+    public List<Route> routes;
+
     private double speed;
 
     public Result(List<? extends Route> finishedRoutes, double speed) {
