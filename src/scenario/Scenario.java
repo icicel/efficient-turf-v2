@@ -572,7 +572,7 @@ public class Scenario extends Logging {
                 mergedNode.name = mergedName;
             } else {
                 log("Scenario: Removed short connection " + mergeLink.pairString() +
-                    ", merged into " + removedNode.name);
+                    ", merged into " + mergedNode.name);
             }
         }
 
