@@ -1,5 +1,6 @@
 package solver;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import scenario.Route;
 
@@ -9,7 +10,7 @@ public class Result {
 
     private double speed;
 
-    public Result(List<? extends Route> finishedRoutes, double speed) {
+    public Result(Collection<? extends Route> finishedRoutes, double speed) {
         // Extract the 25 routes with the most points
         List<Route> sortedRoutes = new ArrayList<>(finishedRoutes);
         sortedRoutes.sort(

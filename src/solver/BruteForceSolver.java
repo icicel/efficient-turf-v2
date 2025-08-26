@@ -1,7 +1,9 @@
 package solver;
 import java.io.Console;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import scenario.Link;
 import scenario.Node;
 import scenario.Route;
@@ -14,13 +16,13 @@ import scenario.Scenario;
 public class BruteForceSolver implements Solver {
 
     public Scenario scenario;
-    public List<AdvancedRoute> finishedRoutes;
+    public Map<Integer, AdvancedRoute> finishedRoutes;
     
     public Result solve(Scenario scenario) {
         this.scenario = scenario;
-        this.finishedRoutes = new ArrayList<>();
+        this.finishedRoutes = new HashMap<>();
         search(new AdvancedRoute(scenario.start));
-        return new Result(finishedRoutes, scenario.speed);
+        return new Result(finishedRoutes.values(), scenario.speed);
     }
 
     // Recursively searches for valid, finished routes
@@ -32,7 +34,14 @@ public class BruteForceSolver implements Solver {
             }
             AdvancedRoute next = new AdvancedRoute(link, base);
             if (next.node == this.scenario.end) {
-                finishedRoutes.add(next);
+                if (finishedRoutes.containsKey(next.points)) {
+                    AdvancedRoute existing = finishedRoutes.get(next.points);
+                    if (next.length < existing.length) {
+                        finishedRoutes.put(next.points, next);
+                    }
+                } else {
+                    finishedRoutes.put(next.points, next);
+                }
             }
             search(next);
         }
