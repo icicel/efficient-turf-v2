@@ -17,10 +17,8 @@ public class BruteForceSolver implements Solver {
     
     public Result solve(Scenario scenario) {
         this.scenario = scenario;
-        finishedRoutes = new ArrayList<>();
+        this.finishedRoutes = new ArrayList<>();
         search(new AdvancedRoute(scenario.start));
-        finishedRoutes.sort(
-            (a, b) -> Double.compare(b.points, a.points));
         return new Result(finishedRoutes, scenario.speed);
     }
 
@@ -40,18 +38,44 @@ public class BruteForceSolver implements Solver {
     }
 
     // Returns a nonzero number if the route would be invalid (aka inefficient) if extended via the link
-    private int invalidRouteExtension(AdvancedRoute route, Link link) {
+    private int invalidRouteExtension(AdvancedRoute route, Link newLink) {
+        Node newNode = newLink.neighbor;
 
         // Can't be finished without exceeding the distance limit
-        if (route.length + link.distance + this.scenario.nodeEndDistance.get(link.neighbor) 
+        if (route.length + newLink.distance + this.scenario.nodeEndDistance.get(newNode) 
                 > this.scenario.distanceLimit) {
             return 1;
         }
 
-        // There exists a faster route to this node
-        if (this.scenario.nodeFastestRoutes.get(route.lastCapture).get(link.neighbor).length
-                < route.distanceSinceLastCapture + link.distance) {
+        // Returns to a zone without capturing any new zones
+        if (newNode == route.lastCapture) {
             return 2;
+        }
+
+        // There exists a faster route to this node from the last captured zone
+        if (this.scenario.nodeFastestRoutes.get(route.lastCapture).get(newNode).length
+                < route.distanceSinceLastCapture + newLink.distance) {
+            return 3;
+        }
+
+        // This link has already been used in this route
+        if (route.hasVisited(newLink)) {
+            return 4;
+        }
+
+        // Visiting the last four nodes in another order would've been more efficient
+        if (route.nodes >= 3) {
+            Node lastNode = route.node;
+            Node last2Node = route.previous.node;
+            Node last3Node = route.previous.previous.node;
+            if (
+                this.scenario.nodeFastestRoutes.get(newNode).get(lastNode).length +
+                this.scenario.nodeFastestRoutes.get(last2Node).get(last3Node).length >
+                this.scenario.nodeFastestRoutes.get(newNode).get(last2Node).length +
+                this.scenario.nodeFastestRoutes.get(lastNode).get(last3Node).length
+            ) {
+                return 5;
+            }
         }
 
         return 0;

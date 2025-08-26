@@ -11,6 +11,7 @@ public class Route {
     public Route previous;
 
     public double length;
+    public int nodes;
     public int zones;
     public int points;
 
@@ -21,6 +22,7 @@ public class Route {
         this.link = null;
         this.previous = null;
         this.length = 0.0;
+        this.nodes = 1;
         this.points = root.points;
         if (this.node.isZone()) {
             this.zones = 1;
@@ -38,6 +40,7 @@ public class Route {
         this.link = extension;
         this.previous = previous;
         this.length = previous.length + extension.distance;
+        this.nodes = previous.nodes + 1;
         if (this.node.isZone() && !previous.hasVisited(node)) {
             this.zones = previous.zones + 1;
             this.points = previous.points + this.node.points;
@@ -52,6 +55,12 @@ public class Route {
             return this.node == node;
         }
         return this.node == node || this.previous.hasVisited(node);
+    }
+    public boolean hasVisited(Link link) {
+        if (this.previous == null) {
+            return false;
+        }
+        return this.link == link || this.previous.hasVisited(link);
     }
 
     @Override
