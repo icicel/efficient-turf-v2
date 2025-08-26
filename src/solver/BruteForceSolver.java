@@ -1,4 +1,5 @@
 package solver;
+import java.io.Console;
 import java.util.ArrayList;
 import java.util.List;
 import scenario.Link;
@@ -101,6 +102,57 @@ public class BruteForceSolver implements Solver {
             } else {
                 this.lastCapture = previous.lastCapture;
                 this.distanceSinceLastCapture = previous.distanceSinceLastCapture + extension.distance;
+            }
+        }
+    }
+
+    // Exploring routes interactively, for debugging
+    public void interactive() {
+        Console in = System.console();
+        AdvancedRoute route = new AdvancedRoute(this.scenario.start);
+        System.out.println("Start: " + route.node);
+        while (true) {
+            System.out.print("-> ");
+            String input = in.readLine();
+            Node nextNode = scenario.getNode(input);
+            if (nextNode == null) {
+                System.out.println("No such node");
+                continue;
+            }
+            if (route.node.hasLinkTo(nextNode)) {
+                Link nextLink = route.node.getLinkTo(nextNode);
+                int error = invalidRouteExtension(route, nextLink);
+                if (error != 0) {
+                    System.out.println("Invalid move: error " + error);
+                    continue;
+                }
+                route = new AdvancedRoute(nextLink, route);
+            } else {
+                Route fastestRoute = this.scenario.nodeFastestRoutes.get(route.node).get(nextNode);
+                String fastestRouteStringWithoutFirstNode = fastestRoute.toString().split(" ", 2)[1];
+                System.out.println("(" + fastestRouteStringWithoutFirstNode + ")");
+
+                List<Link> fastestPath = new ArrayList<>();
+                while (fastestRoute.link != null) {
+                    fastestPath.add(0, fastestRoute.link);
+                    fastestRoute = fastestRoute.previous;
+                }
+
+                AdvancedRoute originalRoute = route;
+                boolean aborted = false;
+                for (Link nextLink : fastestPath) {
+                    int error = invalidRouteExtension(route, nextLink);
+                    if (error != 0) {
+                        System.out.println("Invalid move at " + nextLink + ": error " + error);
+                        aborted = true;
+                        break;
+                    }
+                    route = new AdvancedRoute(nextLink, route);
+                }
+                if (aborted) {
+                    route = originalRoute;
+                    continue;
+                }
             }
         }
     }
