@@ -82,7 +82,7 @@ public class BruteForceSolver implements Solver {
     }
 
     // A route that carries more information than a regular Route
-    public class AdvancedRoute extends Route {
+    public static class AdvancedRoute extends Route {
 
         public Node lastCapture;
         public double distanceSinceLastCapture;
