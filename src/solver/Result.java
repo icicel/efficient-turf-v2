@@ -30,7 +30,7 @@ public class Result {
     }
 
     // Only show the zones captured, in the order they were captured (and start and end)
-    private String routeString(Route result) {
+    public String routeString(Route result) {
         return routeZones(result) + " -> " + result.node.name + "\n(" 
             + result.points + " points, " + result.zones + " zones, " + (int) result.length + "m, " + (int) (result.length / this.speed) + "min)";
     }
