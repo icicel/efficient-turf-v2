@@ -69,10 +69,10 @@ public class BruteForceSolver implements Solver {
             Node last2Node = route.previous.node;
             Node last3Node = route.previous.previous.node;
             if (
-                this.scenario.nodeFastestRoutes.get(newNode).get(lastNode).length +
-                this.scenario.nodeFastestRoutes.get(last2Node).get(last3Node).length >
-                this.scenario.nodeFastestRoutes.get(newNode).get(last2Node).length +
-                this.scenario.nodeFastestRoutes.get(lastNode).get(last3Node).length
+                this.scenario.nodeFastestRoutes.get(lastNode).get(newNode).length +
+                this.scenario.nodeFastestRoutes.get(last3Node).get(last2Node).length >
+                this.scenario.nodeFastestRoutes.get(last2Node).get(newNode).length +
+                this.scenario.nodeFastestRoutes.get(last3Node).get(lastNode).length
             ) {
                 return 5;
             }
