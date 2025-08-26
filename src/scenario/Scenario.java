@@ -65,7 +65,6 @@ public class Scenario extends Logging {
         this.end = getNode(conditions.end);
         this.timeLimit = conditions.timeLimit;
         this.speed = conditions.speed;
-        this.priority = getNodes(conditions.priority);
         this.distanceLimit = this.timeLimit * this.speed;
 
         // Create a Link for each Connection
@@ -304,10 +303,9 @@ public class Scenario extends Logging {
         log("Scenario: ** Removal complete");
     }
 
-    // remove crossings and redistribute if doing so reduces the amount of links
-    //   without reducing connectivity
-    // simplify if 2*(inlinks + outlinks) > inlinks * outlinks
-    // when we say inlink and outlink we ignore links that aren't part of an optimal route
+    // Remove crossings and redistribute the connections if doing so reduces the amount of links
+    //   without reducing connectivity (if inlinks + outlinks > inlinks * outlinks)
+    // Most relevant for graphs with many one-way links, such as those resulting from optimizeCrossings
     public void simplifyCrossings() {
         // TODO
     }

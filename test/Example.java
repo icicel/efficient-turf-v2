@@ -17,7 +17,6 @@ public class Example {
         conditions.speed = 64.0;
         conditions.username = "user";
         conditions.blacklist = new String[] {"black", "list"};
-        conditions.priority = new String[] {"priority", "zones"};
         Scenario scenario = new Scenario(turf, conditions);
         Solver solver = new BruteForceSolver();
         Result result = solver.solve(scenario);

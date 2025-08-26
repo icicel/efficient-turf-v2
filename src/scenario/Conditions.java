@@ -29,9 +29,6 @@ public class Conditions {
     // Ignored if null
     public String[] whitelist;
 
-    // Names of zones to prioritize (a.k.a. must be included in the final Route)
-    public String[] priority;
-
     public Conditions(String start, String end, double timeLimit) {
         this.start = start;
         this.end = end;
