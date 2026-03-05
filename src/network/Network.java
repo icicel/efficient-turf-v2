@@ -90,6 +90,16 @@ public class Network extends Logging {
             }
         }
 
+        log("Connecting zones...");
+        for (Point zone : zones) {
+            // Find and connect to closest point
+            Point closestPoint = points.values().stream()
+                .min((p1, p2) -> Double.compare(zone.distanceTo(p1), zone.distanceTo(p2)))
+                .orElseThrow();
+            Way way = new Way(zone, closestPoint);
+            ways.add(way);
+        }
+
         log("Network initialized with " + ways.size() + " ways, " + points.size() + " points, and " + zones.size() + " zones");
     }
 
