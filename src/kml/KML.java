@@ -1,56 +1,68 @@
 package kml;
 import java.io.IOException;
-import java.io.StringReader;
-import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Set;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.parsers.SAXParserFactory;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-import org.xml.sax.XMLReader;
 import map.Coords;
 import map.Line;
+import nu.xom.Builder;
+import nu.xom.Document;
+import nu.xom.Element;
+import nu.xom.ParsingException;
+import nu.xom.ValidityException;
 
 // Takes and parses a KML file
 public class KML {
 
-    public String kml;
+    private static final String KML_NAMESPACE = "http://www.opengis.net/kml/2.2";
 
-    private XMLReader parser;
-    private KMLHandler handler;
+    // Map of layer name to set of points/lines in that layer        
+    public HashMap<String, Set<Coords>> points;
+    public HashMap<String, Set<Line>> lines;
     
-    // Takes a path to the KML file
-    // Stores an XMLReader object to do the reading, and sets a KMLHandler object
-    //   as both content and error handler
-    public KML(Path path) throws ParserConfigurationException, SAXException, IOException {
-        this.kml = Files.readString(path);
-        this.parser = SAXParserFactory.newInstance().newSAXParser().getXMLReader();
-        this.handler = new KMLHandler();
+    // Takes a path to a KML file and parses it, initializing the points and lines collections
+    public KML(Path path) throws ParsingException, ValidityException, IOException {
+        this.points = new HashMap<>();
+        this.lines = new HashMap<>();
+        Builder builder = new Builder();
+        Document kml = builder.build(path.toFile());
+        Element root = kml.getRootElement();
+        Element document = root.getFirstChildElement("Document", KML_NAMESPACE);
 
-        parser.setContentHandler(handler);
-        parser.setErrorHandler(handler);
+        // Google My Maps-exported KMLs use <Folder> to store each layer
+        // Objects in layers are stored in <Placemark> elements in these folders that contain
+        //  either <Point> or <LineString>
+        // Both <Point> and <LineString> elements contain <coordinates>
+        // Both <Folder> and <Placemark> elements contain <name>
+        
+        for (Element folder : document.getChildElements("Folder", KML_NAMESPACE)) {
+            String folderName = getName(folder);
+            Set<Coords> points = new HashSet<>();
+            Set<Line> lines = new HashSet<>();
+            this.points.put(folderName, points);
+            this.lines.put(folderName, lines);
+            for (Element placemark : folder.getChildElements("Placemark", KML_NAMESPACE)) {
+                String placemarkName = getName(placemark);
+                Element point = placemark.getFirstChildElement("Point", KML_NAMESPACE);
+                Element lineString = placemark.getFirstChildElement("LineString", KML_NAMESPACE);
+                if (point != null) {
+                    String coordinates = getCoordinates(point);
+                    points.add(new Coords(placemarkName, coordinates));
+                }
+                if (lineString != null) {
+                    String coordinateList = getCoordinates(lineString);
+                    lines.add(new Line(coordinateList));
+                }
+            }
+        }
     }
 
-    // Can be used as an empty parse to debug a KMLHandler
-    // Resets the KMLHandler first
-    // A new InputSource is created each time because the old one is closed after use
-    public void parse(String layerName) throws IOException, SAXException {
-        handler.reset();
-        handler.setTargetLayer(layerName);
-        StringReader kmlStream = new StringReader(kml);
-        InputSource kmlSource = new InputSource(kmlStream);
-        parser.parse(kmlSource);
+    // Small cleanup methods
+    private String getName(Element element) {
+        return element.getFirstChildElement("name", KML_NAMESPACE).getValue().strip();
     }
-
-    // Get all Points/Lines in layerName
-    // Submit "!ALL" as layerName to parse every layer
-    public Set<Coords> getPoints(String layerName) throws IOException, SAXException {
-        parse(layerName);
-        return handler.getPoints();
-    }
-    public Set<Line> getLines(String layerName) throws IOException, SAXException {
-        parse(layerName);
-        return handler.getLines();
+    private String getCoordinates(Element element) {
+        return element.getFirstChildElement("coordinates", KML_NAMESPACE).getValue().strip();
     }
 }
