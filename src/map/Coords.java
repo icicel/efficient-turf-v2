@@ -20,6 +20,10 @@ public class Coords {
         this(coordinateString);
         this.name = name.toLowerCase();
     }
+    public Coords(double lat, double lon) {
+        this.lat = lat;
+        this.lon = lon;
+    }
 
     // Calculates geodesic distance in meters to another Coords object
     public double distanceTo(Coords other) {
@@ -30,5 +34,18 @@ public class Coords {
     @Override
     public String toString() {
         return "(" + lat + "," + lon + ")";
+    }
+
+    @Override
+    public int hashCode() {
+        return Double.hashCode(lat) * 31 + Double.hashCode(lon);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        Coords other = (Coords) obj;
+        return Double.compare(lat, other.lat) == 0 && Double.compare(lon, other.lon) == 0;
     }
 }
