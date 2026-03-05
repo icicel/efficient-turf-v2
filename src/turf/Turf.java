@@ -10,13 +10,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import javax.xml.parsers.ParserConfigurationException;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.xml.sax.SAXException;
 import kml.KML;
 import map.Coords;
 import map.Line;
+import nu.xom.ParsingException;
+import nu.xom.ValidityException;
 import util.Logging;
 
 // Represents a collection of real zones, user-defined zones (optionally), and connections between them
@@ -35,7 +35,7 @@ public class Turf extends Logging {
     // Crossings are optional, set to null to ignore them
     // Set a layer name to "!ALL" to search through all layers
     public Turf(Path kmlPath, String realZoneLayer, String crossingLayer, String connectionLayer)
-    throws IOException, InterruptedException, SAXException, ParserConfigurationException {
+    throws IOException, ParsingException, ValidityException, InterruptedException {
 
         log("Turf: Initializing KML at " + kmlPath + "...");
         KML kml = new KML(kmlPath);
@@ -43,7 +43,7 @@ public class Turf extends Logging {
         // Init zones
         this.zones = new HashSet<>();
         this.zoneNames = new HashMap<>();
-        for (Coords coords : kml.getPoints(realZoneLayer)) {
+        for (Coords coords : kml.points.get(realZoneLayer)) {
             Zone zone = new Zone(coords);
             boolean added = zones.add(zone);
             if (!added) {
@@ -109,7 +109,7 @@ public class Turf extends Logging {
         // Init crossings only if crossingLayer is given
         if (crossingLayer != null) {
             int oldSize = zones.size(); // temporary
-            for (Coords coords : kml.getPoints(crossingLayer)) {
+            for (Coords coords : kml.points.get(crossingLayer)) {
                 Zone zone = new Zone(coords);
                 boolean added = zones.add(zone);
                 if (!added) {
@@ -123,7 +123,7 @@ public class Turf extends Logging {
 
         // Init connections
         this.connections = new HashSet<>();
-        for (Line line : kml.getLines(connectionLayer)) {
+        for (Line line : kml.lines.get(connectionLayer)) {
             Zone leftZone = closestZoneTo(line.left);
             Zone rightZone = closestZoneTo(line.right);
             Connection connection = new Connection(line.distance, leftZone, rightZone);

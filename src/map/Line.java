@@ -14,10 +14,10 @@ public class Line {
         // Split into individual coordinate strings
         String[] coordinateStrings = coordinateListString.split("\n");
 
-        // Convert to Coords, ignoring the first and last coordinateStrings (as they are empty strings)
-        Coords[] coordinates = new Coords[coordinateStrings.length - 2];
-        for (int i = 1; i < coordinateStrings.length - 1; i++) {
-            coordinates[i - 1] = new Coords(coordinateStrings[i]);
+        // Convert to Coords
+        Coords[] coordinates = new Coords[coordinateStrings.length];
+        for (int i = 0; i < coordinateStrings.length; i++) {
+            coordinates[i] = new Coords(coordinateStrings[i]);
         }
 
         this.left = coordinates[0];
