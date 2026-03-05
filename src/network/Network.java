@@ -21,15 +21,49 @@ import util.Logging;
 public class Network extends Logging {
 
     Set<Way> ways;
-    Map<Coords, Point> points;
+    Map<Coords, Point> points; // non-zone
+    Set<Point> zones;
 
-    public Network(Document xml) {
+    public Network(Document networkXml, Path zoneKml) throws IOException, ParsingException {
         this.ways = new HashSet<>();
         this.points = new HashMap<>();
+        this.zones = new HashSet<>();
+
+        log("Parsing KML...");
+        Builder builder = new Builder();
+        Document kml = builder.build(zoneKml.toFile());
+        Element kmlRoot = kml.getRootElement();
+        Element document = kmlRoot.getFirstChildElement("Document", "http://www.opengis.net/kml/2.2");
+        Element folder = document.getFirstChildElement("Folder", "http://www.opengis.net/kml/2.2");
+        for (Element placemark : folder.getChildElements("Placemark", "http://www.opengis.net/kml/2.2")) {
+            Element point = placemark.getFirstChildElement("Point", "http://www.opengis.net/kml/2.2");
+            String name = placemark.getFirstChildElement("name", "http://www.opengis.net/kml/2.2").getValue();
+            name = name.substring(0, name.length() - 3); // remove " POI" from the end of the name
+            String coordinates = point.getFirstChildElement("coordinates", "http://www.opengis.net/kml/2.2").getValue();
+            Coords coords = new Coords(coordinates);
+            this.zones.add(new Point(coords, name.toLowerCase()));
+        }
+
+        log("Finding bbox...");
+        double minLat = Double.POSITIVE_INFINITY;
+        double maxLat = Double.NEGATIVE_INFINITY;
+        double minLon = Double.POSITIVE_INFINITY;
+        double maxLon = Double.NEGATIVE_INFINITY;
+        for (Point zone : zones) {
+            minLat = Math.min(minLat, zone.coords.lat);
+            maxLat = Math.max(maxLat, zone.coords.lat);
+            minLon = Math.min(minLon, zone.coords.lon);
+            maxLon = Math.max(maxLon, zone.coords.lon);
+        }
+        // A small buffer
+        minLat -= 0.01;
+        maxLat += 0.01;
+        minLon -= 0.01;
+        maxLon += 0.01;
         
         log("Parsing XML...");
-        Element root = xml.getRootElement();
-        for (Element element : root.getChildElements("way")) {
+        Element xmlRoot = networkXml.getRootElement();
+        for (Element element : xmlRoot.getChildElements("way")) {
             // Create a Point for each node
             Elements nodes = element.getChildElements("nd");
             Point[] points = new Point[nodes.size()];
@@ -49,7 +83,7 @@ public class Network extends Logging {
             }
         }
 
-        log("Finished parsing XML. " + ways.size() + " ways, " + this.points.size() + " points.");
+        log("Network initialized with " + ways.size() + " ways, " + points.size() + " points, and " + zones.size() + " zones");
     }
 
     public static Document fromAPI() throws IOException, ParsingException, InterruptedException {
