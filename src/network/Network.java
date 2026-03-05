@@ -22,7 +22,7 @@ import util.Logging;
 public class Network extends Logging {
 
     Set<Way> ways;
-    Map<Coords, Point> points; // non-zone
+    Set<Point> points; // non-zone
     Set<Point> zones;
 
     // Get network XML from Overpass API
@@ -33,7 +33,7 @@ public class Network extends Logging {
     // Use local XML
     public Network(Path zoneKml, Path networkXml) throws IOException, ParsingException, InterruptedException {
         this.ways = new HashSet<>();
-        this.points = new HashMap<>();
+        this.points = new HashSet<>();
         this.zones = new HashSet<>();
 
         log("Parsing KML...");
@@ -70,6 +70,7 @@ public class Network extends Logging {
 
         log("Parsing XML...");
         Element root = xml.getRootElement();
+        Map<Coords, Point> pointOverlap = new HashMap<>();
         for (Element element : root.getChildElements("way")) {
             // Create a Point for each node
             Elements nodes = element.getChildElements("nd");
@@ -80,8 +81,8 @@ public class Network extends Logging {
                 Double lon = Double.parseDouble(node.getAttributeValue("lon"));
                 Coords coords = new Coords(lat, lon);
                 // Get the existing Point for these coords, create a new one if it doesn't exist
-                points[i] = this.points.getOrDefault(coords, new Point(coords));
-                this.points.put(coords, points[i]);
+                points[i] = pointOverlap.getOrDefault(coords, new Point(coords));
+                pointOverlap.put(coords, points[i]);
             }
             // Create Ways between every pair of points
             for (int i = 0; i < points.length - 1; i++) {
@@ -89,11 +90,12 @@ public class Network extends Logging {
                 ways.add(way);
             }
         }
+        this.points.addAll(pointOverlap.values());
 
         log("Connecting zones...");
         for (Point zone : zones) {
             // Find and connect to closest point
-            Point closestPoint = points.values().stream()
+            Point closestPoint = points.stream()
                 .min((p1, p2) -> Double.compare(zone.distanceTo(p1), zone.distanceTo(p2)))
                 .orElseThrow();
             Way way = new Way(zone, closestPoint);
