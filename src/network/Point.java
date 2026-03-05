@@ -13,10 +13,10 @@ public class Point {
     // null here represents a non-zone Point
     public String zone;
 
-    public Point(Coords coords, String zone) {
+    public Point(Coords coords) {
         this.coords = coords;
         this.parents = new HashSet<>();
-        this.zone = zone;
+        this.zone = coords.name; // if coords has a name, this will be the zone name, otherwise null
     }
 
     public boolean isZone() {

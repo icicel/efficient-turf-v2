@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import kml.KML;
 import map.Coords;
 import nu.xom.Builder;
 import nu.xom.Document;
@@ -24,24 +25,21 @@ public class Network extends Logging {
     Map<Coords, Point> points; // non-zone
     Set<Point> zones;
 
-    public Network(Document networkXml, Path zoneKml) throws IOException, ParsingException {
+    // Get network XML from Overpass API
+    public Network(Path zoneKml) throws IOException, ParsingException, InterruptedException {
+        this(zoneKml, null);
+    }
+
+    // Use local XML
+    public Network(Path zoneKml, Path networkXml) throws IOException, ParsingException, InterruptedException {
         this.ways = new HashSet<>();
         this.points = new HashMap<>();
         this.zones = new HashSet<>();
 
         log("Parsing KML...");
-        Builder builder = new Builder();
-        Document kml = builder.build(zoneKml.toFile());
-        Element kmlRoot = kml.getRootElement();
-        Element document = kmlRoot.getFirstChildElement("Document", "http://www.opengis.net/kml/2.2");
-        Element folder = document.getFirstChildElement("Folder", "http://www.opengis.net/kml/2.2");
-        for (Element placemark : folder.getChildElements("Placemark", "http://www.opengis.net/kml/2.2")) {
-            Element point = placemark.getFirstChildElement("Point", "http://www.opengis.net/kml/2.2");
-            String name = placemark.getFirstChildElement("name", "http://www.opengis.net/kml/2.2").getValue();
-            name = name.substring(0, name.length() - 3); // remove " POI" from the end of the name
-            String coordinates = point.getFirstChildElement("coordinates", "http://www.opengis.net/kml/2.2").getValue();
-            Coords coords = new Coords(coordinates);
-            this.zones.add(new Point(coords, name.toLowerCase()));
+        KML kml = new KML(zoneKml);
+        for (Coords coords : kml.points.get("Turf Zones")) {
+            zones.add(new Point(coords));
         }
 
         log("Finding bbox...");
@@ -61,9 +59,18 @@ public class Network extends Logging {
         minLon -= 0.01;
         maxLon += 0.01;
         
+        // If an XML is provided, use it instead of calling the API
+        Document xml;
+        Builder builder = new Builder();
+        if (networkXml == null) {
+            xml = builder.build(getFromOverpass(minLat, minLon, maxLat, maxLon), null);
+        } else {
+            xml = builder.build(networkXml.toFile());
+        }
+
         log("Parsing XML...");
-        Element xmlRoot = networkXml.getRootElement();
-        for (Element element : xmlRoot.getChildElements("way")) {
+        Element root = xml.getRootElement();
+        for (Element element : root.getChildElements("way")) {
             // Create a Point for each node
             Elements nodes = element.getChildElements("nd");
             Point[] points = new Point[nodes.size()];
@@ -73,7 +80,7 @@ public class Network extends Logging {
                 Double lon = Double.parseDouble(node.getAttributeValue("lon"));
                 Coords coords = new Coords(lat, lon);
                 // Get the existing Point for these coords, create a new one if it doesn't exist
-                points[i] = this.points.getOrDefault(coords, new Point(coords, null));
+                points[i] = this.points.getOrDefault(coords, new Point(coords));
                 this.points.put(coords, points[i]);
             }
             // Create Ways between every pair of points
@@ -86,9 +93,9 @@ public class Network extends Logging {
         log("Network initialized with " + ways.size() + " ways, " + points.size() + " points, and " + zones.size() + " zones");
     }
 
-    public static Document fromAPI() throws IOException, ParsingException, InterruptedException {
+    public static String getFromOverpass(double south, double west, double north, double east) throws IOException, ParsingException, InterruptedException {
         StringBuilder data = new StringBuilder();
-        data.append("[bbox:57.98,11.71,58.16,11.89];");
+        data.append("[bbox:" + south + "," + west + "," + north + "," + east + "];");
         data.append("way[\"highway\"][\"highway\"!=\"motorway\"][\"highway\"!=\"primary\"][\"highway\"!=\"secondary\"];");
         data.append("out skel geom;");
         HttpClient client = HttpClient.newHttpClient();
@@ -103,20 +110,11 @@ public class Network extends Logging {
         while (true) {
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
             // Check if error page
-            if (response.body().contains("!DOCTYPE html")) {
-                log("Error, retrying...");
-                Thread.sleep(1000);
-            } else {
-                break;
+            if (!response.body().contains("!DOCTYPE html")) {
+                return response.body();
             }
+            log("Error, retrying...");
+            Thread.sleep(1000);
         }
-
-        Builder builder = new Builder();
-        return builder.build(response.body(), null);
-    }
-    
-    public static Document fromFile(Path path) throws IOException, ParsingException {
-        Builder builder = new Builder();
-        return builder.build(path.toFile());
     }
 }
