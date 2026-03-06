@@ -158,7 +158,7 @@ public class Network extends Logging {
             sb.append(")\",");
             sb.append("Line ").append(wayId++);
             sb.append("\n");
-            if (wayId == 2000) {
+            if (wayId > 2000) {
                 // Reset for next file
                 writeSubfile(path, fileId++, sb.toString());
                 sb = new StringBuilder();
