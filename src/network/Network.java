@@ -95,17 +95,39 @@ public class Network extends Logging {
         }
 
         log("Network initialized with " + ways.size() + " ways, " + points.size() + " points, and " + zones.size() + " zones");
+        int count = 0;
 
         // Remove way chains/linear intersections/cases where a point has only 2 parents
         // This will be the case for most ways
         Set<Point> pointsToCheck = new HashSet<>(points);
-        int sizeBefore = ways.size();
         for (Point point : pointsToCheck) {
-            if (point.parents.size() == 2) {
+            if (point.parents.size() != 2) {
+                continue;
+            }
+            mergeOverPivot(point);
+            count++;
+        }
+        log("Merged " + count + " way chains");
+        count = 0;
+
+        // Remove loops
+        Set<Way> waysToCheck = new HashSet<>(ways);
+        for (Way way : waysToCheck) {
+            if (!way.isLoop()) {
+                continue;
+            }
+            Point point = way.left; // same as way.right
+            ways.remove(way);
+            point.parents.remove(way);
+            if (point.parents.size() == 0) {
+                // No other parents
+                points.remove(point);
+            } else if (point.parents.size() == 2) {
                 mergeOverPivot(point);
             }
+            count++;
         }
-        log("Merged " + (sizeBefore - ways.size()) + " way chains");
+        log("Removed " + count + " loops");
     }
 
     // Merge two neighboring ways across a pivot point
