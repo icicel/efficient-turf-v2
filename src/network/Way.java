@@ -22,6 +22,10 @@ public class Way {
         this.distance = left.distanceTo(right);
     }
 
+    public boolean isLoop() {
+        return left == right;
+    }
+
     // Return the other endpoint
     public Point other(Point endpoint) {
         if (endpoint == left) return right;

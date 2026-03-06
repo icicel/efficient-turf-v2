@@ -147,7 +147,7 @@ public class Network extends Logging {
         int wayId = 1;
         int fileId = 1;
         for (Way way : ways) {
-            sb.append("\"LINESTRING (");
+            sb.append(way.isLoop() ? "\"POLYGON ((" : "\"LINESTRING (");
             sb.append(way.left.coords.lon).append(" ").append(way.left.coords.lat);
             for (Coords middleCoords : way.middle) {
                 sb.append(", ");
@@ -155,7 +155,7 @@ public class Network extends Logging {
             }
             sb.append(", ");
             sb.append(way.right.coords.lon).append(" ").append(way.right.coords.lat);
-            sb.append(")\",");
+            sb.append(way.isLoop() ? "))\"," : ")\",");
             sb.append("Line ").append(wayId++);
             sb.append("\n");
             if (wayId > 2000) {
