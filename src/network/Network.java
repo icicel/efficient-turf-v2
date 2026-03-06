@@ -128,6 +128,29 @@ public class Network extends Logging {
             count++;
         }
         log("Removed " + count + " loops");
+        count = 0;
+
+        // Remove dead ends, where a point has only 1 parent
+        pointsToCheck = new HashSet<>(points);
+        for (Point point : pointsToCheck) {
+            if (point.parents.size() != 1) {
+                continue;
+            }
+            Way way = point.parents.iterator().next();
+            Point other = way.other(point);
+            // Remove this way and its endpoint
+            ways.remove(way);
+            points.remove(point);
+            other.parents.remove(way);
+            if (other.parents.size() == 0) {
+                // Remove the other endpoint too
+                points.remove(other);
+            } else if (other.parents.size() == 2) {
+                mergeOverPivot(other);
+            }
+            count++;
+        }
+        log("Removed " + count + " dead ends");
     }
 
     // Merge two neighboring ways across a pivot point
