@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -97,25 +98,23 @@ public class Network extends Logging {
 
         // Remove way chains/linear intersections/cases where a point has only 2 parents
         // This will be the case for most ways
-        Set<Way> waysToCheck = new HashSet<>(ways);
+        Set<Point> pointsToCheck = new HashSet<>(points);
         int sizeBefore = ways.size();
-        for (Way way : waysToCheck) {
-            if (way.left.parents.size() == 2) {
-                mergeWayOverPivot(way, way.left);
-            } else if (way.right.parents.size() == 2) {
-                mergeWayOverPivot(way, way.right);
-            } else {
-                continue;
+        for (Point point : pointsToCheck) {
+            if (point.parents.size() == 2) {
+                mergeOverPivot(point);
             }
         }
         log("Merged " + (sizeBefore - ways.size()) + " way chains");
     }
 
-    // Merge a way into its neighbor across a pivot point
-    // Ideally, pivot has exactly 2 parents, but it will also work if it has more
-    //  (in that case, an arbitrary neighbor is chosen)
-    public void mergeWayOverPivot(Way way, Point pivot) {
-        Way neighbor = pivot.parents.stream().filter(w -> w != way).findFirst().orElseThrow();
+    // Merge two neighboring ways across a pivot point
+    // Ideally, pivot has only 2 parents, but it will also work if it has more
+    //  (in that case, arbitrary neighbors are chosen)
+    public void mergeOverPivot(Point pivot) {
+        Iterator<Way> iterator = pivot.parents.iterator();
+        Way way = iterator.next();
+        Way neighbor = iterator.next();
         Point leftEnd = neighbor.other(pivot);
         Point rightEnd = way.other(pivot);
         List<Coords> newMiddle = new ArrayList<>();
