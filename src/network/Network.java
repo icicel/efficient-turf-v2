@@ -3,11 +3,15 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Queue;
 import java.util.Set;
 import kml.KML;
 import kml.XML;
@@ -151,6 +155,48 @@ public class Network extends Logging {
             count++;
         }
         log("Removed " + count + " dead ends");
+        count = 0;
+
+        // Remove longcuts, where there is another shorter way between the endpoints of a way
+        Queue<Way> waysToCheque = new LinkedList<>(ways);
+        while (!waysToCheque.isEmpty()) {
+            Way way = waysToCheque.remove();
+            if (!ways.contains(way)) {
+                continue;
+            }
+
+            // Perform a quick Dijkstra's from left to right
+            Point start = way.left;
+            Point end = way.right;
+            Map<Point, Double> distances = new HashMap<>();
+            PriorityQueue<Point> queue = new PriorityQueue<>(
+                Comparator.comparingDouble(distances::get)
+            );
+            distances.put(start, 0.0);
+            queue.add(start);
+            while (true) {
+                Point current = queue.remove();
+                if (current == end) {
+                    break;
+                }
+                for (Way nextWay : current.parents) {
+                    Point nextPoint = nextWay.other(current);
+                    double distanceToNextPoint = distances.get(current) + nextWay.distance;
+                    if (!distances.containsKey(nextPoint)) {
+                        distances.put(nextPoint, distanceToNextPoint);
+                        queue.add(nextPoint);
+                    } else if (distanceToNextPoint < distances.get(current)) {
+                        distances.put(nextPoint, distanceToNextPoint);
+                    }
+                }
+            }
+            // If way is the shortest way
+            if (distances.get(end) == way.distance) {
+                continue;
+            }
+
+            System.out.println("Removing longcut " + way + " with distance " + way.distance + " when a shorter way with distance " + distances.get(end) + " exists");
+        }
     }
 
     // Merge two neighboring ways across a pivot point
