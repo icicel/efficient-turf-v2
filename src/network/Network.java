@@ -1,9 +1,5 @@
 package network;
 import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,11 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import kml.KML;
+import kml.XML;
 import map.Coords;
-import nu.xom.Builder;
-import nu.xom.Document;
-import nu.xom.Element;
-import nu.xom.Elements;
 import nu.xom.ParsingException;
 import util.Logging;
 
@@ -38,13 +31,14 @@ public class Network extends Logging {
         this.points = new HashSet<>();
         this.zones = new HashSet<>();
 
-        log("Parsing KML...");
+        log("Getting KML...");
         KML kml = new KML(zoneKml);
         for (Coords coords : kml.points.get("Turf Zones")) {
             zones.add(new Point(coords));
         }
 
-        log("Finding bbox...");
+        log("Getting XML...");
+        // Find zones' bounding box
         double minLat = Double.POSITIVE_INFINITY;
         double maxLat = Double.NEGATIVE_INFINITY;
         double minLon = Double.POSITIVE_INFINITY;
@@ -60,39 +54,15 @@ public class Network extends Logging {
         maxLat += 0.01;
         minLon -= 0.01;
         maxLon += 0.01;
-        
         // If an XML is provided, use it instead of calling the API
-        Document xml;
-        Builder builder = new Builder();
+        XML xml;
         if (networkXml == null) {
-            xml = builder.build(getFromOverpass(minLat, minLon, maxLat, maxLon), null);
+            xml = new XML(minLat, minLon, maxLat, maxLon);
         } else {
-            xml = builder.build(networkXml.toFile());
+            xml = new XML(networkXml);
         }
-
-        log("Parsing XML...");
-        Element root = xml.getRootElement();
-        Map<Coords, Point> pointOverlap = new HashMap<>();
-        for (Element element : root.getChildElements("way")) {
-            // Create a Point for each node
-            Elements nodes = element.getChildElements("nd");
-            Point[] points = new Point[nodes.size()];
-            for (int i = 0; i < nodes.size(); i++) {
-                Element node = nodes.get(i);
-                Double lat = Double.parseDouble(node.getAttributeValue("lat"));
-                Double lon = Double.parseDouble(node.getAttributeValue("lon"));
-                Coords coords = new Coords(lat, lon);
-                // Get the existing Point for these coords, create a new one if it doesn't exist
-                points[i] = pointOverlap.getOrDefault(coords, new Point(coords));
-                pointOverlap.put(coords, points[i]);
-            }
-            // Create Ways between every pair of points
-            for (int i = 0; i < points.length - 1; i++) {
-                Way way = new Way(points[i], points[i + 1]);
-                ways.add(way);
-            }
-        }
-        this.points.addAll(pointOverlap.values());
+        this.ways = xml.ways;
+        this.points = xml.points;
 
         log("Connecting zones...");
         // Identify each point with its hundredth-degree lat/lon quadrant
@@ -164,31 +134,6 @@ public class Network extends Logging {
         points.remove(pivot);
         ways.remove(way);
         rightEnd.parents.remove(way);
-    }
-
-    public static String getFromOverpass(double south, double west, double north, double east) throws IOException, ParsingException, InterruptedException {
-        StringBuilder data = new StringBuilder();
-        data.append("[bbox:" + south + "," + west + "," + north + "," + east + "];");
-        data.append("way[\"highway\"][\"highway\"!=\"motorway\"][\"highway\"!=\"primary\"][\"highway\"!=\"secondary\"];");
-        data.append("out skel geom;");
-        HttpClient client = HttpClient.newHttpClient();
-        HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create("http://overpass-api.de/api/interpreter"))
-            .POST(HttpRequest.BodyPublishers.ofString("data=" + data.toString()))
-            .build();
-        
-        // Retry the request until it succeeds
-        HttpResponse<String> response;
-        log("Requesting data from Overpass API...");
-        while (true) {
-            response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            // Check if error page
-            if (!response.body().contains("!DOCTYPE html")) {
-                return response.body();
-            }
-            log("Error, retrying...");
-            Thread.sleep(1000);
-        }
     }
 
     /* Quadrant optimization helpers */
