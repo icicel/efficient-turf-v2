@@ -1,5 +1,6 @@
 package network;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -134,6 +135,53 @@ public class Network extends Logging {
         points.remove(pivot);
         ways.remove(way);
         rightEnd.parents.remove(way);
+    }
+
+    /* Export */
+
+    // Export as CSV
+    // Creates multiple files if there are more than 2000 ways
+    public void exportTo(Path path) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        sb.append("WKT,name\n");
+        int wayId = 1;
+        int fileId = 1;
+        for (Way way : ways) {
+            sb.append("\"LINESTRING (");
+            sb.append(way.left.coords.lon).append(" ").append(way.left.coords.lat);
+            for (Coords middleCoords : way.middle) {
+                sb.append(", ");
+                sb.append(middleCoords.lon).append(" ").append(middleCoords.lat);
+            }
+            sb.append(", ");
+            sb.append(way.right.coords.lon).append(" ").append(way.right.coords.lat);
+            sb.append(")\",");
+            sb.append("Line ").append(wayId++);
+            sb.append("\n");
+            if (wayId == 2000) {
+                // Reset for next file
+                writeSubfile(path, fileId++, sb.toString());
+                sb = new StringBuilder();
+                sb.append("WKT,name\n");
+                wayId = 1;
+            }
+        }
+        // Write remaining ways
+        if (wayId > 1) {
+            writeSubfile(path, fileId, sb.toString());
+        }
+    }
+
+    private void writeSubfile(Path path, int fileId, String content) throws IOException {
+        String filename = path.getFileName().toString();
+        String extension = "";
+        int dotIndex = filename.lastIndexOf('.');
+        if (dotIndex != -1) {
+            extension = filename.substring(dotIndex);
+            filename = filename.substring(0, dotIndex);
+        }
+        Path subfilePath = path.resolveSibling(filename + "_" + fileId + extension);
+        Files.writeString(subfilePath, content);
     }
 
     /* Quadrant optimization helpers */
