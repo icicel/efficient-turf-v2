@@ -211,7 +211,9 @@ public class Network extends Logging {
             }
         }
         // Write remaining ways
-        if (wayId > 1) {
+        if (fileId == 1) {
+            Files.writeString(path, sb.toString());
+        } else if (wayId > 1) {
             writeSubfile(path, fileId, sb.toString());
         }
     }
