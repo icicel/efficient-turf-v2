@@ -5,8 +5,10 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import kml.KML;
@@ -103,6 +105,47 @@ public class Network extends Logging {
         }
 
         log("Network initialized with " + ways.size() + " ways, " + points.size() + " points, and " + zones.size() + " zones");
+
+        // Remove way chains/linear intersections/cases where a point has only 2 parents
+        // This will be the case for most ways
+        Set<Way> waysToCheck = new HashSet<>(ways);
+        int sizeBefore = ways.size();
+        for (Way way : waysToCheck) {
+            if (way.left.parents.size() == 2) {
+                mergeWayOverPivot(way, way.left);
+            } else if (way.right.parents.size() == 2) {
+                mergeWayOverPivot(way, way.right);
+            } else {
+                continue;
+            }
+        }
+        log("Merged " + (sizeBefore - ways.size()) + " way chains");
+    }
+
+    // Merge a way into its neighbor across a pivot point
+    // Ideally, pivot has exactly 2 parents, but it will also work if it has more
+    //  (in that case, an arbitrary neighbor is chosen)
+    public void mergeWayOverPivot(Way way, Point pivot) {
+        Way neighbor = pivot.parents.stream().filter(w -> w != way).findFirst().orElseThrow();
+        Point leftEnd = neighbor.other(pivot);
+        Point rightEnd = way.other(pivot);
+        List<Coords> newMiddle = new ArrayList<>();
+        // The chain looks like leftEnd-neighbor-pivot-way-rightEnd
+        // Convert this to leftEnd-neighbor-rightEnd, removing pivot and way
+        // The direction of neighbor may be flipped
+        neighbor.left = leftEnd;
+        newMiddle.addAll(neighbor.middleFromPOVOf(leftEnd));
+        newMiddle.add(pivot.coords);
+        newMiddle.addAll(way.middleFromPOVOf(pivot));
+        neighbor.right = rightEnd;
+        // Update neighbor's connections
+        neighbor.middle = newMiddle;
+        neighbor.distance += way.distance;
+        rightEnd.parents.add(neighbor);
+        // Remove pivot and way from the network
+        points.remove(pivot);
+        ways.remove(way);
+        rightEnd.parents.remove(way);
     }
 
     public static String getFromOverpass(double south, double west, double north, double east) throws IOException, ParsingException, InterruptedException {

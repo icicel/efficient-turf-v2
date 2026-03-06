@@ -21,4 +21,18 @@ public class Way {
         this.middle = new ArrayList<>();
         this.distance = left.distanceTo(right);
     }
+
+    // Return the other endpoint
+    public Point other(Point endpoint) {
+        if (endpoint == left) return right;
+        if (endpoint == right) return left;
+        return null;
+    }
+
+    // Return a view of middle from the perspective of the endpoint, closest to furthest
+    public List<Coords> middleFromPOVOf(Point endpoint) {
+        if (endpoint == left) return middle;
+        if (endpoint == right) return middle.reversed();
+        return null;
+    }
 }
