@@ -7,11 +7,9 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
-import java.util.Queue;
 import java.util.Set;
 import kml.KML;
 import kml.XML;
@@ -114,104 +112,35 @@ public class Network extends Logging {
         log("Merged " + count + " way chains");
         count = 0;
 
-        // Remove loops
+        // Remove all dead ends, loops, and longcuts
         Set<Way> waysToCheck = new HashSet<>(ways);
         for (Way way : waysToCheck) {
-            if (!way.isLoop()) {
-                continue;
-            }
-            Point point = way.left; // same as way.right
-            ways.remove(way);
-            point.parents.remove(way);
-            if (point.parents.size() == 0) {
-                // No other parents
-                points.remove(point);
-            } else if (point.parents.size() == 2) {
-                mergeOverPivot(point);
-            }
-            count++;
-        }
-        log("Removed " + count + " loops");
-        count = 0;
-
-        // Remove dead ends, where a point has only 1 parent
-        pointsToCheck = new HashSet<>(points);
-        for (Point point : pointsToCheck) {
-            if (point.parents.size() != 1) {
-                continue;
-            }
-            Way way = point.parents.iterator().next();
-            Point other = way.other(point);
-            // Remove this way and its endpoint
-            ways.remove(way);
-            points.remove(point);
-            other.parents.remove(way);
-            if (other.parents.size() == 0) {
-                // Remove the other endpoint too
-                points.remove(other);
-            } else if (other.parents.size() == 2) {
-                mergeOverPivot(other);
-            }
-            count++;
-        }
-        log("Removed " + count + " dead ends");
-        count = 0;
-
-        // Remove longcuts, where there is another shorter way between the endpoints of a way
-        Queue<Way> waysToCheque = new LinkedList<>(ways);
-        while (!waysToCheque.isEmpty()) {
-            Way way = waysToCheque.remove();
-            if (!ways.contains(way)) {
-                continue;
-            }
-
-            // Perform a quick Dijkstra's from left to right
-            Point start = way.left;
-            Point end = way.right;
-            Map<Point, Double> distances = new HashMap<>();
-            PriorityQueue<Point> queue = new PriorityQueue<>(
-                Comparator.comparingDouble(distances::get)
-            );
-            distances.put(start, 0.0);
-            queue.add(start);
-            while (true) {
-                Point current = queue.remove();
-                if (current == end) {
-                    break;
-                }
-                for (Way nextWay : current.parents) {
-                    Point nextPoint = nextWay.other(current);
-                    double distanceToNextPoint = distances.get(current) + nextWay.distance;
-                    if (!distances.containsKey(nextPoint)) {
-                        distances.put(nextPoint, distanceToNextPoint);
-                        queue.add(nextPoint);
-                    } else if (distanceToNextPoint < distances.get(current)) {
-                        distances.put(nextPoint, distanceToNextPoint);
-                    }
-                }
-            }
-            // If way is the shortest way
-            if (distances.get(end) == way.distance) {
-                continue;
-            }
-
-            System.out.println("Removing longcut " + way + " with distance " + way.distance + " when a shorter way with distance " + distances.get(end) + " exists");
+            checkWay(way);
         }
     }
 
     // Merge two neighboring ways across a pivot point
-    // Ideally, pivot has only 2 parents, but it will also work if it has more
-    //  (in that case, arbitrary neighbors are chosen)
-    public void mergeOverPivot(Point pivot) {
+    // The pivot must have no other connections besides the two ways being merged
+    // Return the resulting way
+    public Way mergeOverPivot(Point pivot) {
         Iterator<Way> iterator = pivot.parents.iterator();
         Way way = iterator.next();
         Way neighbor = iterator.next();
         Point leftEnd = neighbor.other(pivot);
         Point rightEnd = way.other(pivot);
-        List<Coords> newMiddle = new ArrayList<>();
+        // If one of the ways is a loop, delete it and return the other way
+        // The only affected point is the pivot
+        if (way.isLoop()) {
+            removeWay(way);
+            return neighbor;
+        } else if (neighbor.isLoop()) {
+            removeWay(neighbor);
+            return way;
+        }
         // The chain looks like leftEnd-neighbor-pivot-way-rightEnd
         // Convert this to leftEnd-neighbor-rightEnd, removing pivot and way
         // The direction of neighbor may be flipped
+        List<Coords> newMiddle = new ArrayList<>();
         newMiddle.addAll(neighbor.middleFromPOVOf(leftEnd));
         newMiddle.add(pivot.coords);
         newMiddle.addAll(way.middleFromPOVOf(pivot));
@@ -225,6 +154,78 @@ public class Network extends Logging {
         points.remove(pivot);
         ways.remove(way);
         rightEnd.parents.remove(way);
+        return neighbor;
+    }
+
+    public void removeWay(Way way) {
+        ways.remove(way);
+        way.left.parents.remove(way);
+        way.right.parents.remove(way);
+    }
+
+    public void mergeAndCheck(Point pivot) {
+        Way mergedWay = mergeOverPivot(pivot);
+        checkWay(mergedWay);
+    }
+
+    public void removeAndCheck(Way way) {
+        removeWay(way);
+        checkPoint(way.left);
+        checkPoint(way.right);
+    }
+
+    public void checkWay(Way way) {
+        if (!ways.contains(way)) {
+            return;
+        }
+        if (way.isLoop()) {
+            removeAndCheck(way);
+        } else if (way.left.isDeadEnd() || way.right.isDeadEnd()) {
+            removeAndCheck(way);
+        } else if (isLongcut(way)) {
+            removeAndCheck(way);
+        }
+    }
+
+    public void checkPoint(Point point) {
+        if (!points.contains(point)) {
+            return;
+        }
+        if (point.parents.size() == 0) {
+            points.remove(point);
+        } else if (point.parents.size() == 1) {
+            removeAndCheck(point.parents.iterator().next());
+        } else if (point.parents.size() == 2) {
+            mergeAndCheck(point);
+        }
+    }
+
+    public boolean isLongcut(Way way) {
+        Point start = way.left;
+        Point end = way.right;
+        Map<Point, Double> distances = new HashMap<>();
+        PriorityQueue<Point> queue = new PriorityQueue<>(
+            Comparator.comparingDouble(distances::get)
+        );
+        distances.put(start, 0.0);
+        queue.add(start);
+        while (true) {
+            Point current = queue.remove();
+            if (current == end) {
+                break;
+            }
+            for (Way nextWay : current.parents) {
+                Point nextPoint = nextWay.other(current);
+                double distanceToNextPoint = distances.get(current) + nextWay.distance;
+                if (!distances.containsKey(nextPoint)) {
+                    distances.put(nextPoint, distanceToNextPoint);
+                    queue.add(nextPoint);
+                } else if (distanceToNextPoint < distances.get(nextPoint)) {
+                    distances.put(nextPoint, distanceToNextPoint);
+                }
+            }
+        }
+        return !(distances.get(end) == way.distance);
     }
 
     /* Export */

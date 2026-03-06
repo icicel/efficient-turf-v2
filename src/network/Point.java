@@ -1,7 +1,6 @@
 package network;
 import java.util.HashSet;
 import java.util.Set;
-
 import map.Coords;
 
 // An intersection between any number of Ways
@@ -13,8 +12,6 @@ public class Point {
     // null here represents a non-zone Point
     public String zone;
 
-    public static int idCounter = 0;
-
     public Point(Coords coords) {
         this.coords = coords;
         this.parents = new HashSet<>();
@@ -23,6 +20,10 @@ public class Point {
 
     public boolean isZone() {
         return this.zone != null;
+    }
+
+    public boolean isDeadEnd() {
+        return parents.size() == 1 && !isZone();
     }
 
     public double distanceTo(Point other) {
