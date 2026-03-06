@@ -13,6 +13,8 @@ public class Point {
     // null here represents a non-zone Point
     public String zone;
 
+    public static int idCounter = 0;
+
     public Point(Coords coords) {
         this.coords = coords;
         this.parents = new HashSet<>();
@@ -25,5 +27,10 @@ public class Point {
 
     public double distanceTo(Point other) {
         return this.coords.distanceTo(other.coords);
+    }
+
+    @Override
+    public String toString() {
+        return this.coords.toString();
     }
 }

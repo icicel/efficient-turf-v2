@@ -35,4 +35,9 @@ public class Way {
         if (endpoint == right) return middle.reversed();
         return null;
     }
+
+    @Override
+    public String toString() {
+        return "Way(" + left + " -> " + middle + " -> " + right + ", distance=" + distance + ")";
+    }
 }
