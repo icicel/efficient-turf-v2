@@ -122,13 +122,13 @@ public class Network extends Logging {
         // The chain looks like leftEnd-neighbor-pivot-way-rightEnd
         // Convert this to leftEnd-neighbor-rightEnd, removing pivot and way
         // The direction of neighbor may be flipped
-        neighbor.left = leftEnd;
         newMiddle.addAll(neighbor.middleFromPOVOf(leftEnd));
         newMiddle.add(pivot.coords);
         newMiddle.addAll(way.middleFromPOVOf(pivot));
+        neighbor.left = leftEnd;
+        neighbor.middle = newMiddle;
         neighbor.right = rightEnd;
         // Update neighbor's connections
-        neighbor.middle = newMiddle;
         neighbor.distance += way.distance;
         rightEnd.parents.add(neighbor);
         // Remove pivot and way from the network
