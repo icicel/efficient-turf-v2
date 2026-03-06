@@ -95,11 +95,29 @@ public class Network extends Logging {
         this.points.addAll(pointOverlap.values());
 
         log("Connecting zones...");
+        // Identify each point with its hundredth-degree lat/lon quadrant
+        Map<String, Set<Point>> quadrantMap = new HashMap<>();
+        for (Point point : this.points) {
+            String quadrantKey = getQuadrantKey(point.coords);
+            quadrantMap.computeIfAbsent(quadrantKey, k -> new HashSet<>()).add(point);
+        }
         for (Point zone : zones) {
-            // Find and connect to closest point
-            Point closestPoint = points.stream()
-                .min((p1, p2) -> Double.compare(zone.distanceTo(p1), zone.distanceTo(p2)))
-                .orElseThrow();
+            // Find closest point in the same quadrant as the zone
+            String quadrantKey = getQuadrantKey(zone.coords);
+            Set<Point> pointsInQuadrant = quadrantMap.get(quadrantKey);
+            if (pointsInQuadrant != null) {
+                Point closestPoint = closestPoint(pointsInQuadrant, zone);
+                // Only accept this point if it's closer than the edge of the quadrant
+                //  meaning it's closer than any point in a different quadrant
+                if (zone.distanceTo(closestPoint) < distanceToQuadrantEdge(zone.coords)) {
+                    Way way = new Way(zone, closestPoint);
+                    ways.add(way);
+                    continue;
+                }
+            }
+            // Failure, search globally
+            // This shouldn't be too common since zones are usually close to OSM highways
+            Point closestPoint = closestPoint(this.points, zone);
             Way way = new Way(zone, closestPoint);
             ways.add(way);
         }
@@ -171,5 +189,31 @@ public class Network extends Logging {
             log("Error, retrying...");
             Thread.sleep(1000);
         }
+    }
+
+    /* Quadrant optimization helpers */
+
+    // Return the point in the given set that is closest to the given point
+    public static Point closestPoint(Set<Point> points, Point point) {
+        return points.stream()
+            .min((p1, p2) -> Double.compare(point.distanceTo(p1), point.distanceTo(p2)))
+            .orElseThrow();
+    }
+
+    // Get the key for the quadrant that the given coords fall into
+    // Ex: lat=-37.7749, lon=-122.4194 -> quadrantKey="-3777-12241"
+    public static String getQuadrantKey(Coords coords) {
+        int latQuadrant = (int) Math.floor(coords.lat * 100);
+        int lonQuadrant = (int) Math.floor(coords.lon * 100);
+        return latQuadrant + "" + lonQuadrant;
+    }
+
+    // Shortest distance to the edge of the quadrant
+    // Ex: lat=-37.7749, lon=-122.4194 -> nearestQuadrantEdge=(-37.77,-122.42)
+    public static double distanceToQuadrantEdge(Coords coords) {
+        double latQuadrantEdge = Math.round(coords.lat * 100) / 100.0;
+        double lonQuadrantEdge = Math.round(coords.lon * 100) / 100.0;
+        Coords nearestQuadrantEdge = new Coords(latQuadrantEdge, lonQuadrantEdge);
+        return coords.distanceTo(nearestQuadrantEdge);
     }
 }
