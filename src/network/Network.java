@@ -38,7 +38,9 @@ public class Network extends Logging {
         log("Getting KML...");
         KML kml = new KML(zoneKml);
         for (Coords coords : kml.points.get("Turf Zones")) {
-            zones.add(new Point(coords));
+            // Remove " POI" suffix from zone names
+            String zone = coords.name.substring(0, coords.name.length() - 4);
+            zones.add(new Point(coords, zone));
         }
 
         log("Getting XML...");
@@ -232,7 +234,7 @@ public class Network extends Logging {
 
     // Export as CSV
     // Creates multiple files if there are more than 2000 ways
-    public void exportTo(Path path) throws IOException {
+    public void exportWays(Path path) throws IOException {
         StringBuilder sb = new StringBuilder();
         sb.append("WKT,name\n");
         int wayId = 1;
@@ -261,6 +263,58 @@ public class Network extends Logging {
         if (fileId == 1) {
             Files.writeString(path, sb.toString());
         } else if (wayId > 1) {
+            writeSubfile(path, fileId, sb.toString());
+        }
+    }
+
+    public void exportPoints(Path path) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        sb.append("WKT,name\n");
+        int pointId = 1;
+        int fileId = 1;
+        for (Point point : points) {
+            sb.append("\"POINT (");
+            sb.append(point.coords.lon).append(" ").append(point.coords.lat);
+            sb.append(")\",");
+            sb.append("Point ").append(pointId++);
+            sb.append("\n");
+            if (pointId > 2000) {
+                // Reset for next file
+                writeSubfile(path, fileId++, sb.toString());
+                sb = new StringBuilder();
+                sb.append("WKT,name\n");
+                pointId = 1;
+            }
+        }
+        if (fileId == 1) {
+            Files.writeString(path, sb.toString());
+        } else if (pointId > 1) {
+            writeSubfile(path, fileId, sb.toString());
+        }
+    }
+
+    public void exportZones(Path path) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        sb.append("WKT,name\n");
+        int zoneId = 1;
+        int fileId = 1;
+        for (Point zone : zones) {
+            sb.append("\"POINT (");
+            sb.append(zone.coords.lon).append(" ").append(zone.coords.lat);
+            sb.append(")\",");
+            sb.append(zone.zone);
+            sb.append("\n");
+            if (zoneId > 2000) {
+                // Reset for next file
+                writeSubfile(path, fileId++, sb.toString());
+                sb = new StringBuilder();
+                sb.append("WKT,name\n");
+                zoneId = 1;
+            }
+        }
+        if (fileId == 1) {
+            Files.writeString(path, sb.toString());
+        } else if (zoneId > 1) {
             writeSubfile(path, fileId, sb.toString());
         }
     }

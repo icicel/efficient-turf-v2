@@ -13,9 +13,12 @@ public class Point {
     public String zone;
 
     public Point(Coords coords) {
+        this(coords, coords.name); // if coords has a name, this will be the zone name, otherwise null
+    }
+    public Point(Coords coords, String zone) {
         this.coords = coords;
         this.parents = new HashSet<>();
-        this.zone = coords.name; // if coords has a name, this will be the zone name, otherwise null
+        this.zone = zone;
     }
 
     public boolean isZone() {
