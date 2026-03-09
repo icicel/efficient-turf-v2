@@ -62,7 +62,10 @@ public class XML {
     public XML(double south, double west, double north, double east) throws IOException, ParsingException, InterruptedException {
         StringBuilder data = new StringBuilder();
         data.append("[bbox:" + south + "," + west + "," + north + "," + east + "];");
-        data.append("way[\"highway\"][\"highway\"!=\"motorway\"][\"highway\"!=\"primary\"][\"highway\"!=\"secondary\"];");
+        data.append("(");
+        data.append("way[\"highway\"][\"highway\"!=\"motorway\"][\"highway\"!=\"trunk\"][\"highway\"!=\"primary\"];");
+        data.append("way[\"route\"=\"ferry\"];");
+        data.append(");");
         data.append("out skel geom;");
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()
