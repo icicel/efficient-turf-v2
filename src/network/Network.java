@@ -113,7 +113,12 @@ public class Network extends Logging {
         }
         log("Merged " + count + " way chains");
         count = 0;
+    }
 
+    // Attempt to reduce the size of the network as much as possible without affecting it,
+    //  by merging/removing "superfluous" points and ways, like dead ends, loops, and ways
+    //  that are too long to matter
+    public void compress() {
         // Remove all dead ends, loops, and longcuts
         Set<Way> waysToCheck = new HashSet<>(ways);
         for (Way way : waysToCheck) {
