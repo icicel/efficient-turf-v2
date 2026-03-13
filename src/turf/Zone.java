@@ -4,40 +4,30 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import org.json.JSONObject;
-import map.Coords;
 
 public class Zone {
 
+    // Zone name, should be unique
     public String name;
-    public Coords coords;
-
-    // Points-related values
-
     // One time point payout for taking over the zone
     private int takeoverPoints;
     // Hourly point payout for holding the zone
     private int hourlyPoints;
     // Expected amount of hours the zone will be held for, if taken over now
     private double expectedHoursHeldFromNow;
-    // Expected amount of hours the zone will be held for, if taken over at the start of a 30-day round
+    // Expected amount of hours the zone will be held for, if taken over at the start of a 5-week round
     private double expectedHoursHeldMax;
     // Can be revisited by owner
     private boolean revisitable;
     // The user who controls the zone
     private String owner;
 
-    // Create a zone from a Point
-    public Zone(Coords coords) {
-        this.name = coords.name;
-        this.coords = coords;
-    }
-
-    // Calculates a total point value for the zone from the given API JSON object
-    //  and the given Turf username
+    // Defines the zone and its statistics from the given API JSON object
     // Takes into account both on-capture points and hourly points by calculating the expected
     //  number of hours the zone will be held
     // Example object:
-    //   [{"dateCreated": "2020-06-18T19:04:42+0000",
+    // {
+    //     "dateCreated": "2020-06-18T19:04:42+0000",
     //     "dateLastTaken": "2023-09-09T13:07:18+0000",
     //     "currentOwner": {"name": "user", "id": 1},
     //     "name": "OdlaMedCykel",
@@ -47,10 +37,11 @@ public class Zone {
     //     "pointsPerHour": 1,
     //     "latitude": 58.047462,
     //     "longitude": 11.851104,
-    //     "takeoverPoints": 185}
-    //      , ...]
-    public void initPoints(JSONObject info) {
-        
+    //     "takeoverPoints": 185
+    // }
+    public Zone(JSONObject info) {
+        this.name = info.getString("name").toLowerCase();
+
         /* Calculate the average amount of hours the zone was held for */
 
         long currentTime = System.currentTimeMillis();
@@ -83,52 +74,43 @@ public class Zone {
 
         // Final calculations
         double naïveHoursHeld = hoursExisted / (double) totalTakeovers;
-        expectedHoursHeldMax = Math.min(naïveHoursHeld, 840.0); // 5 weeks - the max possible round length
-        expectedHoursHeldFromNow = Math.min(naïveHoursHeld, hoursLeftInRound);
+        // Expected hours held will be limited by rounds ending so take that into account
+        this.expectedHoursHeldMax = Math.min(naïveHoursHeld, 840.0); // 5 weeks - the max possible round length
+        this.expectedHoursHeldFromNow = Math.min(naïveHoursHeld, hoursLeftInRound);
 
         /* Calculate other stuff */
         
-        takeoverPoints = info.getInt("takeoverPoints");
-        hourlyPoints = info.getInt("pointsPerHour");
+        // Raw points values
+        this.takeoverPoints = info.getInt("takeoverPoints");
+        this.hourlyPoints = info.getInt("pointsPerHour");
 
+        // Owner and revisitability
         if (info.has("currentOwner")) {
-            owner = info.getJSONObject("currentOwner").getString("name");
+            this.owner = info.getJSONObject("currentOwner").getString("name");
             String lastTakenTimestamp = info.getString("dateLastTaken");
             long lastTakenTime = parseTimestamp(lastTakenTimestamp);
             double hoursSinceTaken = asHours(currentTime - lastTakenTime);
-            revisitable = hoursSinceTaken > 23;
+            this.revisitable = hoursSinceTaken > 23;
         } else {
-            owner = null;
-            revisitable = false;
+            this.owner = null;
+            this.revisitable = false;
         }
     }
 
     // Returns the amount of points the zone is worth for the given user
     // If isNow is false, ignores premature end-of-round resets, revisitability, and the neutral bonus
     public int getPoints(String username, boolean isNow) {
-        if (isCrossing()) {
+        if (!isNow) {
+            return takeoverPoints + (int) (hourlyPoints * expectedHoursHeldMax);
+        } else if (owner == null) { // neutral bonus
+            return takeoverPoints + (int) (hourlyPoints * expectedHoursHeldFromNow) + 50;
+        } else if (!owner.equals(username)) {
+            return takeoverPoints + (int) (hourlyPoints * expectedHoursHeldFromNow);
+        } else if (revisitable) {
+            return takeoverPoints / 2; // integer division
+        } else {
             return 0;
         }
-
-        int points = 0;
-
-        if (!isNow) {
-            points = takeoverPoints + (int) (hourlyPoints * expectedHoursHeldMax);
-        } else if (owner == null) {
-            points = takeoverPoints + (int) (hourlyPoints * expectedHoursHeldFromNow) + 50;
-        } else if (!owner.equals(username)) {
-            points = takeoverPoints + (int) (hourlyPoints * expectedHoursHeldFromNow);
-        } else if (revisitable) {
-            points = takeoverPoints / 2; // integer division
-        }
-
-        return points;
-    }
-
-    // Returns true if the zone is a crossing
-    // This implies that zones with uninitialized points are crossings
-    public boolean isCrossing() {
-        return takeoverPoints == 0;
     }
 
     /* Time methods */
@@ -160,5 +142,13 @@ public class Zone {
     @Override
     public int hashCode() {
         return this.name.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        Zone other = (Zone) obj;
+        return this.name.equals(other.name);
     }
 }

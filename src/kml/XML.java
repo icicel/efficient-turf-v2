@@ -5,13 +5,10 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import map.Coords;
-import network.Point;
-import network.Way;
+import map.Line;
 import nu.xom.Builder;
 import nu.xom.Document;
 import nu.xom.Element;
@@ -21,8 +18,7 @@ import nu.xom.ParsingException;
 // Takes and parses an OSM XML file
 public class XML {
 
-    public Set<Way> ways;
-    public Set<Point> points; // non-zone
+    public Set<Line> lines;
     
     // Load from path
     public XML(Path path) throws IOException, ParsingException {
@@ -32,30 +28,26 @@ public class XML {
     }
 
     private void parse(Document xml) {
-        this.ways = new HashSet<>();
+        this.lines = new HashSet<>();
         Element root = xml.getRootElement();
 
-        Map<Coords, Point> pointOverlap = new HashMap<>();
         for (Element element : root.getChildElements("way")) {
-            // Create a Point for each node
+            // Create a Coords for each node
             Elements nodes = element.getChildElements("nd");
-            Point[] points = new Point[nodes.size()];
+            Coords[] points = new Coords[nodes.size()];
             for (int i = 0; i < nodes.size(); i++) {
                 Element node = nodes.get(i);
+                String ref = node.getAttributeValue("ref");
                 Double lat = Double.parseDouble(node.getAttributeValue("lat"));
                 Double lon = Double.parseDouble(node.getAttributeValue("lon"));
-                Coords coords = new Coords(lat, lon);
-                // Get the existing Point for these coords, create a new one if it doesn't exist
-                points[i] = pointOverlap.getOrDefault(coords, new Point(coords));
-                pointOverlap.put(coords, points[i]);
+                points[i] = new Coords(lat, lon, ref);
             }
-            // Create Ways between every pair of points
+            // Create Lines between the Coords
             for (int i = 0; i < points.length - 1; i++) {
-                Way way = new Way(points[i], points[i + 1]);
-                ways.add(way);
+                Line line = new Line(points[i], points[i + 1]);
+                lines.add(line);
             }
         }
-        this.points = new HashSet<>(pointOverlap.values());
     }
 
     // Load from Overpass API with a bounding box

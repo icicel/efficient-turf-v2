@@ -3,6 +3,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import map.Coords;
 import map.Line;
@@ -17,10 +18,10 @@ public class KML {
 
     private static final String KML_NAMESPACE = "http://www.opengis.net/kml/2.2";
 
-    // Map of layer name to set of points/lines in that layer        
-    public HashMap<String, Set<Coords>> points;
-    public HashMap<String, Set<Line>> lines;
-    
+    // Map of layer name to set of points/lines in that layer
+    public Map<String, Set<Coords>> points;
+    public Map<String, Set<Line>> lines;
+
     // Takes a path to a KML file and parses it, initializing the points and lines collections
     public KML(Path path) throws ParsingException, ValidityException, IOException {
         this.points = new HashMap<>();
@@ -48,11 +49,16 @@ public class KML {
                 Element lineString = placemark.getFirstChildElement("LineString", KML_NAMESPACE);
                 if (point != null) {
                     String coordinates = getCoordinates(point);
-                    points.add(new Coords(placemarkName, coordinates));
+                    points.add(new Coords(coordinates, placemarkName));
                 }
                 if (lineString != null) {
-                    String coordinateList = getCoordinates(lineString);
-                    lines.add(new Line(coordinateList));
+                    String coordinateListString = getCoordinates(lineString);
+                    String[] coordinateStrings = coordinateListString.split("\n");
+                    Coords[] coordinates = new Coords[coordinateStrings.length];
+                    for (int i = 0; i < coordinateStrings.length; i++) {
+                        coordinates[i] = new Coords(coordinateStrings[i]);
+                    }
+                    lines.add(new Line(coordinates));
                 }
             }
         }

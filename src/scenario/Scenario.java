@@ -7,8 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import turf.Connection;
+import turf.Point;
 import turf.Turf;
-import turf.Zone;
 import util.Logging;
 
 // Represents a combination of a Turf object (Zone and Link data)
@@ -52,8 +52,12 @@ public class Scenario extends Logging {
         this.nodes = new HashSet<>();
         this.nodeName = new HashMap<>();
         int nodes = 0;
-        for (Zone zone : turf.zones) {
+        for (Point zone : turf.zones) {
             addNode(zone, conditions.username, conditions.isNow);
+            nodes++;
+        }
+        for (Point crossing : turf.crossings) {
+            addNode(crossing, conditions.username, conditions.isNow);
             nodes++;
         }
         log("Scenario: Created " + nodes + " nodes");
@@ -120,9 +124,9 @@ public class Scenario extends Logging {
         return nodes;
     }
 
-    // Create a Node from a Zone
-    private void addNode(Zone zone, String username, boolean isNow) {
-        Node node = new Node(zone, username, isNow);
+    // Create a Node from a Point
+    private void addNode(Point point, String username, boolean isNow) {
+        Node node = new Node(point, username, isNow);
         if (this.nodeName.containsKey(node.name)) {
             throw new RuntimeException("Duplicate node name: " + node.name);
         }

@@ -11,18 +11,22 @@ public class Coords {
     // Optional
     public String name;
     
-    public Coords(String coordinateString) {
+    public Coords(String coordinateString, String name) {
         String[] coordinates = coordinateString.split(",");
         this.lon = Double.parseDouble(coordinates[0]);
         this.lat = Double.parseDouble(coordinates[1]);
+        this.name = name;
     }
-    public Coords(String name, String coordinateString) {
-        this(coordinateString);
-        this.name = name.toLowerCase();
+    public Coords(String coordinateString) {
+        this(coordinateString, null);
     }
-    public Coords(double lat, double lon) {
+    public Coords(double lat, double lon, String name) {
         this.lat = lat;
         this.lon = lon;
+        this.name = name;
+    }
+    public Coords(double lat, double lon) {
+        this(lat, lon, null);
     }
 
     // Calculates geodesic distance in meters to another Coords object
@@ -33,6 +37,9 @@ public class Coords {
 
     @Override
     public String toString() {
+        if (name != null) {
+            return name;
+        }
         return "(" + lat + "," + lon + ")";
     }
 
