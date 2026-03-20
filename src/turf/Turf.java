@@ -342,19 +342,14 @@ public class Turf extends Logging {
     }
 
     private void checkConnection(Connection connection) {
-        System.out.println("Checking connection " + connection);
         if (!this.connections.contains(connection)) {
-            System.out.println("Connection not in network");
             return;
         }
         if (connection.isLoop()) {
-            System.out.println("Found loop: " + connection);
             removeAndCheck(connection);
         } else if (connection.left.isDeadEnd() || connection.right.isDeadEnd()) {
-            System.out.println("Found dead end: " + connection);
             removeAndCheck(connection);
         } else if (isLongcut(connection)) {
-            System.out.println("Found longcut: " + connection);
             removeAndCheck(connection);
         }
     }
