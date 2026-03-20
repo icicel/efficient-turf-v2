@@ -180,8 +180,8 @@ public class Turf extends Logging {
         }
 
 
-        // Remove way chains/linear intersections/cases where a point has only 2 parents
-        // This will be the case for most ways
+        // Remove connection chains/linear intersections/cases where a point has only 2 parents
+        // This will be the case for most connections
         log("Turf: Simplifying " + connections.size() + " connections...");
         Set<Point> toCheck = new HashSet<>(crossings);
         for (Point point : toCheck) {
@@ -270,8 +270,8 @@ public class Turf extends Logging {
     /* Network optimization */
 
     // Attempt to reduce the size of the network as much as possible without affecting it,
-    //  by merging/removing "superfluous" points and ways, like dead ends, loops, and ways
-    //  that are too long to matter
+    //  by merging/removing "superfluous" points and connections, like dead ends, loops, and
+    //  connections that are too long to matter
     public void compress() {
         // Remove all dead ends, loops, and longcuts
         Set<Connection> toCheck = new HashSet<>(this.connections);
@@ -280,9 +280,9 @@ public class Turf extends Logging {
         }
     }
 
-    // Merge two neighboring ways across a pivot crossing
+    // Merge two neighboring connections across a pivot crossing
     // The pivot must have no other parents besides the two connections being merged
-    // Return the resulting way
+    // Return the resulting connection
     private Connection mergeOverPivot(Point pivot) {
         if (pivot.parents.size() != 2) {
             throw new IllegalArgumentException("Can only merge over a pivot with exactly 2 parents");
@@ -317,7 +317,7 @@ public class Turf extends Logging {
         // Update neighbor's connections
         neighbor.distance += connection.distance;
         rightEnd.parents.add(neighbor);
-        // Remove pivot and way from the network
+        // Remove pivot and connection from the network
         this.crossings.remove(pivot);
         this.connections.remove(connection);
         rightEnd.parents.remove(connection);
@@ -429,8 +429,8 @@ public class Turf extends Logging {
     /* Export */
 
     // Export as CSV
-    // Creates multiple files if there are more than 2000 ways
-    public void exportWays(Path path) throws IOException {
+    // Creates multiple files if there are more than 2000 connections
+    public void exportConnections(Path path) throws IOException {
         StringBuilder sb = new StringBuilder();
         sb.append("WKT,name\n");
         int connectionId = 1;
@@ -455,7 +455,7 @@ public class Turf extends Logging {
                 connectionId = 1;
             }
         }
-        // Write remaining ways
+        // Write remaining connections
         if (fileId == 1) {
             Files.writeString(path, sb.toString());
         } else if (connectionId > 1) {
