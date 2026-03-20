@@ -281,7 +281,7 @@ public class Turf extends Logging {
     // Merge two neighboring ways across a pivot crossing
     // The pivot must have no other parents besides the two connections being merged
     // Return the resulting way
-    public Connection mergeOverPivot(Point pivot) {
+    private Connection mergeOverPivot(Point pivot) {
         if (pivot.parents.size() != 2) {
             throw new IllegalArgumentException("Can only merge over a pivot with exactly 2 parents");
         }
@@ -322,24 +322,24 @@ public class Turf extends Logging {
         return neighbor;
     }
 
-    public void removeConnection(Connection connection) {
+    private void removeConnection(Connection connection) {
         this.connections.remove(connection);
         connection.left.parents.remove(connection);
         connection.right.parents.remove(connection);
     }
 
-    public void mergeAndCheck(Point pivot) {
+    private void mergeAndCheck(Point pivot) {
         Connection mergedConnection = mergeOverPivot(pivot);
         checkConnection(mergedConnection);
     }
 
-    public void removeAndCheck(Connection connection) {
+    private void removeAndCheck(Connection connection) {
         removeConnection(connection);
         checkCrossing(connection.left);
         checkCrossing(connection.right);
     }
 
-    public void checkConnection(Connection connection) {
+    private void checkConnection(Connection connection) {
         System.out.println("Checking connection " + connection);
         if (!this.connections.contains(connection)) {
             System.out.println("Connection not in network");
@@ -357,7 +357,7 @@ public class Turf extends Logging {
         }
     }
 
-    public void checkCrossing(Point crossing) {
+    private void checkCrossing(Point crossing) {
         if (!this.crossings.contains(crossing)) {
             return;
         }
@@ -370,7 +370,7 @@ public class Turf extends Logging {
         }
     }
 
-    public boolean isLongcut(Connection connection) {
+    private boolean isLongcut(Connection connection) {
         Point start = connection.left;
         Point end = connection.right;
         Map<Point, Double> distances = new HashMap<>();
@@ -409,7 +409,7 @@ public class Turf extends Logging {
 
     // Get the key for the quadrant that the given coords fall into
     // Ex: lat=-37.7749, lon=-122.4194 -> quadrantKey="-3777-12241"
-    public static String getQuadrantKey(Coords coords) {
+    private static String getQuadrantKey(Coords coords) {
         int latQuadrant = (int) Math.floor(coords.lat * 100);
         int lonQuadrant = (int) Math.floor(coords.lon * 100);
         return latQuadrant + "" + lonQuadrant;
@@ -417,7 +417,7 @@ public class Turf extends Logging {
 
     // Shortest distance to the edge of the quadrant
     // Ex: lat=-37.7749, lon=-122.4194 -> nearestQuadrantEdge=(-37.77,-122.42)
-    public static double distanceToQuadrantEdge(Coords coords) {
+    private static double distanceToQuadrantEdge(Coords coords) {
         double latQuadrantEdge = Math.round(coords.lat * 100) / 100.0;
         double lonQuadrantEdge = Math.round(coords.lon * 100) / 100.0;
         Coords nearestQuadrantEdge = new Coords(latQuadrantEdge, lonQuadrantEdge);
