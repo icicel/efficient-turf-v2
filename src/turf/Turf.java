@@ -69,9 +69,11 @@ public class Turf extends Logging {
 
         // Init connections
         this.connections = new HashSet<>();
+        Set<Point> allPoints = new HashSet<>(this.crossings);
+        allPoints.addAll(this.zones);
         for (Line line : kml.lines.get(connectionLayer)) {
-            Point leftPoint = closestPointTo(line.left);
-            Point rightPoint = closestPointTo(line.right);
+            Point leftPoint = closestPoint(allPoints, line.left);
+            Point rightPoint = closestPoint(allPoints, line.right);
             Connection connection = new Connection(line, leftPoint, rightPoint);
             connections.add(connection);
         }
@@ -94,13 +96,13 @@ public class Turf extends Logging {
 
         log("Turf: Reading KML at " + zoneKml + "...");
         KML kml = new KML(zoneKml);
+
+        // Init zones
         Set<Coords> zoneCoords = kml.points.get("Turf Zones");
         for (Coords coords : zoneCoords) {
             // Remove " POI" from end of name
             coords.name = coords.name.substring(0, coords.name.length() - 4);
         }
-
-        // Init zones
         this.zones = initZones(zoneCoords);
 
 
@@ -400,10 +402,15 @@ public class Turf extends Logging {
 
     /* Connecting zones helpers */
 
-    // Return the point in the given set that is closest to the given point
+    // Returns the closest Point in the given set to a given Point
     public static Point closestPoint(Set<Point> points, Point point) {
+        return closestPoint(points, point.coords);
+    }
+
+    // Returns the closest Point in the given set to a given Coords
+    public static Point closestPoint(Set<Point> points, Coords coords) {
         return points.stream()
-            .min((p1, p2) -> Double.compare(point.distanceTo(p1), point.distanceTo(p2)))
+            .min((p1, p2) -> Double.compare(coords.distanceTo(p1.coords), coords.distanceTo(p2.coords)))
             .orElseThrow();
     }
 
@@ -526,22 +533,6 @@ public class Turf extends Logging {
     }
 
     /* Utility functions */
-
-    // Returns the closest Point to a given Coords
-    public Point closestPointTo(Coords coords) {
-        Point closestPoint = null;
-        double closestDistance = Double.MAX_VALUE;
-        Set<Point> points = new HashSet<>(this.crossings);
-        points.addAll(this.zones);
-        for (Point point : points) {
-            double distance = coords.distanceTo(point.coords);
-            if (distance < closestDistance) {
-                closestPoint = point;
-                closestDistance = distance;
-            }
-        }
-        return closestPoint;
-    }
 
     // Helper function to get a path to a file in the root directory
     public static Path getRootFilePath(String filename) {
