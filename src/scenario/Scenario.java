@@ -68,6 +68,12 @@ public class Scenario extends Logging {
         this.timeLimit = conditions.timeLimit;
         this.speed = conditions.speed;
         this.distanceLimit = this.timeLimit * this.speed;
+        if (this.start == null) {
+            throw new RuntimeException("Start node not found: " + conditions.start);
+        }
+        if (this.end == null) {
+            throw new RuntimeException("End node not found: " + conditions.end);
+        }
 
         // Create a Link for each Connection
         this.links = new HashSet<>();
@@ -98,6 +104,18 @@ public class Scenario extends Logging {
             }
         }
 
+        // Apply greylist
+        if (conditions.greylist != null) {
+            log("Scenario: Applying greylist...");
+            for (Node node : getNodes(conditions.greylist)) {
+                if (!node.isZone()) {
+                    continue;
+                }
+                node.points = 0;
+                log("Scenario: Cleared greylisted zone " + node);
+            }
+        }
+
         log("Scenario: Updating routes...");
         updateRoutes();
 
@@ -112,6 +130,7 @@ public class Scenario extends Logging {
     }
 
     // Convert an array of names to a set of nodes
+    // Ignores nonexistant node names
     public Set<Node> getNodes(String[] names) {
         Set<Node> nodes = new HashSet<>();
         if (names == null) {
@@ -119,6 +138,9 @@ public class Scenario extends Logging {
         }
         for (String name : names) {
             Node node = getNode(name);
+            if (node == null) {
+                continue;
+            }
             nodes.add(node);
         }
         return nodes;

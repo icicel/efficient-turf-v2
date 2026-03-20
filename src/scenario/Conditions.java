@@ -25,6 +25,9 @@ public class Conditions {
     // Names of zones to avoid (a.k.a. remove completely)
     public String[] blacklist;
 
+    // Names of zones to ignore points from (a.k.a. convert to crossings)
+    public String[] greylist;
+
     // Names of zones to NOT avoid (a.k.a. remove all other zones)
     // Ignored if null
     public String[] whitelist;
