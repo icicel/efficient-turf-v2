@@ -21,7 +21,11 @@ public class Point {
         this.coords = coords;
         this.parents = new HashSet<>();
         this.zone = zone;
-        this.name = coords.toString();
+        if (zone != null) {
+            this.name = zone.name;
+        } else {
+            this.name = coords.toString();
+        }
     }
 
     public boolean isZone() {
