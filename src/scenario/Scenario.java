@@ -221,6 +221,14 @@ public class Scenario extends Logging {
         // Generate initial caches
         updateCaches();
 
+        // Sanity check
+        if (
+            this.nodeFastestRoutes.get(this.start) == null ||
+            this.nodeFastestRoutes.get(this.start).get(this.end) == null
+        ) {
+            throw new RuntimeException("Start and end nodes are not connected");
+        }
+
         // Check for unreachable nodes
         Set<Node> distantNodes = new HashSet<>();
         Set<Node> unreachableNodes = new HashSet<>();
