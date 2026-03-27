@@ -22,7 +22,7 @@ public class Node {
 
     // Create a node from a point
     public Node(Point point, String username, boolean isNow) {
-        this.name = point.name;
+        this.name = point.toString();
         this.hashName = new String(this.name);
         this.in = new HashSet<>();
         this.out = new HashSet<>();

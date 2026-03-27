@@ -79,8 +79,8 @@ public class Scenario extends Logging {
         this.links = new HashSet<>();
         int links = 0;
         for (Connection connection : turf.connections) {
-            Node leftNode = this.getNode(connection.left.name);
-            Node rightNode = this.getNode(connection.right.name);
+            Node leftNode = this.getNode(connection.left.toString());
+            Node rightNode = this.getNode(connection.right.toString());
             addLinkPair(leftNode, rightNode, connection.distance);
             links += 2;
         }

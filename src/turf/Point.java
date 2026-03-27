@@ -12,8 +12,6 @@ public class Point {
     // null here represents a non-zone Point
     public Zone zone;
 
-    public String name;
-
     public Point(Coords coords) {
         this(coords, null);
     }
@@ -21,11 +19,6 @@ public class Point {
         this.coords = coords;
         this.parents = new HashSet<>();
         this.zone = zone;
-        if (zone != null) {
-            this.name = zone.name;
-        } else {
-            this.name = coords.toString();
-        }
     }
 
     public boolean isZone() {
@@ -40,9 +33,23 @@ public class Point {
         return this.coords.distanceTo(other.coords);
     }
 
+    // May return null
+    public String name() {
+        if (zone != null) {
+            return zone.name;
+        }
+        if (coords.name != null) {
+            return coords.name;
+        }
+        return null;
+    }
+
     @Override
     public String toString() {
-        return this.name;
+        if (name() != null) {
+            return name();
+        }
+        return coords.toString();
     }
 
     @Override

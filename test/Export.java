@@ -15,21 +15,21 @@ public class Export {
     public static void exportZonesPoints(Turf turf) {
         System.out.println("WKT,name,description,Points");
         for (Point zone : turf.zones) {
-            System.out.println("\"POINT (" + zone.coords.lon + " " + zone.coords.lat + ")\"," + zone.name + ",," + zone.zone.getPoints("name", true));
+            System.out.println("\"POINT (" + zone.coords.lon + " " + zone.coords.lat + ")\"," + zone.name() + ",," + zone.zone.getPoints("name", true));
         }
     }
 
     public static void exportZones(Turf turf) {
         System.out.println("WKT,name");
         for (Point zone : turf.zones) {
-            System.out.println("\"POINT (" + zone.coords.lon + " " + zone.coords.lat + ")\"," + zone.name);
+            System.out.println("\"POINT (" + zone.coords.lon + " " + zone.coords.lat + ")\"," + zone.name());
         }
     }
 
     public static void exportCrossings(Turf turf) {
         System.out.println("WKT,name");
         for (Point zone : turf.crossings) {
-            System.out.println("\"POINT (" + zone.coords.lon + " " + zone.coords.lat + ")\"," + zone.name);
+            System.out.println("\"POINT (" + zone.coords.lon + " " + zone.coords.lat + ")\"," + zone.name());
         }
     }
 }
