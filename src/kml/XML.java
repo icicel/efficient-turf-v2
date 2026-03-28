@@ -55,7 +55,7 @@ public class XML {
         StringBuilder data = new StringBuilder();
         data.append("[bbox:" + south + "," + west + "," + north + "," + east + "];");
         data.append("(");
-        data.append("way[\"highway\"][\"highway\"!=\"motorway\"][\"highway\"!=\"trunk\"][\"highway\"!=\"primary\"];");
+        data.append("way[\"highway\"][\"highway\"!=\"motorway\"][\"highway\"!=\"trunk\"][\"highway\"!=\"primary\"][\"highway\"!=\"secondary\"][\"access\"!=\"private\"];");
         data.append("way[\"route\"=\"ferry\"];");
         data.append(");");
         data.append("out skel geom;");
