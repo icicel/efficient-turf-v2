@@ -143,6 +143,13 @@ public class Turf extends Logging {
             // Get matching point from the map if it exists, create a new one if it doesn't
             Point leftPoint = crossingOverlap.computeIfAbsent(left, k -> new Point(k));
             Point rightPoint = crossingOverlap.computeIfAbsent(right, k -> new Point(k));
+            if (leftPoint.isNeighbor(rightPoint)) {
+                // There is already a connection here
+                // Having identical connections is bad, so make them slightly different
+                // If they actually are different, this won't cause any issues
+                // Kinda hacky...
+                line.distance += 0.001;
+            }
             Connection connection = new Connection(line, leftPoint, rightPoint);
             connections.add(connection);
         }

@@ -33,6 +33,15 @@ public class Point {
         return this.coords.distanceTo(other.coords);
     }
 
+    public boolean isNeighbor(Point other) {
+        for (Connection connection : parents) {
+            if (connection.other(this) == other) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     // May return null
     public String name() {
         if (zone != null) {
