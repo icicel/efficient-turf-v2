@@ -12,9 +12,11 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.Queue;
 import java.util.Set;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -153,8 +155,46 @@ public class Turf extends Logging {
             Connection connection = new Connection(line, leftPoint, rightPoint);
             connections.add(connection);
         }
-
         this.crossings = new HashSet<>(crossingOverlap.values());
+
+        
+        // Find the network (connected component) with the most crossings, and remove
+        //  everything else
+        log("Turf: Pruning smaller networks...");
+        List<Set<Point>> networks = new ArrayList<>();
+        Set<Point> visited = new HashSet<>();
+        for (Point crossing : crossings) {
+            if (visited.contains(crossing)) {
+                continue;
+            }
+            Set<Point> network = new HashSet<>();
+            Queue<Point> queue = new LinkedList<>();
+            queue.add(crossing);
+            while (!queue.isEmpty()) {
+                Point current = queue.remove();
+                if (visited.contains(current)) {
+                    continue;
+                }
+                visited.add(current);
+                network.add(current);
+                for (Connection connection : current.parents) {
+                    Point neighbor = connection.other(current);
+                    if (!visited.contains(neighbor)) {
+                        queue.add(neighbor);
+                    }
+                }
+            }
+            networks.add(network);
+        }
+        Set<Point> largestNetwork = networks.stream()
+            .max(Comparator.comparingInt(Set::size))
+            .orElseThrow();
+        for (Point crossing : new HashSet<>(crossings)) {
+            if (!largestNetwork.contains(crossing)) {
+                crossings.remove(crossing);
+                connections.removeAll(crossing.parents);
+            }
+        }
 
 
         // Create direct connections between all zones and their nearest crossing
