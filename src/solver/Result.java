@@ -23,7 +23,7 @@ public class Result {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        for (Route route : this.routes) {
+        for (Route route : this.routes.reversed()) {
             sb.append(routeString(route));
             sb.append("\n");
         }

@@ -5,12 +5,10 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.PriorityQueue;
-import java.util.Queue;
 import java.util.Set;
 import turf.Connection;
+import turf.Point;
 import turf.Turf;
-import turf.Zone;
 import util.Logging;
 
 // Represents a combination of a Turf object (Zone and Link data)
@@ -54,8 +52,12 @@ public class Scenario extends Logging {
         this.nodes = new HashSet<>();
         this.nodeName = new HashMap<>();
         int nodes = 0;
-        for (Zone zone : turf.zones) {
+        for (Point zone : turf.zones) {
             addNode(zone, conditions.username, conditions.isNow);
+            nodes++;
+        }
+        for (Point crossing : turf.crossings) {
+            addNode(crossing, conditions.username, conditions.isNow);
             nodes++;
         }
         log("Scenario: Created " + nodes + " nodes");
@@ -66,13 +68,19 @@ public class Scenario extends Logging {
         this.timeLimit = conditions.timeLimit;
         this.speed = conditions.speed;
         this.distanceLimit = this.timeLimit * this.speed;
+        if (this.start == null) {
+            throw new RuntimeException("Start node not found: " + conditions.start);
+        }
+        if (this.end == null) {
+            throw new RuntimeException("End node not found: " + conditions.end);
+        }
 
         // Create a Link for each Connection
         this.links = new HashSet<>();
         int links = 0;
         for (Connection connection : turf.connections) {
-            Node leftNode = this.getNode(connection.left.name);
-            Node rightNode = this.getNode(connection.right.name);
+            Node leftNode = this.getNode(connection.left.toString());
+            Node rightNode = this.getNode(connection.right.toString());
             addLinkPair(leftNode, rightNode, connection.distance);
             links += 2;
         }
@@ -96,6 +104,18 @@ public class Scenario extends Logging {
             }
         }
 
+        // Apply greylist
+        if (conditions.greylist != null) {
+            log("Scenario: Applying greylist...");
+            for (Node node : getNodes(conditions.greylist)) {
+                if (!node.isZone()) {
+                    continue;
+                }
+                node.points = 0;
+                log("Scenario: Cleared greylisted zone " + node);
+            }
+        }
+
         log("Scenario: Updating routes...");
         updateRoutes();
 
@@ -110,6 +130,7 @@ public class Scenario extends Logging {
     }
 
     // Convert an array of names to a set of nodes
+    // Ignores nonexistant node names
     public Set<Node> getNodes(String[] names) {
         Set<Node> nodes = new HashSet<>();
         if (names == null) {
@@ -117,14 +138,17 @@ public class Scenario extends Logging {
         }
         for (String name : names) {
             Node node = getNode(name);
+            if (node == null) {
+                continue;
+            }
             nodes.add(node);
         }
         return nodes;
     }
 
-    // Create a Node from a Zone
-    private void addNode(Zone zone, String username, boolean isNow) {
-        Node node = new Node(zone, username, isNow);
+    // Create a Node from a Point
+    private void addNode(Point point, String username, boolean isNow) {
+        Node node = new Node(point, username, isNow);
         if (this.nodeName.containsKey(node.name)) {
             throw new RuntimeException("Duplicate node name: " + node.name);
         }
@@ -197,6 +221,14 @@ public class Scenario extends Logging {
         // Generate initial caches
         updateCaches();
 
+        // Sanity check
+        if (
+            this.nodeFastestRoutes.get(this.start) == null ||
+            this.nodeFastestRoutes.get(this.start).get(this.end) == null
+        ) {
+            throw new RuntimeException("Start and end nodes are not connected");
+        }
+
         // Check for unreachable nodes
         Set<Node> distantNodes = new HashSet<>();
         Set<Node> unreachableNodes = new HashSet<>();
@@ -265,161 +297,6 @@ public class Scenario extends Logging {
 
     /* Graph optimizations */
 
-    // Remove redundant links/nodes (not used in any optimal routes)
-    public void removeUnusedConnections() {
-        log("Scenario: ** Removing unused connections...");
-        Set<Node> unusedNodes = new HashSet<>(this.nodes);
-        Set<Link> unusedLinks = new HashSet<>(this.links);
-        for (Node node : this.nodes) {
-            if (!node.isZone()) {
-                continue;
-            }
-            unusedNodes.remove(node);
-            // Iterate through all fastest routes and remove the nodes and links from the unused sets
-            for (Route route : nodeDirectRoutes.get(node).values()) {
-                Route current = route;
-                while (current != null) {
-                    unusedNodes.remove(current.node);
-                    unusedLinks.remove(current.link);
-                    current = current.previous;
-                }
-            }
-        }
-        for (Node node : unusedNodes) {
-            removeNode(node);
-            log("Scenario: Removed unused node " + node);
-        }
-        for (Link link : unusedLinks) {
-            if (!this.links.contains(link)) {
-                continue; // this is just to not log an already removed link
-            }
-            removeLinkPair(link);
-            log("Scenario: Removed unused link " + link.pairString());
-        }
-
-        log("Scenario: Updating routes...");
-        updateRoutes();
-
-        log("Scenario: ** Removal complete");
-    }
-
-    // Remove crossings and redistribute the connections if doing so reduces the amount of links
-    //   without reducing connectivity (if inlinks + outlinks > inlinks * outlinks)
-    // Most relevant for graphs with many one-way links, such as those resulting from optimizeCrossings
-    public void simplifyCrossings() {
-        // TODO
-    }
-
-    // Rework cases where coming from a link A to a crossing, there is only one
-    //   reasonable choice of next link, B, if following previously generated optimal routes
-    // This is done by replacing A with a new link between A.parent and B.neighbor, bypassing
-    //   the crossing while keeping A.reverse and B intact
-    // Using this optimization will therefore remove the guarantee that all links have a reverse
-    public void optimizeCrossings() {
-        log("Scenario: ** Optimizing crossings...");
-
-        optimizeCrossings(1);
-    
-        log("Scenario: ** Optimization complete");
-    }
-
-    // Used to optimize over and over until no more optimizations can be made
-    // There are definitely prettier ways to do this
-    private void optimizeCrossings(int attempt) {
-
-        // Generate link pairs from fastest routes
-        // routeSuccessors stores, per link A->B where B is a crossing, all links B->C where A->B->C
-        //   is part of any fastest route ("route successors" to A->B)
-        log("Scenario: Generating link successors...");
-        Map<Link, Set<Link>> routeSuccessors = new HashMap<>();
-        for (Link link : this.links) {
-            if (!link.neighbor.isZone()) {
-                routeSuccessors.put(link, new HashSet<>());
-            }
-        }
-        for (Node node : this.nodes) {
-            if (!node.isZone()) {
-                continue;
-            }
-            for (Route fastestRoute : this.nodeDirectRoutes.get(node).values()) {
-                if (fastestRoute.previous == null) { // route of length 0
-                    continue;
-                }
-                Route current = fastestRoute;
-                // Iterate through the route, finding all link pairs A->B, B->C where B is a crossing
-                // current.link is B->C, current.previous.link is A->B
-                while (current.previous.link != null) {
-                    if (!current.link.parent.isZone()) {
-                        routeSuccessors.get(current.previous.link).add(current.link);
-                    }
-                    current = current.previous;
-                }
-            }
-        }
-
-        // for every link x->Q in L:
-        //   get the size of the set of route successors of x, L[x->Q]
-        //   0 - remove x->Q
-        //   1 - remove x->Q, create x->y
-        //      if y is a crossing, create L[x->y] = L[Q->y]
-        //      if x is a crossing, replace x->Q with x->y in L[w->x] for all w!=Q
-        //   >1 - do nothing
-        // (since w->x exists, "all w" is necessarily the same as "all neighbors of x w")
-        log("Scenario: Combining links, attempt " + attempt + "...");
-        Queue<Link> successorQueue = new LinkedList<>(routeSuccessors.keySet());
-        boolean changed = false;
-        while (!successorQueue.isEmpty()) {
-            Link x_Q = successorQueue.remove();
-            if (!this.links.contains(x_Q)) {
-                // the link was removed
-                continue;
-            }
-
-            Node x = x_Q.parent;
-            Node Q = x_Q.neighbor; // Q is a crossing
-            Set<Link> successors = routeSuccessors.get(x_Q);
-
-            if (successors.size() == 0) {
-                changed = true;
-                // remove x->Q
-                removeLink(x_Q);
-                log("Scenario: Removed link " + x_Q);
-
-            } else if (successors.size() == 1) {
-                changed = true;
-                // replace x->Q with x->y
-                Link Q_y = successors.iterator().next();
-                Node y = Q_y.neighbor;
-                Link x_y = addLink(x, y, x_Q.distance + Q_y.distance);
-                removeLink(x_Q);
-                log("Scenario: Added link " + x_y + " bypassing " + Q);
-                // update routeSuccessors
-                if (!x.isZone()) {
-                    for (Link w_x : x.in) {
-                        Node w = w_x.parent;
-                        if (w == Q) {
-                            continue;
-                        }
-                        if (routeSuccessors.get(w_x).remove(x_Q)) {
-                            routeSuccessors.get(w_x).add(x_y);
-                        }
-                    }
-                }
-                if (!y.isZone()) {
-                    routeSuccessors.put(x_y, routeSuccessors.get(Q_y));
-                    successorQueue.add(x_y);
-                }
-            }
-        }
-
-        log("Scenario: Updating routes...");
-        updateRoutes();
-
-        if (changed) {
-            optimizeCrossings(attempt + 1);
-        }
-    }
-
     // Remove crossings entirely
     // Links between zones are instead the direct routes between them
     public void removeCrossings() {
@@ -444,133 +321,6 @@ public class Scenario extends Logging {
                 }
                 Route route = directRoutes.get(target);
                 addLink(node, target, route.length);
-            }
-        }
-
-        // Update routes
-        updateRoutes();
-
-        log("Scenario: ** Removal complete");
-    }
-
-    // Optimize connections that are too short to matter
-    // Done by merging nodes connected with a two-way link shorter than the given length, and
-    //   redistributing the length of the link to the new node's other links
-    // This adds total distance to the Scenario, meaning the optimal solution may change and distant nodes
-    //   may become unreachable
-    // Does not remove links between two zones as they shouldn't be merged
-    // If keepNames is true, the merged node's name will be a combination of the two nodes' names
-    public void removeShortConnections(double minLength, boolean keepNames) {
-        log("Scenario: ** Removing short connections...");
-
-        // Find all two-way links that are too short
-        PriorityQueue<Link> linkQueue = new PriorityQueue<>(
-            (a, b) -> Double.compare(a.distance, b.distance)
-        );
-        linkQueue.addAll(this.links);
-        
-        // Merge each link's nodes and redistribute its length to their other links
-        while (!linkQueue.isEmpty()) {
-            Link mergeLink = linkQueue.remove();
-            Node node1 = mergeLink.parent;
-            Node node2 = mergeLink.neighbor;
-
-            if (mergeLink.distance > minLength) {
-                break; // no more links to merge
-            }
-            if (!node1.out.contains(mergeLink)) {
-                continue; // link already removed
-            }
-            if (mergeLink.reverse == null) {
-                continue; // link is one-way
-            }
-            if (node1.isZone() && node2.isZone()) {
-                continue; // don't merge links between zones
-            }
-            removeLinkPair(mergeLink);
-
-            // Define the node to be kept and node to remove
-            Node mergedNode = node1;
-            Node removedNode = node2;
-            if (node2.isZone()) {
-                mergedNode = node2;
-                removedNode = node1;
-            }
-
-            // Calculate distance to be redistributed
-            boolean mergeToMiddle = !node1.isZone() && !node2.isZone();
-            double redistribution = mergeLink.distance / 2.0;
-            if (!mergeToMiddle) {
-                redistribution = mergeLink.distance;
-            }
-            Map<Node, Double> outLinks = new HashMap<>();
-            Map<Node, Double> inLinks = new HashMap<>();
-            List<Link> toRemove = new LinkedList<>();
-
-            // Redistribute to mergeNode's links if merging to the middle
-            if (mergeToMiddle) {
-                for (Link outLink : mergedNode.out) {
-                    outLinks.put(outLink.neighbor, outLink.distance + redistribution);
-                    toRemove.add(outLink);
-                }
-                for (Link inLink : mergedNode.in) {
-                    inLinks.put(inLink.parent, inLink.distance + redistribution);
-                    toRemove.add(inLink);
-                }
-            }
-
-            // Redistribute to removedNode's links, moving them to mergedNode in the process
-            // If an already existing link is shorter, use its distance instead
-            for (Link outLink : removedNode.out) {
-                double newDistance = outLink.distance + redistribution;
-                if (mergedNode.hasLinkTo(outLink.neighbor)) {
-                    Link existingLink = mergedNode.getLinkTo(outLink.neighbor);
-                    toRemove.add(existingLink);
-                    newDistance = Math.min(existingLink.distance, newDistance);
-                }
-                outLinks.put(outLink.neighbor, newDistance);
-            }
-            for (Link inLink : removedNode.in) {
-                double newDistance = inLink.distance + redistribution;
-                if (inLink.parent.hasLinkTo(mergedNode)) {
-                    Link existingLink = inLink.parent.getLinkTo(mergedNode);
-                    toRemove.add(existingLink);
-                    newDistance = Math.min(existingLink.distance, newDistance);
-                }
-                inLinks.put(inLink.parent, newDistance);
-            }
-
-            // Remove the links that are being redistributed
-            for (Link link : toRemove) {
-                removeLink(link);
-            }
-
-            // Re-add links, placing them in the queue
-            for (Node outNode : outLinks.keySet()) {
-                Double distance = outLinks.get(outNode);
-                Link newLink = addLink(mergedNode, outNode, distance);
-                linkQueue.add(newLink);
-            }
-            for (Node inNode : inLinks.keySet()) {
-                Double distance = inLinks.get(inNode);
-                Link newLink = addLink(inNode, mergedNode, distance);
-                linkQueue.add(newLink);
-            }
-
-            // Finally remove the second node
-            removeNode(removedNode);
-            
-            // Do name handling if requested
-            if (keepNames) {
-                String mergedName = mergedNode.name + "/" + removedNode.name;
-                log("Scenario: Removed short connection " + mergeLink.pairString() +
-                    ", created " + mergedName);
-                this.nodeName.remove(mergedNode.name);
-                this.nodeName.put(mergedName, mergedNode);
-                mergedNode.name = mergedName;
-            } else {
-                log("Scenario: Removed short connection " + mergeLink.pairString() +
-                    ", merged into " + mergedNode.name);
             }
         }
 
