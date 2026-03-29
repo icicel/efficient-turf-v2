@@ -320,11 +320,13 @@ public class Turf extends Logging {
     //  by merging/removing "superfluous" points and connections, like dead ends, loops, and
     //  connections that are too long to matter
     public void compress() {
+        log("Turf: Compressing...");
         // Remove all dead ends, loops, and longcuts
         Set<Connection> toCheck = new HashSet<>(this.connections);
         for (Connection connection : toCheck) {
             checkConnection(connection);
         }
+        log("Turf: Compressed to " + crossings.size() + " crossings and " + connections.size() + " connections");
     }
 
     // Merge two neighboring connections across a pivot crossing
@@ -440,6 +442,88 @@ public class Turf extends Logging {
             }
         }
         return !(distances.get(end) == connection.distance);
+    }
+
+    // Remove all connections except those who are part of some shortest path between
+    //  any two zones
+    // Works similarly to Node.findFastestRoutes and uses a similar Route class
+    public void optimize() {
+        log("Turf: Optimizing...");
+        Set<Connection> optimalConnections = new HashSet<>();
+        Set<Point> hasBeenStart = new HashSet<>();
+        for (Point start : zones) {
+            hasBeenStart.add(start);
+            // Prioritize paths by its last point's distance to start
+            PriorityQueue<TurfRoute> queue = new PriorityQueue<>(
+                Comparator.comparingDouble(route -> route.length)
+            );
+            Set<Point> visited = new HashSet<>();
+            queue.add(new TurfRoute(start));
+            // Dijkstra's time!
+            while (!queue.isEmpty()) {
+                TurfRoute route = queue.remove();
+                Point current = route.point;
+                if (visited.contains(current)) {
+                    continue;
+                }
+                visited.add(current);
+                // If current is a zone, then route is the shortest path
+                // Backtrack the route and add all connections along the way to optimalConnections
+                // If current has already been a start point, then we have already found the
+                //  shortest path to it, so skip
+                if (current.isZone() && !hasBeenStart.contains(current)) {
+                    TurfRoute backtrack = route;
+                    while (backtrack.previous != null) {
+                        optimalConnections.add(backtrack.connectionFromPrevious);
+                        backtrack = backtrack.previous;
+                    }
+                }
+                // Extend the route with all connections from the current point
+                for (Connection extension : current.parents) {
+                    TurfRoute nextRoute = new TurfRoute(extension, route);
+                    queue.add(nextRoute);
+                }
+            }
+        }
+        // Remove!
+        for (Connection connection : new HashSet<>(connections)) {
+            if (!optimalConnections.contains(connection)) {
+                removeConnection(connection);
+            }
+        }
+        // Cleanup
+        // Theoretically, no crossing should have only one parent
+        for (Point point : new HashSet<>(crossings)) {
+            if (point.parents.size() == 0) {
+                crossings.remove(point);
+            } else if (point.parents.size() == 2) {
+                mergeOverPivot(point);
+            }
+        }
+        log("Turf: Optimized to " + crossings.size() + " crossings and " + connections.size() + " connections");
+    }
+
+    // Exlusively for Turf.optimize
+    // Turf equivalent of scenario.Route - a linked list with extra steps
+    private class TurfRoute {
+        public Point point;
+        public Connection connectionFromPrevious;
+        public TurfRoute previous;
+        public double length;
+
+        public TurfRoute(Point point) {
+            this.point = point;
+            this.connectionFromPrevious = null;
+            this.previous = null;
+            this.length = 0.0;
+        }
+
+        public TurfRoute(Connection extension, TurfRoute previous) {
+            this.point = extension.other(previous.point);
+            this.connectionFromPrevious = extension;
+            this.previous = previous;
+            this.length = previous.length + extension.distance;
+        }
     }
 
     /* Connecting zones helpers */
