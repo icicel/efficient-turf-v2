@@ -4,6 +4,6 @@ test/*.java
 *.kml
 
 # exceptions
-!test/Example.java
+!test/ExportExample.java
 !test/Export.java
 !example.kml

@@ -5,7 +5,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.FileSystems;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -555,93 +554,6 @@ public class Turf extends Logging {
         double lonQuadrantEdge = Math.round(coords.lon * 100) / 100.0;
         Coords nearestQuadrantEdge = new Coords(latQuadrantEdge, lonQuadrantEdge);
         return coords.distanceTo(nearestQuadrantEdge);
-    }
-
-    /* Export */
-
-    // Export as CSV
-    // Creates multiple files if there are more than 2000 connections
-    public void exportConnections(Path path) throws IOException {
-        StringBuilder sb = new StringBuilder();
-        sb.append("WKT,name\n");
-        int connectionId = 1;
-        int fileId = 1;
-        for (Connection connection : connections) {
-            sb.append(connection.isLoop() ? "\"POLYGON ((" : "\"LINESTRING (");
-            sb.append(connection.left.coords.lon).append(" ").append(connection.left.coords.lat);
-            for (Coords middleCoords : connection.middle) {
-                sb.append(", ");
-                sb.append(middleCoords.lon).append(" ").append(middleCoords.lat);
-            }
-            sb.append(", ");
-            sb.append(connection.right.coords.lon).append(" ").append(connection.right.coords.lat);
-            sb.append(connection.isLoop() ? "))\"," : ")\",");
-            sb.append("Line ").append(connectionId++);
-            sb.append("\n");
-            if (connectionId > 2000) {
-                // Reset for next file
-                writeSubfile(path, fileId++, sb.toString());
-                sb = new StringBuilder();
-                sb.append("WKT,name\n");
-                connectionId = 1;
-            }
-        }
-        // Write remaining connections
-        if (fileId == 1) {
-            Files.writeString(path, sb.toString());
-        } else if (connectionId > 1) {
-            writeSubfile(path, fileId, sb.toString());
-        }
-    }
-
-    public void exportPoints(Path path, Set<Point> points) throws IOException {
-        StringBuilder sb = new StringBuilder();
-        sb.append("WKT,name\n");
-        int pointId = 1;
-        int fileId = 1;
-        for (Point point : points) {
-            sb.append("\"POINT (");
-            sb.append(point.coords.lon).append(" ").append(point.coords.lat);
-            sb.append(")\",");
-            if (point.name() != null) {
-                sb.append(point.name()); pointId++;
-            } else {
-                sb.append("Point ").append(pointId++);
-            }
-            sb.append("\n");
-            if (pointId > 2000) {
-                // Reset for next file
-                writeSubfile(path, fileId++, sb.toString());
-                sb = new StringBuilder();
-                sb.append("WKT,name\n");
-                pointId = 1;
-            }
-        }
-        if (fileId == 1) {
-            Files.writeString(path, sb.toString());
-        } else if (pointId > 1) {
-            writeSubfile(path, fileId, sb.toString());
-        }
-    }
-
-    private void writeSubfile(Path path, int fileId, String content) throws IOException {
-        String filename = path.getFileName().toString();
-        String extension = "";
-        int dotIndex = filename.lastIndexOf('.');
-        if (dotIndex != -1) {
-            extension = filename.substring(dotIndex);
-            filename = filename.substring(0, dotIndex);
-        }
-        Path subfilePath = path.resolveSibling(filename + "_" + fileId + extension);
-        Files.writeString(subfilePath, content);
-    }
-
-    public void exportCrossings(Path path) throws IOException {
-        exportPoints(path, this.crossings);
-    }
-
-    public void exportZones(Path path) throws IOException {
-        exportPoints(path, this.zones);
     }
 
     /* Utility functions */
