@@ -87,9 +87,9 @@ public class Scenario extends Logging {
         }
         log("Scenario: Created " + links + " links");
 
+        log("Scenario: Applying conditions...");
         // Apply white/blacklist
         if (conditions.whitelist != null) {
-            log("Scenario: Applying whitelist...");
             Set<Node> safeNodes = getNodes(conditions.whitelist);
             for (Node node : this.nodes) {
                 if (!safeNodes.contains(node)) {
@@ -98,16 +98,13 @@ public class Scenario extends Logging {
                 }
             }
         } else if (conditions.blacklist != null) {
-            log("Scenario: Applying blacklist...");
             for (Node node : getNodes(conditions.blacklist)) {
                 removeNode(node);
                 log("Scenario: Removed blacklisted node " + node);
             }
         }
-
         // Apply greylist
         if (conditions.greylist != null) {
-            log("Scenario: Applying greylist...");
             for (Node node : getNodes(conditions.greylist)) {
                 if (!node.isZone()) {
                     continue;
@@ -116,17 +113,19 @@ public class Scenario extends Logging {
                 log("Scenario: Cleared greylisted zone " + node);
             }
         }
+        // Remove unreachable nodes based on conditions (time limit and so on)
+        updateGraph();
 
-        log("Scenario: Creating routes...");
-        updateRoutes();
-
-        log("Scenario: Optimizing...");
         // Remove all crossings
+        log("Scenario: Optimizing...");
         List<Node> crossingNodes = this.nodes.stream()
             .filter(node -> !node.isZone())
             .toList();
         for (Node node : crossingNodes) {
             removeNode(node);
+        }
+        if (crossingNodes.size() > 0) {
+            log("Scenario: Removed " + crossingNodes.size() + " crossings");
         }
         // All remaining links are now direct links between zones
         // Add the remaining direct routes as links
@@ -142,11 +141,11 @@ public class Scenario extends Logging {
             }
         }
 
-        // Update routes again
-        log("Scenario: Updating routes...");
-        updateRoutes();
+        // Final route cache
+        log("Scenario: Caching routes...");
+        updateCaches();
 
-        log("Scenario: *** Initialized");
+        log("Scenario: *** Initialized with " + this.nodes.size() + " nodes and " + this.links.size() + " links");
     }
 
     /* Utility functions */
@@ -242,8 +241,8 @@ public class Scenario extends Logging {
 
     /* Graph maintenance */
 
-    // Update graph information after changes
-    private void updateRoutes() {
+    // Clean graph of unreachable nodes
+    private void updateGraph() {
 
         // Generate initial caches
         updateCaches();
@@ -259,6 +258,8 @@ public class Scenario extends Logging {
         // Check for unreachable nodes
         Set<Node> distantNodes = new HashSet<>();
         Set<Node> unreachableNodes = new HashSet<>();
+        int distantZones = 0;
+        int unreachableZones = 0;
         for (Node node : nodes) {
             Route startToNode = this.nodeFastestRoutes.get(this.start).get(node);
             Route nodeToEnd = this.nodeFastestRoutes.get(node).get(this.end);
@@ -266,22 +267,36 @@ public class Scenario extends Logging {
             // The route start->node->end isn't possible at all
             if (startToNode == null || nodeToEnd == null) {
                 unreachableNodes.add(node);
+                if (node.isZone()) {
+                    unreachableZones++;
+                }
                 continue;
             }
 
             // The route start->node->end isn't possible within time limit
             if (startToNode.length + nodeToEnd.length > this.distanceLimit) {
                 distantNodes.add(node);
+                if (node.isZone()) {
+                    distantZones++;
+                }
                 continue;
             }
         }
+
         for (Node node : distantNodes) {
             removeNode(node);
-            log("Scenario: Removed distant node " + node);
         }
+        if (distantNodes.size() > 0) {
+            log("Scenario: Removed " + distantNodes.size() + " distant nodes" +
+                " (including " + distantZones + " zones)");
+        }
+
         for (Node node : unreachableNodes) {
             removeNode(node);
-            log("Scenario: Removed unreachable node " + node);
+        }
+        if (unreachableNodes.size() > 0) {
+            log("Scenario: Removed " + unreachableNodes.size() + " unreachable nodes" +
+                " (including " + unreachableZones + " zones)");
         }
 
         // Generate final caches
