@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.Set;
 import turf.Connection;
 import turf.Point;
@@ -213,7 +214,7 @@ public class Scenario extends Logging {
         }
     }
 
-    /* Graph setup */
+    /* Graph maintenance */
 
     // Update graph information after changes
     private void updateRoutes() {
@@ -267,7 +268,7 @@ public class Scenario extends Logging {
         this.nodeDirectRoutes = new HashMap<>();
         this.nodeEndDistance = new HashMap<>();
         for (Node node : this.nodes) {
-            Map<Node, Route> fastestRoutes = node.findFastestRoutes();
+            Map<Node, Route> fastestRoutes = findFastestRoutes(node);
             this.nodeFastestRoutes.put(node, fastestRoutes);
             if (node.isZone()) {
                 this.nodeDirectRoutes.put(node, getDirectRoutes(fastestRoutes));
@@ -278,6 +279,36 @@ public class Scenario extends Logging {
                 this.nodeEndDistance.put(node, null);
             }
         }
+    }
+
+    // Returns the shortest Route to every other Node
+    // This is done by keeping a priority queue of all Nodes neighboring
+    //  already visited Nodes, (in the form of Routes) and extending them
+    //  when visiting a new Node (AKA Dijkstra's)
+    public Map<Node, Route> findFastestRoutes(Node start) {
+        Map<Node, Route> fastestRoutes = new HashMap<>();
+        PriorityQueue<Route> queue = new PriorityQueue<>(
+            (a, b) -> Double.compare(a.length, b.length)
+        );
+        Set<Node> visited = new HashSet<>();
+        queue.add(new Route(start));
+        while (!queue.isEmpty()) {
+            // Get the shortest Route from the queue
+            Route route = queue.remove();
+            Node neighbor = route.node;
+            if (visited.contains(neighbor)) {
+                continue;
+            }
+            visited.add(neighbor);
+            fastestRoutes.put(neighbor, route);
+
+            // Extend the Route with all outgoing Links from the neighbor
+            //  and add them to the queue
+            for (Link link : neighbor.out) {
+                queue.add(new Route(link, route));
+            }
+        }
+        return fastestRoutes;
     }
 
     // Assumes that the fastestRoutes is from a zone Node
