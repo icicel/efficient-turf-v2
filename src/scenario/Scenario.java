@@ -117,6 +117,32 @@ public class Scenario extends Logging {
             }
         }
 
+        log("Scenario: Creating routes...");
+        updateRoutes();
+
+        log("Scenario: Optimizing...");
+        // Remove all crossings
+        List<Node> crossingNodes = this.nodes.stream()
+            .filter(node -> !node.isZone())
+            .toList();
+        for (Node node : crossingNodes) {
+            removeNode(node);
+        }
+        // All remaining links are now direct links between zones
+        // Add the remaining direct routes as links
+        for (Node node : this.nodes) {
+            Map<Node, Route> directRoutes = this.nodeDirectRoutes.get(node);
+            for (Node target : directRoutes.keySet()) {
+                if (node.hasLinkTo(target)) {
+                    // This link already exists
+                    continue;
+                }
+                Route route = directRoutes.get(target);
+                addLink(node, target, route.length);
+            }
+        }
+
+        // Update routes again
         log("Scenario: Updating routes...");
         updateRoutes();
 
@@ -324,41 +350,6 @@ public class Scenario extends Logging {
             }
         }
         return directRoutes;
-    }
-
-    /* Graph optimizations */
-
-    // Remove crossings entirely
-    // Links between zones are instead the direct routes between them
-    public void removeCrossings() {
-        log("Scenario: ** Removing crossings...");
-
-        // Remove all crossings
-        List<Node> crossingNodes = this.nodes.stream()
-            .filter(node -> !node.isZone())
-            .toList();
-        for (Node node : crossingNodes) {
-            removeNode(node);
-        }
-
-        // All remaining links are now direct links between zones
-        // Add the remaining direct routes as links
-        for (Node node : this.nodes) {
-            Map<Node, Route> directRoutes = this.nodeDirectRoutes.get(node);
-            for (Node target : directRoutes.keySet()) {
-                if (node.hasLinkTo(target)) {
-                    // This link already exists
-                    continue;
-                }
-                Route route = directRoutes.get(target);
-                addLink(node, target, route.length);
-            }
-        }
-
-        // Update routes
-        updateRoutes();
-
-        log("Scenario: ** Removal complete");
     }
 
     /* Debug */
