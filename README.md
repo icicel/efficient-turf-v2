@@ -10,11 +10,14 @@ This is a rewrite/remake of my older project [Efficient Turf v1](https://github.
 Turf is a location-based game using GPS technology, which requires you to go to the physical location of the virtual zones in order to take them.
 Try to take as many zones as you can to rack up points, earn medals, level up and climb the leaderboards!
 
-### Why bother?
+### Background
 
 Sometimes, I have been in the situation where I have one or two hours of free time and I decide to take a walk and play some Turf.
 I then face the dilemma where I want to get as many points as possible in order to maximize my time efficiency, but I also want to make it back on time.
 In order to help solve this conundrum and generate the optimal route for the walk, this tool exists.
+
+Technically, this problem is called the [Orienteering Problem](https://www.sciencedirect.com/topics/mathematics/orienteering-problem) and is NP-hard.
+If the time limit is infinite, then it's equivalent to the far better known [Traveling Salesman Problem](https://en.wikipedia.org/wiki/Travelling_salesman_problem).
 
 # How to use
 
@@ -24,51 +27,81 @@ Luckily, we can also define **crossings** - custom, non-point giving, purely fun
 
 ## Importing data
 
-Zones, crossings and connections are all imported from KML files with a specific format.
-Such files can be easily generated using [Google My Maps](https://www.google.com/maps/d/).
+Zones are imported with [the Turf Map Tool](https://turf.urbangeeks.org/). 
+Draw a polygon containing all relevant zones, and then download it as *Zones within polygon → KML - POIs*.
+This will either be put into a larger KML file or be combined with an OpenStreetMap network depending on your import method of choice.
+
+### KML
+
+Crossings and connections can be defined using a KML file with map information.
+Such files can be easily created using [Google My Maps](https://www.google.com/maps/d/).
 
 (Note: My Maps is no longer maintained by Google.
 A more modern approach to making the KML file would be [Google Earth](https://earth.google.com).
 The steps should be similar.)
 
-In My Maps, create one layer for zones, one for crossings (optionally) and one for connections.
-Make sure each layer has a unique name.
-Then, create zones and crossings using **markers** and define connections using **lines**.
+In My Maps, create one layer each for zones, crossings and connections, making sure each layer has a unique name.
+Import your zones into their layer by uploading the KML file containing them.
+Then, define connections using **lines** and create crossings using **markers** as needed.
 Afterwards, the entire map can be exported with:  
 **⋮** *→ Export to KML/KMZ → Export as KML instead of KMZ → Download*
 
-Tip: Using [the Turf Map Tool](https://turf.urbangeeks.org/) you can import Turf zones directly to My Maps. 
-Draw a polygon containing all relevant zones, and then *Download polygon as → KML - POIs* (or *KML - Zone polygons* for the actual zone shapes).
-Then in My Maps you can either 1. create a new layer and import this KML file into it, or 2. in an already existing layer, go to *Layer options → Reimport and merge → Add more items* and import the KML there.
+Note that if a zone has an invalid name, the program will fail.
+This may happen if they are defined manually.
 
-The example KML corresponds to [this map of southern Stenungsund, Sweden](https://www.google.com/maps/d/u/0/edit?mid=1iv00_Yvkj4J3LrPsgByOfHsf2090pNg).
+To get the actual Turf zone shapes as a reference, you can use the Turf Map Tool like above.
+Just download the polygon as *Zones within polygon → KML - Zone polygons* instead.
+
+There is an example KML created using this method in the repository root.
+It corresponds to [this My Maps file of southern Stenungsund, Sweden](https://www.google.com/maps/d/u/0/edit?mid=1iv00_Yvkj4J3LrPsgByOfHsf2090pNg).
+
+### OSM
+
+Crossings and connections can be defined using an XML file with OpenStreetMap network data.
+This can be extracted using the [Overpass API](https://wiki.openstreetmap.org/wiki/Overpass_API).
+All intersections between ways become crossings and between them are connections.
+
+Since Overpass can be somewhat bulky, extraction can be handled by the program.
+It calculates the bounding box of all zones (specifically, the max/min coordinates among the zones in both directions) and downloads all walkable roads within it.
+If you want to extract this data yourself, you can of course also supply an XML file directly and override this process.
+
+A downside of this method is that OSM coverage, especially for footpaths and outside of major cities, may be unreliable.
+In the case of missing paths, you could map the information yourself, upload it to OSM and it would eventually appear in the export.
+This is not always possible, though, e.g. a shortcut across a field shouldn't really appear on the map even if it is technically walkable.
 
 ## Objects
 
-The basic process consists of three steps.
-These are also outlined in the example files in the `test` folder, containing two use cases.
+The basic process consists of three steps - creating the objects Turf, Conditions and Scenario in that order.
+These are outlined in the example files in the `test` folder, containing two use cases.
 
-Use `Logging.init` to enable debug output.
+Use `Logging.init` to enable debug output for all objects.
 
 ### `Turf`
 
 The raw zone and connection information (the Turf map) is stored in a Turf object.
-The constructor takes
-1. The path to the KML file containing the map information.
-It's assumed to have a format consistent with KMLs exported by the method above.
-2. The names of the relevant layers in that KML file - one for zones, one for connections and (optionally) one for crossings.
+The constructor takes, depending on import method:
+- A KML file and the names of the zone, connection and (optionally) crossing layers in it
+- A KML file with zones and (optionally) an XML file with OSM network data
 
-The KML is scanned for zone and connection data, and the Turf API is accessed for zone points values.
-All this is stored in the Turf object using **Zone** and **Connection** objects.
+Map information is stored in the Turf object using **Point** and **Connection** objects.
+For Points that correspond to Turf zones (which may be all of them), the program accesses the Turf API for the zone data and stores it in **Zone** objects.
 
-Note that Zone objects are not the same as actual Turf zones.
-Crossings are defined internally as Zone objects with a point value of zero.
-This means that actual zones are counted as crossings if they give zero points (that is, if you own them and the revisit timer hasn't passed yet).
+Points and Connections retain their map data and can be exported back to KML format using `Export`.
+
+If based on OSM data, the Turf graph could get quite large, easily reaching 25k objects.
+To this end, there are two compression methods available: `Turf.compress` and `Turf.optimize`, with the latter being the more aggressive option.
 
 ### `Conditions`
 
 The Conditions object contains various problem-specific information.
-The only required information that can be given is the start zone, the end zone, and the time limit; these are the three arguments taken by the constructor.
+The bare minimum information that can be given is the start zone, the end zone, and the time limit; these are the three arguments taken by the constructor.
+Optional conditions that can be given are:
+- Walking speed (defaults to 1 m/s)
+- Turf username, for zone ownership calculations
+- Whether to consider zone ownership at all
+- Blacklisting of nodes
+- Greylisting of zones (conversion into crossings)
+- Whitelisting of nodes, a.k.a. a reverse blacklist
 
 The key to this step is that multiple different Conditions can be created, while keeping only one underlying Turf object.
 This means we can skip reimporting map data that has already been imported.
@@ -78,29 +111,23 @@ This means we can skip reimporting map data that has already been imported.
 Applying a Conditions object onto a Turf object, a Scenario is created.
 This represents the complete problem that needs solving, and is the "final simplification" of the graph.
 
-Scenarios use **Node** and **Link** objects to store map data instead of Zones and Connections.
-Links are one-way, and thus a Connection turns into two Links.
+Scenarios use **Node** and **Link** objects to store map data instead of Points and Connections.
+Links are one-way, so a Connection turns into two Links.
 
-The Scenario graph can optionally be further optimized by taking into account an important fact: we only want to travel on the fastest possible routes between zones, and we want to ignore all routes that would bring us anywhere else.
-The fastest route between two zones is called the "direct route" for short.
-
-The optimizations offered are:
-- `removeUnusedConnections` - Removes all crossings and connections that don't lie on any direct route.
-- (WIP)
+Here, crossings are defined as Nodes with a point value of zero.
+This means that actual zones are counted as crossings if they give zero points (that is, if you own them and the revisit timer hasn't passed yet).
 
 ## Solvers
 
 A Scenario can be solved using any implementation of Solver.
 Simply call `Solver.solve` and pass the Scenario as the argument.
-It returns a Result, which is is a list of routes and can be read and printed in various ways.
+It returns a Result, which is is a list of Routes that can be read and printed.
 
 Below is a list of all Solvers that have currently been implemented.
 
 ### `BruteForceSolver`
 
 This is the original solving algorithm, from v1.
-It simply tries every possible route, skipping routes that are guaranteed to be worse than a potential other route.
-(This can happen, for example, when the route follows a non-direct path between any two of its zones.
-This guarantees that there is a better route, namely the one that takes the direct path.)
+It simply tries every possible route, skipping routes that are guaranteed to be worse than a potential other route or otherwise unfinishable.
 
 While the original was breadth-first search, this implementation is depth-first.
