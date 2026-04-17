@@ -81,6 +81,10 @@ public class Scenario extends Logging {
         for (Connection connection : turf.connections) {
             Node leftNode = this.getNode(connection.left.toString());
             Node rightNode = this.getNode(connection.right.toString());
+            if (leftNode == rightNode) {
+                // Ignore loop
+                continue;
+            }
             addLinkPair(leftNode, rightNode, connection.distance);
             links += 2;
         }
