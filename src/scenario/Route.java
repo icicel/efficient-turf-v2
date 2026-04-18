@@ -49,6 +49,21 @@ public class Route {
             this.points = previous.points;
         }
     }
+
+    // extend a Route along another Route's path
+    public static Route extend(Route extension, Route previous) {
+        if (extension.previous == null) {
+            throw new IllegalArgumentException("Extension Route has no path");
+        }
+        if (extension.previous.previous == null) {
+            // one-Link Route, end step
+            return new Route(extension.link, previous);
+        }
+        // recursive step
+        return new Route(extension.link, 
+            extend(extension.previous, previous)
+        );
+    }
     
     public boolean hasVisited(Node node) {
         if (this.previous == null) {
