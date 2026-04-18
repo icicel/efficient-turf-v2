@@ -70,4 +70,29 @@ public class Route {
         }
         return this.previous.toString() + " -> " + this.node.name;
     }
+
+    // Only print captured zones (a.k.a. first occurrences of nodes)
+    public String zoneString() {
+        if (this.previous == null) {
+            return this.node.name;
+        }
+        if (this.previous.hasVisited(this.node)) {
+            return this.previous.zoneString();
+        }
+        return this.previous.zoneString() + " -> " + this.node.name;
+    }
+
+    // Print route with stats and with ending node if same as start
+    public String routeString(double speed) {
+        StringBuilder sb = new StringBuilder(this.zoneString());
+        if (this.hasVisited(this.node)) {
+            sb.append(" -> " + this.node.name);
+        }
+        sb.append("\n(");
+        sb.append(this.points).append(" points, ");
+        sb.append(this.zones).append(" zones, ");
+        sb.append((int) this.length).append("m, ");
+        sb.append((int) (this.length / speed)).append("min)");
+        return sb.toString();
+    }
 }
