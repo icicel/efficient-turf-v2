@@ -13,20 +13,24 @@ import scenario.Scenario;
 // A brute force algorithm that tries every possible route, but slightly
 //  optimized by not trying routes that are guaranteed to be invalid
 // While the original was breadth-first, this implementation is depth-first
-public class BruteForceSolver implements Solver {
+public class BruteForceSolver extends Solver {
 
     public Scenario scenario;
     public Map<Integer, AdvancedRoute> finishedRoutes;
     
-    public Result solve(Scenario scenario) {
+    public Result solve(Scenario scenario, Long timeLimit) {
         this.scenario = scenario;
         this.finishedRoutes = new HashMap<>();
-        search(new AdvancedRoute(scenario.start));
+        long end = super.endTime(timeLimit);
+        search(new AdvancedRoute(scenario.start), end);
         return new Result(finishedRoutes.values(), scenario.speed);
     }
 
     // Recursively searches for valid, finished routes
-    private void search(AdvancedRoute base) {
+    private void search(AdvancedRoute base, long endTime) {
+        if (System.currentTimeMillis() > endTime) {
+            return;
+        }
         for (Link link : base.node.out) {
             int error = invalidRouteExtension(base, link);
             if (error != 0) {
@@ -43,7 +47,7 @@ public class BruteForceSolver implements Solver {
                     finishedRoutes.put(next.points, next);
                 }
             }
-            search(next);
+            search(next, endTime);
         }
     }
 

@@ -12,7 +12,7 @@ import scenario.Scenario;
 //  stopped at any time and still give a result
 // For an optimal solution, likely far slower than BruteForceSolver
 // Creates custom Links that ignore intermediate crossings
-public class GreedySolver implements Solver {
+public class GreedySolver extends Solver {
 
     public Scenario scenario;
     public Map<Integer, Route> finishedRoutes;
@@ -20,12 +20,10 @@ public class GreedySolver implements Solver {
     // graph
     private Map<Node, Map<Node, Double>> connections;
 
-    // record time
+    // record points
     private Route bestRoute;
 
-    public long TIME_LIMIT = 60; // seconds
-
-    public Result solve(Scenario scenario) {
+    public Result solve(Scenario scenario, Long timeLimit) {
         this.scenario = scenario;
         this.finishedRoutes = new HashMap<>();
         this.bestRoute = null;
@@ -40,8 +38,7 @@ public class GreedySolver implements Solver {
             this.connections.put(node, neighborConnections);
         }
         // search for a hardcoded amount of time (may rethink this in the future)
-        long now = System.currentTimeMillis();
-        long end = now + this.TIME_LIMIT;
+        long end = super.endTime(timeLimit);
         Route start = new Route(scenario.start);
         search(start, end);
         return new Result(finishedRoutes.values(), scenario.speed);
