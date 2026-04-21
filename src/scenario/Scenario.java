@@ -87,6 +87,17 @@ public class Scenario extends Logging {
                 // Ignore loop
                 continue;
             }
+            if (leftNode.hasLinkTo(rightNode)) {
+                // Update duplicate link if it's shorter than the existing one
+                Link existingLink = leftNode.getLinkTo(rightNode);
+                if (connection.distance < existingLink.distance) {
+                    existingLink.distance = connection.distance;
+                    if (existingLink.reverse != null) {
+                        existingLink.reverse.distance = connection.distance;
+                    }
+                }
+                continue;
+            }
             addLinkPair(leftNode, rightNode, connection.distance);
             links += 2;
         }
