@@ -15,13 +15,9 @@ public class Node {
     public int points;
     public boolean isZone;
 
-    // For hashing, so Nodes can be renamed
-    private String hashName;
-
     // Create a node from a point
     public Node(Point point, String username, boolean isNow) {
         this.name = point.toString();
-        this.hashName = new String(this.name);
         this.in = new HashSet<>();
         this.out = new HashSet<>();
         this.inNodes = new HashSet<>();
@@ -56,6 +52,6 @@ public class Node {
 
     @Override
     public int hashCode() {
-        return this.hashName.hashCode();
+        return this.name.hashCode();
     }
 }
