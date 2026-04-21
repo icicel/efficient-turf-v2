@@ -14,6 +14,7 @@ import util.Logging;
 
 // Represents a combination of a Turf object (Zone and Link data)
 //   and a set of Conditions that specify the problem definition
+// Contains no crossings
 public class Scenario extends Logging {
 
     /* Base Turf/Conditions data */
@@ -28,25 +29,20 @@ public class Scenario extends Logging {
 
     public Set<Node> priority;
 
-    /* Derived date */
+    /* Derived data */
 
     public double distanceLimit;
 
     // node names -> nodes
     private Map<String, Node> nodeName;
 
-    /* Route caches */
-    
-    // The result of Node.fastestRoutes() for each zone
-    public Map<Node, Map<Node, Route>> nodeFastestRoutes;
-    // Filtered version of nodeFastestRoutes, only containing fastest routes
-    //  between two zones with no intermediate zones
-    public Map<Node, Map<Node, Route>> nodeDirectRoutes;
-    // The distance between each node and the end node
-    public Map<Node, Double> nodeEndDistance;
+    // route cache, the result of findFastestRoutes() for each node
+    public Map<Node, Map<Node, Route>> fastestRoutes;
     
     public Scenario(Turf turf, Conditions conditions) {
         log("Scenario: *** Initializing...");
+
+
 
         // Create a Node for each Zone in the Turf
         // Also create a temporary map from Zones to respective Nodes
@@ -62,6 +58,8 @@ public class Scenario extends Logging {
             nodes++;
         }
         log("Scenario: Created " + nodes + " nodes");
+
+
 
         // Fill in other things
         this.start = getNode(conditions.start);
@@ -86,6 +84,8 @@ public class Scenario extends Logging {
             links += 2;
         }
         log("Scenario: Created " + links + " links");
+
+
 
         log("Scenario: Applying conditions...");
         // Apply white/blacklist
@@ -114,10 +114,18 @@ public class Scenario extends Logging {
             }
         }
         // Remove unreachable nodes based on conditions (time limit and so on)
-        updateGraph();
+        removeUnreachableNodes();
 
-        // Remove all crossings
+
+
+        // Remove all crossings (zero-point nodes) and replace with direct links between zones
         log("Scenario: Optimizing...");
+        // Generate routes
+        this.fastestRoutes = new HashMap<>();
+        for (Node node : this.nodes) {
+            Map<Node, Route> fastestRoutes = findFastestRoutes(node);
+            this.fastestRoutes.put(node, fastestRoutes);
+        }
         List<Node> crossingNodes = this.nodes.stream()
             .filter(node -> !node.isZone())
             .toList();
@@ -127,23 +135,43 @@ public class Scenario extends Logging {
         if (crossingNodes.size() > 0) {
             log("Scenario: Removed " + crossingNodes.size() + " crossings");
         }
+
         // All remaining links are now direct links between zones
-        // Add the remaining direct routes as links
+        // Add all routes that don't pass over intermediate zones as links
+        // ("Direct" routes)
         for (Node node : this.nodes) {
-            Map<Node, Route> directRoutes = this.nodeDirectRoutes.get(node);
-            for (Node target : directRoutes.keySet()) {
-                if (node.hasLinkTo(target)) {
+            for (Node target : this.nodes) {
+                if (node == target || node.hasLinkTo(target)) {
                     // This link already exists
                     continue;
                 }
-                Route route = directRoutes.get(target);
-                addLink(node, target, route.distance);
+                Route route = this.fastestRoutes.get(node).get(target);
+                // If route passes through an intermediate zone, it can't be a direct link
+                // Start iterating just after target, go backwards, end before reaching node
+                boolean hasIntermediateZone = false;
+                Route current = route.previous;
+                while (current.previous.previous != null) {
+                    if (current.node.isZone()) {
+                        hasIntermediateZone = true;
+                        break;
+                    }
+                    current = current.previous;
+                }
+                if (!hasIntermediateZone) {
+                    addLink(node, target, route.distance);
+                }
             }
         }
 
-        // Final route cache
+
+
+        // Regenerate routes
         log("Scenario: Caching routes...");
-        updateCaches();
+        this.fastestRoutes = new HashMap<>();
+        for (Node node : this.nodes) {
+            Map<Node, Route> fastestRoutes = findFastestRoutes(node);
+            this.fastestRoutes.put(node, fastestRoutes);
+        }
 
         log("Scenario: *** Initialized with " + this.nodes.size() + " nodes and " + this.links.size() + " links");
     }
@@ -242,16 +270,14 @@ public class Scenario extends Logging {
     /* Graph maintenance */
 
     // Clean graph of unreachable nodes
-    private void updateGraph() {
+    private void removeUnreachableNodes() {
 
-        // Generate initial caches
-        updateCaches();
+        // Create route tree from start and end
+        Map<Node, Route> startRoutes = findFastestRoutes(this.start);
+        Map<Node, Route> endRoutes = findFastestRoutes(this.end);
 
         // Sanity check
-        if (
-            this.nodeFastestRoutes.get(this.start) == null ||
-            this.nodeFastestRoutes.get(this.start).get(this.end) == null
-        ) {
+        if (startRoutes.get(this.end) == null) {
             throw new RuntimeException("Start and end nodes are not connected");
         }
 
@@ -261,8 +287,8 @@ public class Scenario extends Logging {
         int distantZones = 0;
         int unreachableZones = 0;
         for (Node node : nodes) {
-            Route startToNode = this.nodeFastestRoutes.get(this.start).get(node);
-            Route nodeToEnd = this.nodeFastestRoutes.get(node).get(this.end);
+            Route startToNode = startRoutes.get(node);
+            Route nodeToEnd = endRoutes.get(node);
 
             // The route start->node->end isn't possible at all
             if (startToNode == null || nodeToEnd == null) {
@@ -298,28 +324,6 @@ public class Scenario extends Logging {
             log("Scenario: Removed " + unreachableNodes.size() + " unreachable nodes" +
                 " (including " + unreachableZones + " zones)");
         }
-
-        // Generate final caches
-        updateCaches();
-    }
-
-    // Update route caches
-    private void updateCaches() {
-        this.nodeFastestRoutes = new HashMap<>();
-        this.nodeDirectRoutes = new HashMap<>();
-        this.nodeEndDistance = new HashMap<>();
-        for (Node node : this.nodes) {
-            Map<Node, Route> fastestRoutes = findFastestRoutes(node);
-            this.nodeFastestRoutes.put(node, fastestRoutes);
-            if (node.isZone()) {
-                this.nodeDirectRoutes.put(node, getDirectRoutes(fastestRoutes));
-            }
-            if (fastestRoutes.get(this.end) != null) {
-                this.nodeEndDistance.put(node, fastestRoutes.get(this.end).distance);
-            } else {
-                this.nodeEndDistance.put(node, null);
-            }
-        }
     }
 
     // Returns the shortest Route to every other Node
@@ -350,21 +354,6 @@ public class Scenario extends Logging {
             }
         }
         return fastestRoutes;
-    }
-
-    // Assumes that the fastestRoutes is from a zone Node
-    private Map<Node, Route> getDirectRoutes(Map<Node, Route> fastestRoutes) {
-        Map<Node, Route> directRoutes = new HashMap<>();
-        for (Node node : fastestRoutes.keySet()) {
-            if (!node.isZone()) {
-                continue;
-            }
-            Route route = fastestRoutes.get(node);
-            if (route.zones == 2) {
-                directRoutes.put(node, route);
-            }
-        }
-        return directRoutes;
     }
 
     /* Debug */
@@ -430,7 +419,7 @@ public class Scenario extends Logging {
                         System.out.println("Node not found: " + input[2]);
                         continue;
                     }
-                    Route route = this.nodeFastestRoutes.get(node).get(node2);
+                    Route route = this.fastestRoutes.get(node).get(node2);
                     if (route == null) {
                         System.out.println("\tRoute not found");
                         continue;
@@ -439,7 +428,7 @@ public class Scenario extends Logging {
                     break;
                 
                 case "routes":
-                    Map<Node, Route> routes = this.nodeFastestRoutes.get(node);
+                    Map<Node, Route> routes = this.fastestRoutes.get(node);
                     for (Route r : routes.values()) {
                         System.out.println("\t" + r + " (" + r.distance + ")");
                     }

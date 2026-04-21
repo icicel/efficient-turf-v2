@@ -34,7 +34,7 @@ public class GreedySolver implements Solver {
         for (Node node : scenario.nodes) {
             Map<Node, Double> neighborConnections = new HashMap<>();
             for (Node other : scenario.nodes) {
-                Route directRoute = scenario.nodeFastestRoutes.get(node).get(other);
+                Route directRoute = scenario.fastestRoutes.get(node).get(other);
                 neighborConnections.put(other, directRoute.distance);
             }
             this.connections.put(node, neighborConnections);
@@ -66,8 +66,8 @@ public class GreedySolver implements Solver {
             }
             double nextDistance = this.connections.get(current).get(nextNode);
             // Distance limit will be exceeded
-            if (base.distance + nextDistance + this.scenario.nodeEndDistance.get(nextNode) 
-                    > this.scenario.distanceLimit) {
+            Route endRoute = this.scenario.fastestRoutes.get(nextNode).get(this.scenario.end);
+            if (base.distance + nextDistance + endRoute.distance > this.scenario.distanceLimit) {
                 continue;
             }
             // Visiting the last four nodes in another order would've been more efficient
@@ -75,7 +75,7 @@ public class GreedySolver implements Solver {
                 continue;
              }
             // Extend route
-            Route currentToNext = this.scenario.nodeFastestRoutes.get(current).get(nextNode);
+            Route currentToNext = this.scenario.fastestRoutes.get(current).get(nextNode);
             Route next = Route.extend(base, currentToNext);
             if (next.node == this.scenario.end) {
                 finishRoute(next);

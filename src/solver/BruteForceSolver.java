@@ -52,8 +52,8 @@ public class BruteForceSolver implements Solver {
         Node newNode = newLink.neighbor;
 
         // Can't be finished without exceeding the distance limit
-        if (route.distance + newLink.distance + this.scenario.nodeEndDistance.get(newNode) 
-                > this.scenario.distanceLimit) {
+        Route endRoute = this.scenario.fastestRoutes.get(newNode).get(this.scenario.end);
+        if (route.distance + newLink.distance + endRoute.distance > this.scenario.distanceLimit) {
             return 1;
         }
 
@@ -63,7 +63,7 @@ public class BruteForceSolver implements Solver {
         }
 
         // There exists a faster route to this node from the last captured zone
-        if (this.scenario.nodeFastestRoutes.get(route.lastCapture).get(newNode).distance
+        if (this.scenario.fastestRoutes.get(route.lastCapture).get(newNode).distance
                 < route.distanceSinceLastCapture + newLink.distance) {
             return 3;
         }
@@ -79,10 +79,10 @@ public class BruteForceSolver implements Solver {
             Node last2Node = route.previous.node;
             Node last3Node = route.previous.previous.node;
             if (
-                this.scenario.nodeFastestRoutes.get(lastNode).get(newNode).distance +
-                this.scenario.nodeFastestRoutes.get(last3Node).get(last2Node).distance >
-                this.scenario.nodeFastestRoutes.get(last2Node).get(newNode).distance +
-                this.scenario.nodeFastestRoutes.get(last3Node).get(lastNode).distance
+                this.scenario.fastestRoutes.get(lastNode).get(newNode).distance +
+                this.scenario.fastestRoutes.get(last3Node).get(last2Node).distance >
+                this.scenario.fastestRoutes.get(last2Node).get(newNode).distance +
+                this.scenario.fastestRoutes.get(last3Node).get(lastNode).distance
             ) {
                 return 5;
             }
@@ -137,7 +137,7 @@ public class BruteForceSolver implements Solver {
                 }
                 route = new AdvancedRoute(route, nextLink);
             } else {
-                Route fastestRoute = this.scenario.nodeFastestRoutes.get(route.node).get(nextNode);
+                Route fastestRoute = this.scenario.fastestRoutes.get(route.node).get(nextNode);
                 String fastestRouteStringWithoutFirstNode = fastestRoute.toString().split(" ", 2)[1];
                 System.out.println("(" + fastestRouteStringWithoutFirstNode + ")");
 
