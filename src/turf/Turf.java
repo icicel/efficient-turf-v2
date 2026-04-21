@@ -44,6 +44,7 @@ public class Turf extends Logging {
     // Get zones, crossings and connections from the given KML file
     public Turf(Path kmlPath, String zoneLayer, String crossingLayer, String connectionLayer)
     throws IOException, InterruptedException, ParsingException {
+        log("Turf: *** Initializing...");
 
         log("Turf: Reading KML at " + kmlPath + "...");
         KML kml = new KML(kmlPath);
@@ -69,6 +70,7 @@ public class Turf extends Logging {
 
 
         // Init connections
+        log("Turf: Initializing connections...");
         this.connections = new HashSet<>();
         Set<Point> allPoints = new HashSet<>(this.crossings);
         allPoints.addAll(this.zones);
@@ -78,7 +80,8 @@ public class Turf extends Logging {
             Connection connection = new Connection(line, leftPoint, rightPoint);
             connections.add(connection);
         }
-        log("Turf: Found " + connections.size() + " connections");
+
+        log("Turf: *** Initialized with " + crossings.size() + " crossings and " + connections.size() + " connections");
     }
 
     // Get zones from the given KML file
@@ -94,6 +97,7 @@ public class Turf extends Logging {
     // Imply crossings
     public Turf(Path zoneKml, Path networkXml)
     throws IOException, InterruptedException, ParsingException {
+        log("Turf: *** Initializing...");
 
         log("Turf: Reading KML at " + zoneKml + "...");
         KML kml = new KML(zoneKml);
@@ -236,7 +240,8 @@ public class Turf extends Logging {
             }
             mergeOverPivot(point);
         }
-        log("Turf: Implied " + crossings.size() + " crossings over " + connections.size() + " connections");
+
+        log("Turf: *** Initialized with " + crossings.size() + " crossings and " + connections.size() + " connections");
     }
 
     /* Zone points */
@@ -325,7 +330,7 @@ public class Turf extends Logging {
         for (Connection connection : toCheck) {
             checkConnection(connection);
         }
-        log("Turf: Compressed to " + crossings.size() + " crossings and " + connections.size() + " connections");
+        log("Turf: *** Compressed to " + crossings.size() + " crossings and " + connections.size() + " connections");
     }
 
     // Merge two neighboring connections across a pivot crossing
@@ -499,7 +504,7 @@ public class Turf extends Logging {
                 mergeOverPivot(point);
             }
         }
-        log("Turf: Optimized to " + crossings.size() + " crossings and " + connections.size() + " connections");
+        log("Turf: *** Optimized to " + crossings.size() + " crossings and " + connections.size() + " connections");
     }
 
     // Exlusively for Turf.optimize
