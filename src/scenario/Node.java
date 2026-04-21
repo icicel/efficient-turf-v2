@@ -13,6 +13,7 @@ public class Node {
     public Set<Node> inNodes;
     public Set<Node> outNodes;
     public int points;
+    public boolean isZone;
 
     // For hashing, so Nodes can be renamed
     private String hashName;
@@ -27,8 +28,10 @@ public class Node {
         this.outNodes = new HashSet<>();
         if (point.isZone()) {
             this.points = point.zone.getPoints(username, isNow);
+            this.isZone = true;
         } else {
             this.points = 0;
+            this.isZone = false;
         }
     }
 
@@ -44,10 +47,6 @@ public class Node {
 
     public boolean hasLinkTo(Node neighbor) {
         return this.outNodes.contains(neighbor);
-    }
-
-    public boolean isZone() {
-        return this.points > 0;
     }
 
     @Override

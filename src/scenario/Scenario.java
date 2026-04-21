@@ -73,6 +73,9 @@ public class Scenario extends Logging {
         if (this.end == null) {
             throw new RuntimeException("End node not found: " + conditions.end);
         }
+        // Override
+        this.start.isZone = true;
+        this.end.isZone = true;
 
         // Create a Link for each Connection
         this.links = new HashSet<>();
@@ -110,10 +113,10 @@ public class Scenario extends Logging {
         // Apply greylist
         if (conditions.greylist != null) {
             for (Node node : getNodes(conditions.greylist)) {
-                if (!node.isZone()) {
+                if (!node.isZone) {
                     continue;
                 }
-                node.points = 0;
+                node.isZone = false;
                 log("Scenario: Cleared greylisted zone " + node);
             }
         }
@@ -131,7 +134,7 @@ public class Scenario extends Logging {
             this.fastestRoutes.put(node, fastestRoutes);
         }
         List<Node> crossingNodes = this.nodes.stream()
-            .filter(node -> !node.isZone())
+            .filter(node -> !node.isZone)
             .toList();
         for (Node node : crossingNodes) {
             removeNode(node);
@@ -155,7 +158,7 @@ public class Scenario extends Logging {
                 boolean hasIntermediateZone = false;
                 Route current = route.previous;
                 while (current.previous.previous != null) {
-                    if (current.node.isZone()) {
+                    if (current.node.isZone) {
                         hasIntermediateZone = true;
                         break;
                     }
@@ -297,7 +300,7 @@ public class Scenario extends Logging {
             // The route start->node->end isn't possible at all
             if (startToNode == null || nodeToEnd == null) {
                 unreachableNodes.add(node);
-                if (node.isZone()) {
+                if (node.isZone) {
                     unreachableZones++;
                 }
                 continue;
@@ -306,7 +309,7 @@ public class Scenario extends Logging {
             // The route start->node->end isn't possible within time limit
             if (startToNode.distance + nodeToEnd.distance > this.distanceLimit) {
                 distantNodes.add(node);
-                if (node.isZone()) {
+                if (node.isZone) {
                     distantZones++;
                 }
                 continue;

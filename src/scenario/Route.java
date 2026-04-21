@@ -105,10 +105,10 @@ public class Route {
         return this.previous.zoneString() + " -> " + this.node.name;
     }
 
-    // Print route with stats and with ending node if same as start
+    // Print route with stats and with ending node if skipped in the zoneString
     public String routeString(double speed) {
         StringBuilder sb = new StringBuilder(this.zoneString());
-        if (this.hasVisited(this.node)) {
+        if (this.previous != null && this.previous.hasVisited(this.node)) {
             sb.append(" -> " + this.node.name);
         }
         sb.append("\n(");
