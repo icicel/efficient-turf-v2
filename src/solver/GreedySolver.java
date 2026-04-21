@@ -35,7 +35,7 @@ public class GreedySolver implements Solver {
             Map<Node, Double> neighborConnections = new HashMap<>();
             for (Node other : scenario.nodes) {
                 Route directRoute = scenario.nodeFastestRoutes.get(node).get(other);
-                neighborConnections.put(other, directRoute.length);
+                neighborConnections.put(other, directRoute.distance);
             }
             this.connections.put(node, neighborConnections);
         }
@@ -66,7 +66,7 @@ public class GreedySolver implements Solver {
             }
             double nextDistance = this.connections.get(current).get(nextNode);
             // Distance limit will be exceeded
-            if (base.length + nextDistance + this.scenario.nodeEndDistance.get(nextNode) 
+            if (base.distance + nextDistance + this.scenario.nodeEndDistance.get(nextNode) 
                     > this.scenario.distanceLimit) {
                 continue;
             }
@@ -76,7 +76,7 @@ public class GreedySolver implements Solver {
              }
             // Extend route
             Route currentToNext = this.scenario.nodeFastestRoutes.get(current).get(nextNode);
-            Route next = Route.extend(currentToNext, base);
+            Route next = Route.extend(base, currentToNext);
             if (next.node == this.scenario.end) {
                 finishRoute(next);
             }
@@ -89,7 +89,7 @@ public class GreedySolver implements Solver {
         // If there is already a route with this many points, keep the shorter one
         if (finishedRoutes.containsKey(next.points)) {
             Route existing = finishedRoutes.get(next.points);
-            if (next.length > existing.length) {
+            if (next.distance > existing.distance) {
                 return;
             }
         }
@@ -97,7 +97,7 @@ public class GreedySolver implements Solver {
         // Print if best so far
         if (this.bestRoute == null ||
             next.points > this.bestRoute.points ||
-            (next.points == this.bestRoute.points && next.length < this.bestRoute.length)
+            (next.points == this.bestRoute.points && next.distance < this.bestRoute.distance)
         ) {
             this.bestRoute = next;
             System.out.println(next.routeString(scenario.speed));

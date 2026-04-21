@@ -137,7 +137,7 @@ public class Scenario extends Logging {
                     continue;
                 }
                 Route route = directRoutes.get(target);
-                addLink(node, target, route.length);
+                addLink(node, target, route.distance);
             }
         }
 
@@ -274,7 +274,7 @@ public class Scenario extends Logging {
             }
 
             // The route start->node->end isn't possible within time limit
-            if (startToNode.length + nodeToEnd.length > this.distanceLimit) {
+            if (startToNode.distance + nodeToEnd.distance > this.distanceLimit) {
                 distantNodes.add(node);
                 if (node.isZone()) {
                     distantZones++;
@@ -315,7 +315,7 @@ public class Scenario extends Logging {
                 this.nodeDirectRoutes.put(node, getDirectRoutes(fastestRoutes));
             }
             if (fastestRoutes.get(this.end) != null) {
-                this.nodeEndDistance.put(node, fastestRoutes.get(this.end).length);
+                this.nodeEndDistance.put(node, fastestRoutes.get(this.end).distance);
             } else {
                 this.nodeEndDistance.put(node, null);
             }
@@ -329,7 +329,7 @@ public class Scenario extends Logging {
     public Map<Node, Route> findFastestRoutes(Node start) {
         Map<Node, Route> fastestRoutes = new HashMap<>();
         PriorityQueue<Route> queue = new PriorityQueue<>(
-            (a, b) -> Double.compare(a.length, b.length)
+            (a, b) -> Double.compare(a.distance, b.distance)
         );
         Set<Node> visited = new HashSet<>();
         queue.add(new Route(start));
@@ -346,7 +346,7 @@ public class Scenario extends Logging {
             // Extend the Route with all outgoing Links from the neighbor
             //  and add them to the queue
             for (Link link : neighbor.out) {
-                queue.add(new Route(link, route));
+                queue.add(new Route(route, link));
             }
         }
         return fastestRoutes;
@@ -435,13 +435,13 @@ public class Scenario extends Logging {
                         System.out.println("\tRoute not found");
                         continue;
                     }
-                    System.out.println("\t" + route + " (" + route.length + ")");
+                    System.out.println("\t" + route + " (" + route.distance + ")");
                     break;
                 
                 case "routes":
                     Map<Node, Route> routes = this.nodeFastestRoutes.get(node);
                     for (Route r : routes.values()) {
-                        System.out.println("\t" + r + " (" + r.length + ")");
+                        System.out.println("\t" + r + " (" + r.distance + ")");
                     }
                     break;
                 
