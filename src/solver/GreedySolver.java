@@ -23,8 +23,8 @@ public class GreedySolver implements Solver {
     // record time
     private Route bestRoute;
 
-    private final long TIME_LIMIT = 120_000; // ms
-    
+    public long TIME_LIMIT = 60; // seconds
+
     public Result solve(Scenario scenario) {
         this.scenario = scenario;
         this.finishedRoutes = new HashMap<>();
@@ -53,13 +53,14 @@ public class GreedySolver implements Solver {
             return;
         }
         Node current = base.node;
-        // Get the 10 closest nodes from current, only considering unvisited nodes
-        List<Node> sortedNodes = scenario.nodes.stream()
+        // Get the 6 closest nodes from current, only considering unvisited nodes
+        // (6 is arbitrary. may rethink)
+        List<Node> nearestNodes = scenario.nodes.stream()
             .filter(node -> !base.hasVisited(node) || node == scenario.end)
             .sorted(Comparator.comparingDouble(this.connections.get(current)::get))
-            .limit(10)
+            .limit(6)
             .toList();
-        for (Node nextNode : sortedNodes) {
+        for (Node nextNode : nearestNodes) {
             if (nextNode == current) {
                 continue;
             }
