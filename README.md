@@ -110,18 +110,16 @@ This means we can skip reimporting map data that has already been imported.
 
 Applying a Conditions object onto a Turf object, a Scenario is created.
 This represents the complete problem that needs solving, and is the "final simplification" of the graph.
+As such, it does not represent crossings at all (unless they are the start/end), only zones.
 
 Scenarios use **Node** and **Link** objects to store map data instead of Points and Connections.
 Links are one-way, so a Connection turns into two Links.
 
-Here, crossings are defined as Nodes with a point value of zero.
-This means that actual zones are counted as crossings if they give zero points (that is, if you own them and the revisit timer hasn't passed yet).
-
 ## Solvers
 
 A Scenario can be solved using any implementation of Solver.
-Simply call `Solver.solve` and pass the Scenario as the argument.
-It returns a Result, which is is a list of Routes that can be read and printed.
+Simply call `Solver.solve` and pass the Scenario as the argument along with an optional time limit.
+This returns a Result, which is is a list of Routes that can be read and printed.
 
 Below is a list of all Solvers that have currently been implemented.
 
@@ -131,3 +129,8 @@ This is the original solving algorithm, from v1.
 It simply tries every possible route, skipping routes that are guaranteed to be worse than a potential other route or otherwise unfinishable.
 
 While the original was breadth-first search, this implementation is depth-first.
+
+### `GreedySolver`
+
+A variant of BruteForceSolver that attempts to "direct" its search towards the nearest zones, in order to find the best route quicker.
+Whenever a new best route is found, it is printed to the output.
