@@ -1,8 +1,5 @@
 package scenario;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
-import java.util.PriorityQueue;
 import java.util.Set;
 import turf.Point;
 
@@ -47,36 +44,6 @@ public class Node {
 
     public boolean hasLinkTo(Node neighbor) {
         return this.outNodes.contains(neighbor);
-    }
-
-    // Returns the shortest Route to every other zone
-    // This is done by keeping a priority queue of all Nodes neighboring
-    //  already visited Nodes, (in the form of Routes) and extending them
-    //  when visiting a new Node (AKA Dijkstra's)
-    public Map<Node, Route> findFastestRoutes() {
-        Map<Node, Route> fastestRoutes = new HashMap<>();
-        PriorityQueue<Route> queue = new PriorityQueue<>(
-            (a, b) -> Double.compare(a.length, b.length)
-        );
-        Set<Node> visited = new HashSet<>();
-        queue.add(new Route(this));
-        while (!queue.isEmpty()) {
-            // Get the shortest Route from the queue
-            Route route = queue.remove();
-            Node neighbor = route.node;
-            if (visited.contains(neighbor)) {
-                continue;
-            }
-            visited.add(neighbor);
-            fastestRoutes.put(neighbor, route);
-
-            // Extend the Route with all outgoing Links from the neighbor
-            //  and add them to the queue
-            for (Link link : neighbor.out) {
-                queue.add(new Route(link, route));
-            }
-        }
-        return fastestRoutes;
     }
 
     public boolean isZone() {

@@ -1,4 +1,6 @@
 package scenario;
+import java.util.ArrayList;
+import java.util.List;
 
 // A linked list (one-way graph?) of Nodes connected by Links
 // Represents a path between two Nodes in a Scenario
@@ -10,7 +12,7 @@ public class Route {
     public Link link; // the Link that connects this Route's node to the previous Route's node
     public Route previous;
 
-    public double length;
+    public double distance;
     public int nodes;
     public int zones;
     public int points;
@@ -21,33 +23,43 @@ public class Route {
         this.node = root;
         this.link = null;
         this.previous = null;
-        this.length = 0.0;
+        this.distance = 0.0;
         this.nodes = 1;
+        this.zones = 1;
         this.points = root.points;
-        if (this.node.isZone()) {
-            this.zones = 1;
-        } else {
-            this.zones = 0;
-        }
     }
 
     // extend a Route with a Link
-    public Route(Link extension, Route previous) {
-        if (extension.parent != previous.node) {
+    public Route(Route base, Link extension) {
+        if (extension.parent != base.node) {
             throw new IllegalArgumentException("Link does not extend Route");
         }
         this.node = extension.neighbor;
         this.link = extension;
-        this.previous = previous;
-        this.length = previous.length + extension.distance;
-        this.nodes = previous.nodes + 1;
-        if (this.node.isZone() && !previous.hasVisited(node)) {
-            this.zones = previous.zones + 1;
-            this.points = previous.points + this.node.points;
+        this.previous = base;
+        this.distance = base.distance + extension.distance;
+        this.nodes = base.nodes + 1;
+        if (!base.hasVisited(node)) {
+            this.zones = base.zones + 1;
+            this.points = base.points + this.node.points;
         } else {
-            this.zones = previous.zones;
-            this.points = previous.points;
+            this.zones = base.zones;
+            this.points = base.points;
         }
+    }
+
+    // extend a Route along another Route's path
+    public static Route extend(Route base, Route extension) {
+        if (extension.previous == null) {
+            throw new IllegalArgumentException("Extension Route has no path");
+        }
+        if (extension.previous.previous == null) {
+            // one-Link Route, end step
+            return new Route(base, extension.link);
+        }
+        // recursive step
+        Route previous = extend(base, extension.previous);
+        return new Route(previous, extension.link);
     }
     
     public boolean hasVisited(Node node) {
@@ -63,11 +75,47 @@ public class Route {
         return this.link == link || this.previous.hasVisited(link);
     }
 
+    public List<Node> getNodes() {
+        List<Node> nodes;
+        if (this.previous == null) {
+            nodes = new ArrayList<>();
+        } else {
+            nodes = this.previous.getNodes();
+        }
+        nodes.add(this.node);
+        return nodes;
+    }
+
     @Override
     public String toString() {
         if (this.previous == null) {
             return this.node.name;
         }
         return this.previous.toString() + " -> " + this.node.name;
+    }
+
+    // Only print captured zones (a.k.a. first occurrences of nodes)
+    public String zoneString() {
+        if (this.previous == null) {
+            return this.node.name;
+        }
+        if (this.previous.hasVisited(this.node)) {
+            return this.previous.zoneString();
+        }
+        return this.previous.zoneString() + " -> " + this.node.name;
+    }
+
+    // Print route with stats and with ending node if same as start
+    public String routeString(double speed) {
+        StringBuilder sb = new StringBuilder(this.zoneString());
+        if (this.hasVisited(this.node)) {
+            sb.append(" -> " + this.node.name);
+        }
+        sb.append("\n(");
+        sb.append(this.points).append(" points, ");
+        sb.append(this.zones).append(" zones, ");
+        sb.append((int) this.distance).append("m, ");
+        sb.append((int) (this.distance / speed)).append("min)");
+        return sb.toString();
     }
 }

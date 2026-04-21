@@ -13,37 +13,41 @@ import scenario.Scenario;
 // A brute force algorithm that tries every possible route, but slightly
 //  optimized by not trying routes that are guaranteed to be invalid
 // While the original was breadth-first, this implementation is depth-first
-public class BruteForceSolver implements Solver {
+public class BruteForceSolver extends Solver {
 
     public Scenario scenario;
     public Map<Integer, AdvancedRoute> finishedRoutes;
     
-    public Result solve(Scenario scenario) {
+    public Result solve(Scenario scenario, Long timeLimit) {
         this.scenario = scenario;
         this.finishedRoutes = new HashMap<>();
-        search(new AdvancedRoute(scenario.start));
+        long end = super.endTime(timeLimit);
+        search(new AdvancedRoute(scenario.start), end);
         return new Result(finishedRoutes.values(), scenario.speed);
     }
 
     // Recursively searches for valid, finished routes
-    private void search(AdvancedRoute base) {
+    private void search(AdvancedRoute base, long endTime) {
+        if (System.currentTimeMillis() > endTime) {
+            return;
+        }
         for (Link link : base.node.out) {
             int error = invalidRouteExtension(base, link);
             if (error != 0) {
                 continue;
             }
-            AdvancedRoute next = new AdvancedRoute(link, base);
+            AdvancedRoute next = new AdvancedRoute(base, link);
             if (next.node == this.scenario.end) {
                 if (finishedRoutes.containsKey(next.points)) {
                     AdvancedRoute existing = finishedRoutes.get(next.points);
-                    if (next.length < existing.length) {
+                    if (next.distance < existing.distance) {
                         finishedRoutes.put(next.points, next);
                     }
                 } else {
                     finishedRoutes.put(next.points, next);
                 }
             }
-            search(next);
+            search(next, endTime);
         }
     }
 
@@ -52,8 +56,8 @@ public class BruteForceSolver implements Solver {
         Node newNode = newLink.neighbor;
 
         // Can't be finished without exceeding the distance limit
-        if (route.length + newLink.distance + this.scenario.nodeEndDistance.get(newNode) 
-                > this.scenario.distanceLimit) {
+        Route endRoute = this.scenario.fastestRoutes.get(newNode).get(this.scenario.end);
+        if (route.distance + newLink.distance + endRoute.distance > this.scenario.distanceLimit) {
             return 1;
         }
 
@@ -63,7 +67,7 @@ public class BruteForceSolver implements Solver {
         }
 
         // There exists a faster route to this node from the last captured zone
-        if (this.scenario.nodeFastestRoutes.get(route.lastCapture).get(newNode).length
+        if (this.scenario.fastestRoutes.get(route.lastCapture).get(newNode).distance
                 < route.distanceSinceLastCapture + newLink.distance) {
             return 3;
         }
@@ -79,10 +83,10 @@ public class BruteForceSolver implements Solver {
             Node last2Node = route.previous.node;
             Node last3Node = route.previous.previous.node;
             if (
-                this.scenario.nodeFastestRoutes.get(lastNode).get(newNode).length +
-                this.scenario.nodeFastestRoutes.get(last3Node).get(last2Node).length >
-                this.scenario.nodeFastestRoutes.get(last2Node).get(newNode).length +
-                this.scenario.nodeFastestRoutes.get(last3Node).get(lastNode).length
+                this.scenario.fastestRoutes.get(lastNode).get(newNode).distance +
+                this.scenario.fastestRoutes.get(last3Node).get(last2Node).distance >
+                this.scenario.fastestRoutes.get(last2Node).get(newNode).distance +
+                this.scenario.fastestRoutes.get(last3Node).get(lastNode).distance
             ) {
                 return 5;
             }
@@ -103,14 +107,14 @@ public class BruteForceSolver implements Solver {
             this.distanceSinceLastCapture = 0.0;
         }
 
-        public AdvancedRoute(Link extension, AdvancedRoute previous) {
-            super(extension, previous);
-            if (this.node.isZone() && !previous.hasVisited(node)) {
+        public AdvancedRoute(AdvancedRoute base, Link extension) {
+            super(base, extension);
+            if (!base.hasVisited(node)) {
                 this.lastCapture = this.node;
                 this.distanceSinceLastCapture = 0.0;
             } else {
-                this.lastCapture = previous.lastCapture;
-                this.distanceSinceLastCapture = previous.distanceSinceLastCapture + extension.distance;
+                this.lastCapture = base.lastCapture;
+                this.distanceSinceLastCapture = base.distanceSinceLastCapture + extension.distance;
             }
         }
     }
@@ -135,9 +139,9 @@ public class BruteForceSolver implements Solver {
                     System.out.println("Invalid move: error " + error);
                     continue;
                 }
-                route = new AdvancedRoute(nextLink, route);
+                route = new AdvancedRoute(route, nextLink);
             } else {
-                Route fastestRoute = this.scenario.nodeFastestRoutes.get(route.node).get(nextNode);
+                Route fastestRoute = this.scenario.fastestRoutes.get(route.node).get(nextNode);
                 String fastestRouteStringWithoutFirstNode = fastestRoute.toString().split(" ", 2)[1];
                 System.out.println("(" + fastestRouteStringWithoutFirstNode + ")");
 
@@ -156,7 +160,7 @@ public class BruteForceSolver implements Solver {
                         aborted = true;
                         break;
                     }
-                    route = new AdvancedRoute(nextLink, route);
+                    route = new AdvancedRoute(route, nextLink);
                 }
                 if (aborted) {
                     route = originalRoute;
