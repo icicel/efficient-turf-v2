@@ -9,7 +9,8 @@ public class Link {
     public Node parent;
     public Node neighbor;
 
-    // The connection from neighbor to parent (if it exists)
+    // The connection from neighbor to parent
+    // Can usually be assumed to exist
     public Link reverse;
 
     // Initialization

@@ -92,9 +92,7 @@ public class Scenario extends Logging {
                 Link existingLink = leftNode.getLinkTo(rightNode);
                 if (connection.distance < existingLink.distance) {
                     existingLink.distance = connection.distance;
-                    if (existingLink.reverse != null) {
-                        existingLink.reverse.distance = connection.distance;
-                    }
+                    existingLink.reverse.distance = connection.distance;
                 }
                 continue;
             }
@@ -176,7 +174,7 @@ public class Scenario extends Logging {
                     current = current.previous;
                 }
                 if (!hasIntermediateZone) {
-                    addLink(node, target, route.distance);
+                    addLinkPair(node, target, route.distance);
                 }
             }
         }
@@ -228,19 +226,13 @@ public class Scenario extends Logging {
         this.nodeName.put(node.name, node);
     }
 
-    // Create and return a (one-way) link between two nodes
-    // Fails if there already is one between the nodes
-    private Link addLink(Node from, Node to, double distance) {
-        Link link = new Link(distance, from, to);
-        this.links.add(link);
-        return link;
-    }
-
     // Add two links between two nodes, one in each direction
     // Fails if there already is one in either direction
     private void addLinkPair(Node node1, Node node2, double distance) {
-        addLink(node1, node2, distance);
-        addLink(node2, node1, distance);
+        Link link1 = new Link(distance, node1, node2);
+        Link link2 = new Link(distance, node2, node1);
+        this.links.add(link1);
+        this.links.add(link2);
     }
 
     // Completely remove all references to a Node, includes removing all Links to/from the Node
@@ -261,8 +253,8 @@ public class Scenario extends Logging {
         }
     }
 
-    // Completely remove all references to a Link (but not its reverse)
-    private void removeLink(Link link) {
+    // Completely remove all references to a Link and its reverse
+    private void removeLinkPair(Link link) {
         if (link == null) {
             throw new RuntimeException("Tried to remove nonexistant link");
         }
@@ -271,18 +263,11 @@ public class Scenario extends Logging {
         link.parent.outNodes.remove(link.neighbor);
         link.neighbor.in.remove(link);
         link.neighbor.inNodes.remove(link.parent);
-        if (link.reverse != null) {
-            link.reverse.reverse = null;
-        }
-    }
-
-    // Completely remove all references to a Link and its reverse (if it exists)
-    // DOESN'T THROW ERROR if the reverse doesn't exist
-    private void removeLinkPair(Link link) {
-        removeLink(link);
-        if (link.reverse != null) {
-            removeLink(link.reverse);
-        }
+        this.links.remove(link.reverse);
+        link.reverse.parent.out.remove(link.reverse);
+        link.reverse.parent.outNodes.remove(link.reverse.neighbor);
+        link.reverse.neighbor.in.remove(link.reverse);
+        link.reverse.neighbor.inNodes.remove(link.reverse.parent);
     }
 
     /* Graph maintenance */
