@@ -509,7 +509,7 @@ public class Turf extends Logging {
 
     // Exlusively for Turf.optimize
     // Turf equivalent of scenario.Route - a linked list with extra steps
-    private class TurfRoute {
+    public class TurfRoute {
         public Point point;
         public Connection connectionFromPrevious;
         public TurfRoute previous;

@@ -2,8 +2,17 @@ package turf;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.PriorityQueue;
+import java.util.Set;
 import java.util.function.Function;
 import map.Coords;
+import scenario.Node;
+import scenario.Route;
+import turf.Turf.TurfRoute;
 
 public class Export {
 
@@ -116,5 +125,116 @@ public class Export {
         }
         Path subfilePath = path.resolveSibling(filename + "_" + fileId + extension);
         Files.writeString(subfilePath, content);
+    }
+
+    /* Export Routes using Turfs */
+
+    public static void exportRoute(Route route, Path path, Turf turf) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        // Get the Points for the Route's Nodes
+        List<Point> points = new ArrayList<>();
+        Set<Point> allPoints = new HashSet<>(turf.zones);
+        allPoints.addAll(turf.crossings);
+        for (Node node : route.getNodes()) {
+            Point point = allPoints.stream()
+                .filter(p -> p.toString().equals(node.name))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("No point found for node " + node.name));
+            points.add(point);
+        }
+        // Get the Connections for every leg (Link) of the Route
+        // Note a Link can correspond to multiple Connections, thus the double list
+        List<List<Connection>> connectionRoute = new ArrayList<>();
+        // every pair of points
+        for (int i = 0; i < points.size() - 1; i++) {
+            Point start = points.get(i);
+            Point end = points.get(i + 1);
+            connectionRoute.add(pathfind(turf, start, end));
+        }
+        connectionRoute.add(new ArrayList<>()); // No connections for last point
+        // Export!
+        // Iterate over both lists in parallel
+        sb.append("WKT,name").append("\n");
+        for (int i = 0; i < route.getNodes().size(); i++) {
+            Point point = points.get(i);
+            List<Connection> connections = connectionRoute.get(i);
+            // Point
+            sb.append("\"POINT (");
+            sb.append(point.coords.lon).append(" ").append(point.coords.lat);
+            sb.append(")\",");
+            sb.append(point).append("\n");
+            if (connections.isEmpty()) {
+                continue;
+            }
+            // Connections
+            Point current = point;
+            sb.append("\"LINESTRING (");
+            for (Connection connection : connections) {
+                // get the correct view of the connection (left->right or right->left)
+                List<Coords> middle = connection.middleFromPOVOf(current);
+                sb.append(current.coords.lon).append(" ").append(current.coords.lat).append(", ");
+                for (Coords middleCoords : middle) {
+                    sb.append(middleCoords.lon).append(" ").append(middleCoords.lat).append(", ");
+                }
+                current = connection.other(current);
+            }
+            sb.append(current.coords.lon).append(" ").append(current.coords.lat);
+            sb.append(")\",");
+            sb.append(point).append("-").append(current).append("\n");
+        }
+        Files.writeString(path, sb.toString());
+    }
+
+    // Prints a Google Maps URL with the route's points as waypoints
+    public static void exportRouteAsUrl(Route route, Turf turf) {
+        StringBuilder sb = new StringBuilder("https://www.google.com/maps/dir/");
+        Set<Point> allPoints = new HashSet<>(turf.zones);
+        allPoints.addAll(turf.crossings);
+        for (Node node : route.getNodes()) {
+            Point point = allPoints.stream()
+                .filter(p -> p.toString().equals(node.name))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("No point found for node " + node.name));
+            sb.append(point.coords.lat).append(",");
+            sb.append(point.coords.lon).append("/");
+        }
+        System.out.println(sb.toString());
+    }
+
+    /* Inconspicuous pathfinder */
+
+    // Heavily copied from Turf.optimize
+    public static List<Connection> pathfind(Turf turf, Point start, Point end) {
+        // Prioritize paths by its last point's distance to start
+        PriorityQueue<TurfRoute> queue = new PriorityQueue<>(
+            Comparator.comparingDouble(route -> route.length)
+        );
+        Set<Point> visited = new HashSet<>();
+        // Start with a route at the end point, and build backwards towards the start
+        queue.add(turf.new TurfRoute(end));
+        while (!queue.isEmpty()) {
+            TurfRoute route = queue.remove();
+            Point current = route.point;
+            if (visited.contains(current)) {
+                continue;
+            }
+            visited.add(current);
+            // Finish route if we reach start
+            // Build list of connections in reverse (this is why we start from end)
+            if (current.equals(start)) {
+                List<Connection> connections = new ArrayList<>();
+                while (route.previous != null) {
+                    connections.add( route.connectionFromPrevious);
+                    route = route.previous;
+                }
+                return connections;
+            }
+            // Extend the route with all connections from the current point
+            for (Connection extension : current.parents) {
+                TurfRoute nextRoute = turf.new TurfRoute(extension, route);
+                queue.add(nextRoute);
+            }
+        }
+        throw new RuntimeException("No path found from " + start + " to " + end);
     }
 }
