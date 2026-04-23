@@ -274,6 +274,10 @@ public class Turf extends Logging {
             .build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
+        if (response.statusCode() != 200) {
+            throw new RuntimeException("Turf API request failed with status code " + response.statusCode());
+        }
+
         JSONArray resultJson = new JSONArray(response.body());
 
         // Check that the response contains the same number of zones as the request
