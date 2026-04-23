@@ -23,6 +23,10 @@ public class GreedySolver extends Solver {
     // record points
     private Route bestRoute;
 
+    // for tweaking
+    private final int SEARCH_WIDTH = 6;
+    private final long MIN_LIFESPAN = 1000; // ms
+
     public Result solve(Scenario scenario, Long timeLimit) {
         this.scenario = scenario;
         this.finishedRoutes = new HashMap<>();
@@ -38,25 +42,46 @@ public class GreedySolver extends Solver {
             this.connections.put(node, neighborConnections);
         }
         // search for a hardcoded amount of time (may rethink this in the future)
-        long end = super.endTime(timeLimit);
+        long end;
+        if (timeLimit == null) {
+            end = Long.MAX_VALUE;
+        } else {
+            end = System.currentTimeMillis() + timeLimit;
+        }
         Route start = new Route(scenario.start);
         search(start, end);
         return new Result(finishedRoutes.values(), scenario.speed);
     }
 
     // Recursively searches for valid, finished routes
+    // Divides its lifespan equally among its branches, unless that goes below
+    //   the minimum lifespan, in which case it will simply run until endTime
+    // Will not try to run if endTime has passed
     private void search(Route base, long endTime) {
         if (System.currentTimeMillis() > endTime) {
             return;
         }
         Node current = base.node;
-        // Get the 6 closest nodes from current, only considering unvisited nodes
-        // (6 is arbitrary. may rethink)
+        // Get the closest nodes from current, only considering unvisited nodes
         List<Node> nearestNodes = scenario.nodes.stream()
             .filter(node -> !base.hasVisited(node) || node == scenario.end)
             .sorted(Comparator.comparingDouble(this.connections.get(current)::get))
-            .limit(6)
             .toList();
+        // Get lifespans/endtimes for each branch
+        int branches = SEARCH_WIDTH;
+        long now = System.currentTimeMillis();
+        long lifespan = endTime - now;
+        long branchLifespan;
+        long nextBranchEnd;
+        if (lifespan >= MIN_LIFESPAN) {
+            branchLifespan = lifespan / branches;
+            long branchLifespanRemainder = lifespan % branches; // gotta account for all time
+            nextBranchEnd = now + branchLifespan + branchLifespanRemainder;
+        } else {
+            // Ignore branching
+            branchLifespan = 0;
+            nextBranchEnd = endTime;
+        }
         for (Node nextNode : nearestNodes) {
             if (nextNode == current) {
                 continue;
@@ -78,7 +103,8 @@ public class GreedySolver extends Solver {
                 finishRoute(next);
             }
             // Recurse
-            search(next, endTime);
+            search(next, nextBranchEnd);
+            nextBranchEnd += branchLifespan;
         }
     }
 
