@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Set;
@@ -127,91 +128,102 @@ public class Export {
         Files.writeString(subfilePath, content);
     }
 
-    /* Export Routes using Turfs */
+    /* Export Routes using their base Turfs */
 
-    public static void exportRoute(Route route, Path path, Turf turf) throws IOException {
+    public static void exportRouteAsCsv(Route route, Path path, Turf turf) throws IOException {
+        List<Point> points = getPoints(route, turf);
         StringBuilder sb = new StringBuilder();
-        // Get the Points for the Route's Nodes
-        List<Point> points = new ArrayList<>();
-        Set<Point> allPoints = new HashSet<>(turf.zones);
-        allPoints.addAll(turf.crossings);
-        for (Node node : route.getNodes()) {
-            Point point = allPoints.stream()
-                .filter(p -> p.toString().equals(node.name))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("No point found for node " + node.name));
-            points.add(point);
-        }
-        // Get the Connections for every leg (Link) of the Route
-        // Note a Link can correspond to multiple Connections, thus the double list
-        List<List<Connection>> connectionRoute = new ArrayList<>();
-        // every pair of points
+        sb.append("WKT,name").append("\n");
+        // Iterate over all nodes except the last one
         for (int i = 0; i < points.size() - 1; i++) {
             Point start = points.get(i);
             Point end = points.get(i + 1);
-            connectionRoute.add(pathfind(turf, start, end));
-        }
-        connectionRoute.add(new ArrayList<>()); // No connections for last point
-        // Export!
-        // Iterate over both lists in parallel
-        sb.append("WKT,name").append("\n");
-        for (int i = 0; i < route.getNodes().size(); i++) {
-            Point point = points.get(i);
-            List<Connection> connections = connectionRoute.get(i);
+            // Construct a backwards turfRoute to drain it in the correct order
+            TurfRoute turfRoute = pathfind(turf, end, start);
+            List<Connection> connections = new LinkedList<>();
+            while (turfRoute.previous != null) {
+                connections.add(turfRoute.connectionFromPrevious);
+                turfRoute = turfRoute.previous;
+            }
             // Point
             sb.append("\"POINT (");
-            sb.append(point.coords.lon).append(" ").append(point.coords.lat);
+            sb.append(start.coords.lon).append(" ").append(start.coords.lat);
             sb.append(")\",");
-            sb.append(point).append("\n");
-            if (connections.isEmpty()) {
-                continue;
-            }
+            sb.append(start).append("\n");
             // Connections
-            Point current = point;
+            Point current = start;
             sb.append("\"LINESTRING (");
             for (Connection connection : connections) {
                 // get the correct view of the connection (left->right or right->left)
-                List<Coords> middle = connection.middleFromPOVOf(current);
                 sb.append(current.coords.lon).append(" ").append(current.coords.lat).append(", ");
-                for (Coords middleCoords : middle) {
+                for (Coords middleCoords : connection.middleFromPOVOf(current)) {
                     sb.append(middleCoords.lon).append(" ").append(middleCoords.lat).append(", ");
                 }
                 current = connection.other(current);
             }
             sb.append(current.coords.lon).append(" ").append(current.coords.lat);
             sb.append(")\",");
-            sb.append(point).append("-").append(current).append("\n");
+            sb.append(start).append("-").append(end).append("\n");
         }
+        // Last point
+        Point last = points.get(points.size() - 1);
+        sb.append("\"POINT (");
+        sb.append(last.coords.lon).append(" ").append(last.coords.lat);
+        sb.append(")\",");
+        sb.append(last).append("\n");
+        Files.writeString(path, sb.toString());
+    }
+
+    // For use in turf.urbangeeks.org
+    public static void exportRouteAsGpx(Route route, Path path, Turf turf) throws IOException {
+        List<Point> points = getPoints(route, turf);
+        StringBuilder sb = new StringBuilder();
+        sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+        sb.append("<gpx version=\"1.1\" xmlns=\"http://www.topografix.com/GPX/1/1\">\n");
+        for (Point point : points) {
+            sb.append("<wpt lat=\"").append(point.coords.lat).append("\" lon=\"").append(point.coords.lon).append("\">\n");
+            sb.append("<name>").append(point).append("</name>\n");
+            sb.append("</wpt>\n");
+        }
+        sb.append("</gpx>\n");
         Files.writeString(path, sb.toString());
     }
 
     // Prints a Google Maps URL with the route's points as waypoints
     public static void exportRouteAsUrl(Route route, Turf turf) {
+        List<Point> points = getPoints(route, turf);
         StringBuilder sb = new StringBuilder("https://www.google.com/maps/dir/");
-        Set<Point> allPoints = new HashSet<>(turf.zones);
-        allPoints.addAll(turf.crossings);
-        for (Node node : route.getNodes()) {
-            Point point = allPoints.stream()
-                .filter(p -> p.toString().equals(node.name))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("No point found for node " + node.name));
+        for (Point point : points) {
             sb.append(point.coords.lat).append(",");
             sb.append(point.coords.lon).append("/");
         }
         System.out.println(sb.toString());
     }
 
+    private static List<Point> getPoints(Route route, Turf turf) {
+        List<Node> nodes = route.getNodes();
+        List<Point> points = new ArrayList<>();
+        Set<Point> allPoints = new HashSet<>(turf.zones);
+        allPoints.addAll(turf.crossings);
+        for (Node node : nodes) {
+            Point point = allPoints.stream()
+                .filter(p -> p.toString().equals(node.name))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("No point found for node " + node.name));
+            points.add(point);
+        }
+        return points;
+    }
+
     /* Inconspicuous pathfinder */
 
     // Heavily copied from Turf.optimize
-    public static List<Connection> pathfind(Turf turf, Point start, Point end) {
-        // Prioritize paths by its last point's distance to start
+    public static TurfRoute pathfind(Turf turf, Point start, Point end) {
         PriorityQueue<TurfRoute> queue = new PriorityQueue<>(
             Comparator.comparingDouble(route -> route.length)
         );
         Set<Point> visited = new HashSet<>();
-        // Start with a route at the end point, and build backwards towards the start
-        queue.add(turf.new TurfRoute(end));
+        queue.add(turf.new TurfRoute(start));
         while (!queue.isEmpty()) {
             TurfRoute route = queue.remove();
             Point current = route.point;
@@ -219,15 +231,9 @@ public class Export {
                 continue;
             }
             visited.add(current);
-            // Finish route if we reach start
-            // Build list of connections in reverse (this is why we start from end)
-            if (current.equals(start)) {
-                List<Connection> connections = new ArrayList<>();
-                while (route.previous != null) {
-                    connections.add( route.connectionFromPrevious);
-                    route = route.previous;
-                }
-                return connections;
+            // Finish route if we reach end
+            if (current.equals(end)) {
+                return route;
             }
             // Extend the route with all connections from the current point
             for (Connection extension : current.parents) {
