@@ -104,16 +104,8 @@ public class Scenario extends Logging {
 
 
         log("Scenario: Applying conditions...");
-        // Apply white/blacklist
-        if (conditions.whitelist != null) {
-            Set<Node> safeNodes = getNodes(conditions.whitelist);
-            for (Node node : this.nodes) {
-                if (!safeNodes.contains(node)) {
-                    removeNode(node);
-                    log("Scenario: Removed unwhitelisted node " + node);
-                }
-            }
-        } else if (conditions.blacklist != null) {
+        // Apply blacklist
+        if (conditions.blacklist != null) {
             for (Node node : getNodes(conditions.blacklist)) {
                 removeNode(node);
                 log("Scenario: Removed blacklisted node " + node);

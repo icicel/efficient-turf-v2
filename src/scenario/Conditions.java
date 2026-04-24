@@ -32,10 +32,6 @@ public class Conditions {
     // Note that using this will also disconnect routes' points values from reality
     public String[] redlist;
 
-    // Names of zones to NOT avoid (a.k.a. remove all other zones)
-    // Ignored if null
-    public String[] whitelist;
-
     public Conditions(String start, String end, double timeLimit) {
         this.start = start;
         this.end = end;

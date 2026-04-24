@@ -101,7 +101,7 @@ Optional conditions that can be given are:
 - Whether to consider zone ownership at all
 - Blacklisting of nodes
 - Greylisting of zones (conversion into crossings)
-- Whitelisting of nodes, a.k.a. a reverse blacklist
+- Redlisting of zones, halving their value
 
 The key to this step is that multiple different Conditions can be created, while keeping only one underlying Turf object.
 This means we can skip reimporting map data that has already been imported.
