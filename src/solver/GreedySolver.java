@@ -1,8 +1,10 @@
 package solver;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import scenario.Node;
 import scenario.Route;
 import scenario.Scenario;
@@ -25,7 +27,7 @@ public class GreedySolver extends Solver {
 
     // for tweaking
     private final int SEARCH_WIDTH = 6;
-    private final long MIN_LIFESPAN = 1000; // ms
+    private final long MIN_LIFESPAN = 50; // ms
 
     public Result solve(Scenario scenario, Long timeLimit) {
         this.scenario = scenario;
@@ -62,19 +64,19 @@ public class GreedySolver extends Solver {
             return;
         }
         Node current = base.node;
+        Set<Node> visited = new HashSet<>(base.getNodes());
         // Get the closest nodes from current, only considering unvisited nodes
         List<Node> nearestNodes = scenario.nodes.stream()
-            .filter(node -> !base.hasVisited(node) || node == scenario.end)
+            .filter(node -> !visited.contains(node) || node == scenario.end)
             .sorted(Comparator.comparingDouble(this.connections.get(current)::get))
             .toList();
         // Get lifespans/endtimes for each branch
         int branches = SEARCH_WIDTH;
         long now = System.currentTimeMillis();
         long lifespan = endTime - now;
-        long branchLifespan;
+        long branchLifespan = lifespan / branches;
         long nextBranchEnd;
-        if (lifespan >= MIN_LIFESPAN) {
-            branchLifespan = lifespan / branches;
+        if (branchLifespan >= MIN_LIFESPAN) {
             long branchLifespanRemainder = lifespan % branches; // gotta account for all time
             nextBranchEnd = now + branchLifespan + branchLifespanRemainder;
         } else {
@@ -83,6 +85,9 @@ public class GreedySolver extends Solver {
             nextBranchEnd = endTime;
         }
         for (Node nextNode : nearestNodes) {
+            if (System.currentTimeMillis() > endTime) {
+                return;
+            }
             if (nextNode == current) {
                 continue;
             }
@@ -101,6 +106,7 @@ public class GreedySolver extends Solver {
             Route next = Route.extend(base, currentToNext);
             if (next.node == this.scenario.end) {
                 finishRoute(next);
+                continue; // may re-remove this line
             }
             // Recurse
             search(next, nextBranchEnd);
