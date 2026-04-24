@@ -5,6 +5,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -320,6 +321,31 @@ public class Turf extends Logging {
         log("Turf: Points set");
         
         return zonePoints;
+    }
+
+    // Extract an array of unique zones from the source of https://turfa.nu/map/unique
+    // These are zones that the user has taken before
+    public static String[] getUniqueZones(Path sourcePath) throws IOException {
+        // Find the single-line window.MapConfig object in the HTML file
+        String html = Files.readString(sourcePath);
+        String marker = "window.MapConfig = ";
+        int startIndex = html.indexOf(marker) + marker.length();
+        int endIndex = html.indexOf(";\r\n", startIndex);
+        JSONObject mapConfig = new JSONObject(html.substring(startIndex, endIndex));
+        JSONArray features = mapConfig.getJSONObject("data")
+            .getJSONObject("sources")
+            .getJSONObject("unique")
+            .getJSONObject("data")
+            .getJSONArray("features");
+        // Collect
+        String[] zoneNames = new String[features.length()];
+        for (int i = 0; i < features.length(); i++) {
+            String zoneName = features.getJSONObject(i)
+                .getJSONObject("properties")
+                .getString("title").toLowerCase();
+            zoneNames[i] = zoneName;
+        }
+        return zoneNames;
     }
 
     /* Network optimization */
