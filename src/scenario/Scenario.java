@@ -153,9 +153,13 @@ public class Scenario extends Logging {
         // Generate routes
         this.fastestRoutes = new HashMap<>();
         for (Node node : this.nodes) {
+            if (!node.isZone) {
+                continue;
+            }
             Map<Node, Route> fastestRoutes = findFastestRoutes(node);
             this.fastestRoutes.put(node, fastestRoutes);
         }
+        // Remove crossings
         List<Node> crossingNodes = this.nodes.stream()
             .filter(node -> !node.isZone)
             .toList();
@@ -165,7 +169,6 @@ public class Scenario extends Logging {
         if (crossingNodes.size() > 0) {
             log("Scenario: Removed " + crossingNodes.size() + " crossings");
         }
-
         // All remaining links are now direct links between zones
         // Add all routes that don't pass over intermediate zones as links
         // ("Direct" routes)
