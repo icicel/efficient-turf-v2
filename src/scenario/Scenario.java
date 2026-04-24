@@ -130,7 +130,17 @@ public class Scenario extends Logging {
                     node.isZone = false;
                 }
                 node.points = 0;
-                log("Scenario: Cleared greylisted zone " + node);
+                log("Scenario: Blanked greylisted zone " + node);
+            }
+        }
+        // Apply redlist
+        if (conditions.redlist != null) {
+            for (Node node : getNodes(conditions.redlist)) {
+                if (node.points == 0) {
+                    continue;
+                }
+                node.points /= 2; // integer division
+                log("Scenario: Halved redlisted zone " + node);
             }
         }
         // Remove unreachable nodes based on conditions (time limit and so on)
