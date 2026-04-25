@@ -27,17 +27,23 @@ public class Zone {
     //  number of hours the zone will be held
     // Example object:
     // {
-    //     "dateCreated": "2020-06-18T19:04:42+0000",
-    //     "dateLastTaken": "2023-09-09T13:07:18+0000",
-    //     "currentOwner": {"name": "user", "id": 1},
-    //     "name": "OdlaMedCykel",
-    //     "id": 296263,
-    //     "totalTakeovers": 188,
-    //     "region": {"country": "se", "name": "Västra Götaland", "id": 132},
-    //     "pointsPerHour": 1,
-    //     "latitude": 58.047462,
-    //     "longitude": 11.851104,
-    //     "takeoverPoints": 185
+    //     "dateCreated": "2010-09-04T16:41:37+0000",
+    //     "dateLastTaken": "2013-06-08T12:59:19+0000",
+    //     "currentOwner": {"id": 14022, "name": "Pelle494"},
+    //     "name": "Plattan",
+    //     "id": 138,
+    //     "totalTakeovers": 6278,
+    //     "region": {
+    //         "area": {"name": "Stockholms kommun", "id": 1828},
+    //         "country": "se",
+    //         "id": 141,
+    //         "name": "Stockholm"
+    //     },
+    //     "pointsPerHour": 9,
+    //     "latitude": 59.33225,
+    //     "longitude": 18.064098,
+    //     "takeoverPoints": 65,
+    //     "type": {"id": 9, "name": "Holy"}
     // }
     public Zone(JSONObject info) {
         this.name = info.getString("name").toLowerCase();
