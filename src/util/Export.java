@@ -101,6 +101,10 @@ public class Export {
         );
     }
 
+    public static void exportZonesWithPoints(Turf turf, Path path) throws IOException {
+        exportZonesWithPoints(turf, path, null, false);
+    }
+
     public static void exportZonesWithPoints(Turf turf, Path path, String username, boolean isNow) throws IOException {
         exportGeneric(
             path,
