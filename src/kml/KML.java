@@ -5,13 +5,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import map.Coords;
-import map.Line;
 import nu.xom.Builder;
 import nu.xom.Document;
 import nu.xom.Element;
 import nu.xom.ParsingException;
 import nu.xom.ValidityException;
+import turf.Connection;
+import turf.Point;
 
 // Takes and parses a KML file
 public class KML {
@@ -19,8 +19,8 @@ public class KML {
     private static final String KML_NAMESPACE = "http://www.opengis.net/kml/2.2";
 
     // Map of layer name to set of points/lines in that layer
-    public Map<String, Set<Coords>> points;
-    public Map<String, Set<Line>> lines;
+    public Map<String, Set<Point>> points;
+    public Map<String, Set<Connection>> lines;
 
     // Takes a path to a KML file and parses it, initializing the points and lines collections
     public KML(Path path) throws ParsingException, ValidityException, IOException {
@@ -36,29 +36,29 @@ public class KML {
         //  either <Point> or <LineString>
         // Both <Point> and <LineString> elements contain <coordinates>
         // Both <Folder> and <Placemark> elements contain <name>
-        
+
         for (Element folder : document.getChildElements("Folder", KML_NAMESPACE)) {
             String folderName = getName(folder);
-            Set<Coords> points = new HashSet<>();
-            Set<Line> lines = new HashSet<>();
+            Set<Point> points = new HashSet<>();
+            Set<Connection> connections = new HashSet<>();
             this.points.put(folderName, points);
-            this.lines.put(folderName, lines);
+            this.lines.put(folderName, connections);
             for (Element placemark : folder.getChildElements("Placemark", KML_NAMESPACE)) {
                 String placemarkName = getName(placemark);
                 Element point = placemark.getFirstChildElement("Point", KML_NAMESPACE);
                 Element lineString = placemark.getFirstChildElement("LineString", KML_NAMESPACE);
                 if (point != null) {
                     String coordinates = getCoordinates(point);
-                    points.add(new Coords(coordinates, placemarkName));
+                    points.add(new Point(coordinates, placemarkName));
                 }
                 if (lineString != null) {
                     String coordinateListString = getCoordinates(lineString);
                     String[] coordinateStrings = coordinateListString.split("\n");
-                    Coords[] coordinates = new Coords[coordinateStrings.length];
+                    Point[] coordinates = new Point[coordinateStrings.length];
                     for (int i = 0; i < coordinateStrings.length; i++) {
-                        coordinates[i] = new Coords(coordinateStrings[i]);
+                        coordinates[i] = new Point(coordinateStrings[i], placemarkName);
                     }
-                    lines.add(new Line(coordinates));
+                    connections.add(new Connection(coordinates));
                 }
             }
         }

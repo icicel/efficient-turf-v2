@@ -18,23 +18,22 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
+import java.util.function.Function;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import kml.KML;
 import kml.XML;
-import map.Coords;
-import map.Line;
 import nu.xom.ParsingException;
 import util.Logging;
 
 // Represents a collection of zones and crossings, and connections between them
 // Crossings can either be given directly, or be implied from where connections overlap
 public class Turf extends Logging {
-    
+
     public Set<Point> crossings;
     public Set<Point> zones;
     public Set<Connection> connections;
-    
+
     // Get zones and connections from the given KML file, no crossings
     // Only use if you don't actually use any crossings!
     public Turf(Path kmlPath, String zoneLayer, String connectionLayer)
@@ -51,34 +50,24 @@ public class Turf extends Logging {
         KML kml = new KML(kmlPath);
 
         // Init zones
-        this.zones = initZones(kml.points.get(zoneLayer));
-
+        this.zones = kml.points.get(zoneLayer);
+        initZones(this.zones);
 
         // Init crossings only if crossingLayer is given
         if (crossingLayer != null) {
-            this.crossings = new HashSet<>();
-            for (Coords coords : kml.points.get(crossingLayer)) {
-                String crossingName = coords.name.toLowerCase();
-                Point crossing = new Point(coords);
-                boolean added = this.crossings.add(crossing);
-                if (!added) {
-                    warn("WARNING: Duplicate crossing " + crossingName);
-                }
-                
-            }
+            this.crossings = kml.points.get(crossingLayer);
             log("Turf: Found " + crossings.size() + " crossings");
         }
 
-
         // Init connections
         log("Turf: Initializing connections...");
-        this.connections = new HashSet<>();
+        this.connections = kml.lines.get(connectionLayer);
         Set<Point> allPoints = new HashSet<>(this.crossings);
         allPoints.addAll(this.zones);
-        for (Line line : kml.lines.get(connectionLayer)) {
-            Point leftPoint = closestPoint(allPoints, line.left);
-            Point rightPoint = closestPoint(allPoints, line.right);
-            Connection connection = new Connection(line, leftPoint, rightPoint);
+        for (Connection connection : this.connections) {
+            Point leftPoint = closestPoint(allPoints, connection.left);
+            Point rightPoint = closestPoint(allPoints, connection.right);
+            connection.overrideEndpoints(leftPoint, rightPoint);
             connections.add(connection);
         }
 
@@ -104,12 +93,12 @@ public class Turf extends Logging {
         KML kml = new KML(zoneKml);
 
         // Init zones
-        Set<Coords> zoneCoords = kml.points.get("Turf Zones");
-        for (Coords coords : zoneCoords) {
+        this.zones = kml.points.get("Turf Zones");
+        for (Point zone : this.zones) {
             // Remove " POI" from end of name
-            coords.name = coords.name.substring(0, coords.name.length() - 4);
+            zone.name = zone.name.substring(0, zone.name.length() - 4).toLowerCase();
         }
-        this.zones = initZones(zoneCoords);
+        initZones(this.zones);
 
 
         // Find zones' bounding box
@@ -118,10 +107,10 @@ public class Turf extends Logging {
         double minLon = Double.POSITIVE_INFINITY;
         double maxLon = Double.NEGATIVE_INFINITY;
         for (Point zone : zones) {
-            minLat = Math.min(minLat, zone.coords.lat);
-            maxLat = Math.max(maxLat, zone.coords.lat);
-            minLon = Math.min(minLon, zone.coords.lon);
-            maxLon = Math.max(maxLon, zone.coords.lon);
+            minLat = Math.min(minLat, zone.lat);
+            maxLat = Math.max(maxLat, zone.lat);
+            minLon = Math.min(minLon, zone.lon);
+            maxLon = Math.max(maxLon, zone.lon);
         }
         // A small buffer
         minLat -= 0.01;
@@ -138,30 +127,30 @@ public class Turf extends Logging {
             xml = new XML(networkXml);
         }
 
-        
+
         // Init connections and crossings
         log("Turf: Initializing connections...");
-        this.connections = new HashSet<>();
-        Map<Coords, Point> crossingOverlap = new HashMap<>();
-        for (Line line : xml.lines) {
-            Coords left = line.left;
-            Coords right = line.right;
-            // Get matching point from the map if it exists, create a new one if it doesn't
-            Point leftPoint = crossingOverlap.computeIfAbsent(left, k -> new Point(k));
-            Point rightPoint = crossingOverlap.computeIfAbsent(right, k -> new Point(k));
-            if (leftPoint.isNeighbor(rightPoint)) {
+        this.connections = xml.ways;
+        // Get rid of duplicates, map each Point to the single Point object that represents it
+        // Ironically means each key maps to itself
+        Map<Point, Point> existing = new HashMap<>();
+        for (Connection connection : this.connections) {
+            // Get existing point at position if available, otherwise place our point there
+            // Wow, a rare use case for the identity function!
+            Point left = existing.computeIfAbsent(connection.left, Function.identity());
+            Point right = existing.computeIfAbsent(connection.right, Function.identity());
+            if (left.isNeighbor(right)) {
                 // There is already a connection here
                 // Having identical connections is bad, so make them slightly different
                 // If they actually are different, this won't cause any issues
                 // Kinda hacky...
-                line.distance += 0.001;
+                connection.distance += 0.001;
             }
-            Connection connection = new Connection(line, leftPoint, rightPoint);
-            connections.add(connection);
+            connection.overrideEndpoints(left, right);
         }
-        this.crossings = new HashSet<>(crossingOverlap.values());
+        this.crossings = new HashSet<>(existing.values());
 
-        
+
         // Find the network (connected component) with the most crossings, and remove
         //  everything else
         log("Turf: Pruning smaller networks...");
@@ -206,18 +195,18 @@ public class Turf extends Logging {
         log("Turf: Connecting zones...");
         Map<String, Set<Point>> quadrantMap = new HashMap<>();
         for (Point crossing : this.crossings) {
-            String quadrantKey = getQuadrantKey(crossing.coords);
+            String quadrantKey = getQuadrantKey(crossing);
             quadrantMap.computeIfAbsent(quadrantKey, k -> new HashSet<>()).add(crossing);
         }
         for (Point zone : this.zones) {
             // Find closest point in the same quadrant as the zone
-            String quadrantKey = getQuadrantKey(zone.coords);
+            String quadrantKey = getQuadrantKey(zone);
             Set<Point> crossingsInQuadrant = quadrantMap.get(quadrantKey);
             if (crossingsInQuadrant != null) {
                 Point closestCrossing = closestPoint(crossingsInQuadrant, zone);
                 // Only accept this point if it's closer than the edge of the quadrant
                 //  meaning it's closer than any point in a different quadrant
-                if (zone.distanceTo(closestCrossing) < distanceToQuadrantEdge(zone.coords)) {
+                if (zone.distanceTo(closestCrossing) < distanceToQuadrantEdge(zone)) {
                     Connection connection = new Connection(zone, closestCrossing);
                     connections.add(connection);
                     continue;
@@ -246,17 +235,18 @@ public class Turf extends Logging {
     }
 
     /* Zone points */
-    
-    // Convert a set of named Coords into a set of Points with Zones using the Turf API
-    private Set<Point> initZones(Set<Coords> zoneCoords)
+
+    // Initialize Zones using the Turf API
+    // Take each Point's name and link it to the corresponding Zone
+    private void initZones(Set<Point> zonePoints)
     throws IOException, InterruptedException {
-        // Gather the Coords per zone name
-        Map<String, Coords> coordsByName = new HashMap<>();
-        for (Coords coords : zoneCoords) {
-            coordsByName.put(coords.name.toLowerCase(), coords);
+        // Gather the Points per zone name
+        Map<String, Point> pointsByName = new HashMap<>();
+        for (Point zone : zonePoints) {
+            pointsByName.put(zone.name, zone);
         }
-        Set<String> zoneNames = coordsByName.keySet();
-        log("Turf: Found " + coordsByName.size() + " zones, getting points from API...");
+        Set<String> zoneNames = pointsByName.keySet();
+        log("Turf: Found " + pointsByName.size() + " zones, getting points from API...");
 
         // Create a JSON body with all zone names
         // [{"name": "zonea"}, {"name": "zoneb"}, ...]
@@ -299,7 +289,7 @@ public class Turf extends Logging {
             }
             throw new RuntimeException("Tried to set points for nonexistant zones");
         }
-        
+
         // Compile zones
         Set<Zone> zones = new HashSet<>();
         for (int i = 0; i < resultJson.length(); i++) {
@@ -312,15 +302,11 @@ public class Turf extends Logging {
         }
 
         // Compile points
-        Set<Point> zonePoints = new HashSet<>();
         for (Zone zone : zones) {
-            Coords coords = coordsByName.get(zone.name);
-            Point zonePoint = new Point(coords, zone);
-            zonePoints.add(zonePoint);
+            Point zonePoint = pointsByName.get(zone.name);
+            zonePoint.zone = zone;
         }
         log("Turf: Points set");
-        
-        return zonePoints;
     }
 
     // Extract an array of unique zones from the source of https://turfa.nu/map/unique
@@ -390,9 +376,9 @@ public class Turf extends Logging {
         // The chain looks like leftEnd-neighbor-pivot-connection-rightEnd
         // Convert this to leftEnd-neighbor-rightEnd, removing pivot and connection
         // The direction of neighbor may be flipped
-        List<Coords> newMiddle = new ArrayList<>();
+        List<Point> newMiddle = new ArrayList<>();
         newMiddle.addAll(neighbor.middleFromPOVOf(leftEnd));
-        newMiddle.add(pivot.coords);
+        newMiddle.add(pivot);
         newMiddle.addAll(connection.middleFromPOVOf(pivot));
         neighbor.left = leftEnd;
         neighbor.middle = newMiddle;
@@ -564,31 +550,26 @@ public class Turf extends Logging {
 
     // Returns the closest Point in the given set to a given Point
     public static Point closestPoint(Set<Point> points, Point point) {
-        return closestPoint(points, point.coords);
-    }
-
-    // Returns the closest Point in the given set to a given Coords
-    public static Point closestPoint(Set<Point> points, Coords coords) {
         return points.stream()
-            .min((p1, p2) -> Double.compare(coords.distanceTo(p1.coords), coords.distanceTo(p2.coords)))
+            .min(Comparator.comparingDouble(p -> point.distanceTo(p)))
             .orElseThrow();
     }
 
-    // Get the key for the quadrant that the given coords fall into
+    // Get the key for the quadrant that the given Point falls into
     // Ex: lat=-37.7749, lon=-122.4194 -> quadrantKey="-3777-12241"
-    private static String getQuadrantKey(Coords coords) {
-        int latQuadrant = (int) Math.floor(coords.lat * 100);
-        int lonQuadrant = (int) Math.floor(coords.lon * 100);
+    private static String getQuadrantKey(Point point) {
+        int latQuadrant = (int) Math.floor(point.lat * 100);
+        int lonQuadrant = (int) Math.floor(point.lon * 100);
         return latQuadrant + "" + lonQuadrant;
     }
 
     // Shortest distance to the edge of the quadrant
     // Ex: lat=-37.7749, lon=-122.4194 -> nearestQuadrantEdge=(-37.77,-122.42)
-    private static double distanceToQuadrantEdge(Coords coords) {
-        double latQuadrantEdge = Math.round(coords.lat * 100) / 100.0;
-        double lonQuadrantEdge = Math.round(coords.lon * 100) / 100.0;
-        Coords nearestQuadrantEdge = new Coords(latQuadrantEdge, lonQuadrantEdge);
-        return coords.distanceTo(nearestQuadrantEdge);
+    private static double distanceToQuadrantEdge(Point point) {
+        double latQuadrantEdge = Math.round(point.lat * 100) / 100.0;
+        double lonQuadrantEdge = Math.round(point.lon * 100) / 100.0;
+        Point nearestQuadrantEdge = new Point(latQuadrantEdge, lonQuadrantEdge);
+        return point.distanceTo(nearestQuadrantEdge);
     }
 
     /* Utility functions */

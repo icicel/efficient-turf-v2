@@ -7,19 +7,19 @@ import java.net.http.HttpResponse;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
-import map.Coords;
-import map.Line;
 import nu.xom.Builder;
 import nu.xom.Document;
 import nu.xom.Element;
 import nu.xom.Elements;
 import nu.xom.ParsingException;
+import turf.Connection;
+import turf.Point;
 
 // Takes and parses an OSM XML file
 public class XML {
 
-    public Set<Line> lines;
-    
+    public Set<Connection> ways;
+
     // Load from path
     public XML(Path path) throws IOException, ParsingException {
         Builder builder = new Builder();
@@ -28,24 +28,24 @@ public class XML {
     }
 
     private void parse(Document xml) {
-        this.lines = new HashSet<>();
+        this.ways = new HashSet<>();
         Element root = xml.getRootElement();
 
         for (Element element : root.getChildElements("way")) {
-            // Create a Coords for each node
+            // Create a Point for each node
             Elements nodes = element.getChildElements("nd");
-            Coords[] points = new Coords[nodes.size()];
+            Point[] points = new Point[nodes.size()];
             for (int i = 0; i < nodes.size(); i++) {
                 Element node = nodes.get(i);
                 String ref = node.getAttributeValue("ref");
                 Double lat = Double.parseDouble(node.getAttributeValue("lat"));
                 Double lon = Double.parseDouble(node.getAttributeValue("lon"));
-                points[i] = new Coords(lat, lon, ref);
+                points[i] = new Point(lat, lon, ref);
             }
-            // Create Lines between the Coords
+            // Create Connections between the Points
             for (int i = 0; i < points.length - 1; i++) {
-                Line line = new Line(points[i], points[i + 1]);
-                lines.add(line);
+                Connection connection = new Connection(points[i], points[i + 1]);
+                ways.add(connection);
             }
         }
     }
@@ -64,7 +64,7 @@ public class XML {
             .uri(URI.create("http://overpass-api.de/api/interpreter"))
             .POST(HttpRequest.BodyPublishers.ofString("data=" + data.toString()))
             .build();
-        
+
         // Retry the request until it succeeds
         HttpResponse<String> response;
         while (true) {

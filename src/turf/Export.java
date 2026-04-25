@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.function.Function;
-import map.Coords;
 import scenario.Node;
 import scenario.Route;
 import turf.Turf.TurfRoute;
@@ -53,13 +52,13 @@ public class Export {
             connection -> {
                 StringBuilder sb = new StringBuilder();
                 sb.append(connection.isLoop() ? "\"POLYGON ((" : "\"LINESTRING (");
-                sb.append(connection.left.coords.lon).append(" ").append(connection.left.coords.lat);
-                for (Coords middleCoords : connection.middle) {
+                sb.append(connection.left.lon).append(" ").append(connection.left.lat);
+                for (Point middlePoint : connection.middle) {
                     sb.append(", ");
-                    sb.append(middleCoords.lon).append(" ").append(middleCoords.lat);
+                    sb.append(middlePoint.lon).append(" ").append(middlePoint.lat);
                 }
                 sb.append(", ");
-                sb.append(connection.right.coords.lon).append(" ").append(connection.right.coords.lat);
+                sb.append(connection.right.lon).append(" ").append(connection.right.lat);
                 sb.append(connection.isLoop() ? "))\"," : ")\",");
                 sb.append(connection.left).append("-").append(connection.right).append("\n");
                 return sb.toString();
@@ -75,14 +74,14 @@ public class Export {
             crossing -> {
                 StringBuilder sb = new StringBuilder();
                 sb.append("\"POINT (");
-                sb.append(crossing.coords.lon).append(" ").append(crossing.coords.lat);
+                sb.append(crossing.lon).append(" ").append(crossing.lat);
                 sb.append(")\",");
                 sb.append(crossing).append("\n");
                 return sb.toString();
             }
         );
     }
-    
+
     public static void exportZones(Turf turf, Path path) throws IOException {
         exportGeneric(
             path,
@@ -91,7 +90,7 @@ public class Export {
             zone -> {
                 StringBuilder sb = new StringBuilder();
                 sb.append("\"POINT (");
-                sb.append(zone.coords.lon).append(" ").append(zone.coords.lat);
+                sb.append(zone.lon).append(" ").append(zone.lat);
                 sb.append(")\",");
                 sb.append(zone).append("\n");
                 return sb.toString();
@@ -107,7 +106,7 @@ public class Export {
             zone -> {
                 StringBuilder sb = new StringBuilder();
                 sb.append("\"POINT (");
-                sb.append(zone.coords.lon).append(" ").append(zone.coords.lat);
+                sb.append(zone.lon).append(" ").append(zone.lat);
                 sb.append(")\",");
                 sb.append(zone).append(",");
                 sb.append(zone.zone.getPoints(username, isNow)).append("\n");
@@ -147,7 +146,7 @@ public class Export {
             }
             // Point
             sb.append("\"POINT (");
-            sb.append(start.coords.lon).append(" ").append(start.coords.lat);
+            sb.append(start.lon).append(" ").append(start.lat);
             sb.append(")\",");
             sb.append(start).append("\n");
             // Connections
@@ -155,20 +154,20 @@ public class Export {
             sb.append("\"LINESTRING (");
             for (Connection connection : connections) {
                 // get the correct view of the connection (left->right or right->left)
-                sb.append(current.coords.lon).append(" ").append(current.coords.lat).append(", ");
-                for (Coords middleCoords : connection.middleFromPOVOf(current)) {
-                    sb.append(middleCoords.lon).append(" ").append(middleCoords.lat).append(", ");
+                sb.append(current.lon).append(" ").append(current.lat).append(", ");
+                for (Point middlePoint : connection.middleFromPOVOf(current)) {
+                    sb.append(middlePoint.lon).append(" ").append(middlePoint.lat).append(", ");
                 }
                 current = connection.other(current);
             }
-            sb.append(current.coords.lon).append(" ").append(current.coords.lat);
+            sb.append(current.lon).append(" ").append(current.lat);
             sb.append(")\",");
             sb.append(start).append("-").append(end).append("\n");
         }
         // Last point
         Point last = points.get(points.size() - 1);
         sb.append("\"POINT (");
-        sb.append(last.coords.lon).append(" ").append(last.coords.lat);
+        sb.append(last.lon).append(" ").append(last.lat);
         sb.append(")\",");
         sb.append(last).append("\n");
         Files.writeString(path, sb.toString());
@@ -181,7 +180,7 @@ public class Export {
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
         sb.append("<gpx version=\"1.1\" xmlns=\"http://www.topografix.com/GPX/1/1\">\n");
         for (Point point : points) {
-            sb.append("<wpt lat=\"").append(point.coords.lat).append("\" lon=\"").append(point.coords.lon).append("\">\n");
+            sb.append("<wpt lat=\"").append(point.lat).append("\" lon=\"").append(point.lon).append("\">\n");
             sb.append("<name>").append(point).append("</name>\n");
             sb.append("</wpt>\n");
         }
@@ -194,8 +193,8 @@ public class Export {
         List<Point> points = getPoints(route, turf);
         StringBuilder sb = new StringBuilder("https://www.google.com/maps/dir/");
         for (Point point : points) {
-            sb.append(point.coords.lat).append(",");
-            sb.append(point.coords.lon).append("/");
+            sb.append(point.lat).append(",");
+            sb.append(point.lon).append("/");
         }
         System.out.println(sb.toString());
     }
