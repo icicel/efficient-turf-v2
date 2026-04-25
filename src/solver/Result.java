@@ -7,6 +7,7 @@ import scenario.Route;
 public class Result {
     
     public List<Route> routes;
+    public Route bestRoute;
 
     private double speed;
 
@@ -17,6 +18,7 @@ public class Result {
             (a, b) -> Integer.compare(b.points, a.points)
         );
         this.routes = sortedRoutes.subList(0, Math.min(25, sortedRoutes.size()));
+        this.bestRoute = sortedRoutes.get(0);
         this.speed = speed;
     }
 

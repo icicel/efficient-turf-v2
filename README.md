@@ -120,6 +120,7 @@ Links are one-way, so a Connection turns into two Links.
 A Scenario can be solved using any implementation of Solver.
 Simply call `Solver.solve` and pass the Scenario as the argument along with an optional time limit.
 This returns a Result, which is is a list of Routes that can be read and printed.
+Individual Routes can also be exported with Export.
 
 Below is a list of all Solvers that have currently been implemented.
 
