@@ -6,7 +6,7 @@ This is a rewrite/remake of my older project [Efficient Turf v1](https://github.
 
 ### What's Turf?
 
-(from [the official Turf website](https://turfgame.com/))  
+(from [the official Turf website](https://turfgame.com/))
 Turf is a location-based game using GPS technology, which requires you to go to the physical location of the virtual zones in order to take them.
 Try to take as many zones as you can to rack up points, earn medals, level up and climb the leaderboards!
 
@@ -27,7 +27,7 @@ Luckily, we can also define **crossings** - custom, non-point giving, purely fun
 
 ## Importing data
 
-Zones are imported with [the Turf Map Tool](https://turf.urbangeeks.org/). 
+Zones are imported with [the Turf Map Tool](https://turf.urbangeeks.org/).
 Draw a polygon containing all relevant zones, and then download it as *Zones within polygon → KML - POIs*.
 This will either be put into a larger KML file or be combined with an OpenStreetMap network depending on your import method of choice.
 
@@ -43,7 +43,7 @@ The steps should be similar.)
 In My Maps, create one layer each for zones, crossings and connections, making sure each layer has a unique name.
 Import your zones into their layer by uploading the KML file containing them.
 Then, define connections using **lines** and create crossings using **markers** as needed.
-Afterwards, the entire map can be exported with:  
+Afterwards, the entire map can be exported with:
 **⋮** *→ Export to KML/KMZ → Export as KML instead of KMZ → Download*
 
 Note that if a zone has an invalid name, the program will fail.
@@ -88,8 +88,10 @@ For Points that correspond to Turf zones (which may be all of them), the program
 
 Points and Connections retain their map data and can be exported back to KML format using `Export`.
 
-If based on OSM data, the Turf graph could get quite large, easily reaching 25k objects.
-To this end, there are two compression methods available: `Turf.compress` and `Turf.optimize`, with the latter being the more aggressive option.
+If based on OSM data, the Turf graph could get quite large (easily reaching 25k objects).
+To boost performance, it can be compressed with `Turf.compress`, which removes superfluous elements like dead ends.
+This is done automatically when creating a Scenario.
+For further compression there is also `Turf.optimize`, though it is much slower, and not as necessary, acting more as beautification for displaying Turf data in KML format.
 
 ### `Conditions`
 

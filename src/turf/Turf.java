@@ -34,6 +34,8 @@ public class Turf extends Logging {
     public Set<Point> zones;
     public Set<Connection> connections;
 
+    public boolean compressed = false;
+
     // Get zones and connections from the given KML file, no crossings
     // Only use if you don't actually use any crossings!
     public Turf(Path kmlPath, String zoneLayer, String connectionLayer)
@@ -346,6 +348,7 @@ public class Turf extends Logging {
         for (Connection connection : toCheck) {
             checkConnection(connection);
         }
+        this.compressed = true;
         log("Turf: *** Compressed to " + crossings.size() + " crossings and " + connections.size() + " connections");
     }
 
@@ -468,6 +471,9 @@ public class Turf extends Logging {
     //  any two zones
     // Works similarly to Node.findFastestRoutes and uses a similar Route class
     public void optimize() {
+        if (!compressed) {
+            warn("WARNING: Optimize works better on a compressed Turf");
+        }
         log("Turf: Optimizing...");
         Set<Connection> optimalConnections = new HashSet<>();
         Set<Point> hasBeenStart = new HashSet<>();

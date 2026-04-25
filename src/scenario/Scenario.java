@@ -40,6 +40,10 @@ public class Scenario extends Logging {
     public Map<Node, Map<Node, Route>> fastestRoutes;
     
     public Scenario(Turf turf, Conditions conditions) {
+        if (!turf.compressed) {
+            // Not compressing hurts Solver performance, for some reason
+            turf.compress();
+        }
         log("Scenario: *** Initializing...");
 
 
