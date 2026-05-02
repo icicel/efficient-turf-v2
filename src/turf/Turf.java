@@ -468,6 +468,16 @@ public class Turf extends Logging {
         }
     }
 
+    /* Customization */
+
+    public void insertCrossing(double lat, double lon, String name) {
+        Point crossing = new Point(lat, lon, name);
+        Point closest = closestPoint(this.crossings, crossing);
+        Connection connection = new Connection(crossing, closest);
+        this.crossings.add(crossing);
+        this.connections.add(connection);
+    }
+
     /* Connecting zones helpers */
 
     // Returns the closest Point in the given set to a given Point
