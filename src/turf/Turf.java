@@ -34,8 +34,6 @@ public class Turf extends Logging {
     public Set<Point> zones;
     public Set<Connection> connections;
 
-    public boolean compressed = false;
-
     // Get zones and connections from the given KML file, no crossings
     // Only use if you don't actually use any crossings!
     public Turf(Path kmlPath, String zoneLayer, String connectionLayer)
@@ -338,20 +336,6 @@ public class Turf extends Logging {
 
     /* Network optimization */
 
-    // Attempt to reduce the size of the network as much as possible without affecting it,
-    //  by merging/removing "superfluous" points and connections, like dead ends, loops, and
-    //  connections that are too long to matter
-    public void compress() {
-        log("Turf: Compressing...");
-        // Remove all dead ends, loops, and longcuts
-        Set<Connection> toCheck = new HashSet<>(this.connections);
-        for (Connection connection : toCheck) {
-            checkConnection(connection);
-        }
-        this.compressed = true;
-        log("Turf: *** Compressed to " + crossings.size() + " crossings and " + connections.size() + " connections");
-    }
-
     // Merge two neighboring connections across a pivot crossing
     // The pivot must have no other parents besides the two connections being merged
     // Return the resulting connection
@@ -402,78 +386,10 @@ public class Turf extends Logging {
         connection.right.parents.remove(connection);
     }
 
-    private void mergeAndCheck(Point pivot) {
-        Connection mergedConnection = mergeOverPivot(pivot);
-        checkConnection(mergedConnection);
-    }
-
-    private void removeAndCheck(Connection connection) {
-        removeConnection(connection);
-        checkCrossing(connection.left);
-        checkCrossing(connection.right);
-    }
-
-    private void checkConnection(Connection connection) {
-        if (!this.connections.contains(connection)) {
-            return;
-        }
-        if (connection.isLoop()) {
-            removeAndCheck(connection);
-        } else if (connection.left.isDeadEnd() || connection.right.isDeadEnd()) {
-            removeAndCheck(connection);
-        } else if (isLongcut(connection)) {
-            removeAndCheck(connection);
-        }
-    }
-
-    private void checkCrossing(Point crossing) {
-        if (!this.crossings.contains(crossing)) {
-            return;
-        }
-        if (crossing.parents.size() == 0) {
-            this.crossings.remove(crossing);
-        } else if (crossing.parents.size() == 1) {
-            removeAndCheck(crossing.parents.iterator().next());
-        } else if (crossing.parents.size() == 2) {
-            mergeAndCheck(crossing);
-        }
-    }
-
-    private boolean isLongcut(Connection connection) {
-        Point start = connection.left;
-        Point end = connection.right;
-        Map<Point, Double> distances = new HashMap<>();
-        PriorityQueue<Point> queue = new PriorityQueue<>(
-            Comparator.comparingDouble(distances::get)
-        );
-        distances.put(start, 0.0);
-        queue.add(start);
-        while (true) {
-            Point current = queue.remove();
-            if (current == end) {
-                break;
-            }
-            for (Connection nextConnection : current.parents) {
-                Point next = nextConnection.other(current);
-                double distanceToNext = distances.get(current) + nextConnection.distance;
-                if (!distances.containsKey(next)) {
-                    distances.put(next, distanceToNext);
-                    queue.add(next);
-                } else if (distanceToNext < distances.get(next)) {
-                    distances.put(next, distanceToNext);
-                }
-            }
-        }
-        return !(distances.get(end) == connection.distance);
-    }
-
     // Remove all connections except those who are part of some shortest path between
     //  any two zones
     // Works similarly to Node.findFastestRoutes and uses a similar Route class
     public void optimize() {
-        if (!compressed) {
-            warn("WARNING: Optimize works better on a compressed Turf");
-        }
         log("Turf: Optimizing...");
         Set<Connection> optimalConnections = new HashSet<>();
         Set<Point> hasBeenStart = new HashSet<>();

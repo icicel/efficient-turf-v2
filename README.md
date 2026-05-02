@@ -87,11 +87,8 @@ Map information is stored in the Turf object using **Point** and **Connection** 
 For Points that correspond to Turf zones (which may be all of them), the program accesses the Turf API for the zone data and stores it in **Zone** objects.
 
 Points and Connections retain their map data and can be exported back to KML format using `Export`.
-
-If based on OSM data, the Turf graph could get quite large (easily reaching 25k objects).
-To boost performance, it can be compressed with `Turf.compress`, which removes superfluous elements like dead ends.
-This is done automatically when creating a Scenario.
-For further compression there is also `Turf.optimize`, though it is much slower, and not as necessary, acting more as beautification for displaying Turf data in KML format.
+However, if based on OSM data, the Turf graph could get quite large (easily reaching 20k+ objects at which point it is too large for Google My Maps).
+To reduce file size, it can be compressed with `Turf.optimize`.
 
 ### `Conditions`
 
