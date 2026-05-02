@@ -27,8 +27,6 @@ public class Scenario extends Logging {
     public double timeLimit;
     public double speed;
 
-    public Set<Node> priority;
-
     /* Derived data */
 
     public double distanceLimit;
@@ -48,20 +46,16 @@ public class Scenario extends Logging {
 
 
 
-        // Create a Node for each Zone in the Turf
-        // Also create a temporary map from Zones to respective Nodes
+        // Create a Node for each Point in the Turf
         this.nodes = new HashSet<>();
         this.nodeName = new HashMap<>();
-        int nodes = 0;
         for (Point zone : turf.zones) {
             addNode(zone, conditions.username, conditions.isNow);
-            nodes++;
         }
         for (Point crossing : turf.crossings) {
             addNode(crossing, conditions.username, conditions.isNow);
-            nodes++;
         }
-        log("Scenario: Created " + nodes + " nodes");
+        log("Scenario: Created " + this.nodes.size() + " nodes");
 
 
 
@@ -83,7 +77,6 @@ public class Scenario extends Logging {
 
         // Create a Link for each Connection
         this.links = new HashSet<>();
-        int links = 0;
         for (Connection connection : turf.connections) {
             Node leftNode = this.getNode(connection.left.toString());
             Node rightNode = this.getNode(connection.right.toString());
@@ -101,9 +94,8 @@ public class Scenario extends Logging {
                 continue;
             }
             addLinkPair(leftNode, rightNode, connection.distance);
-            links += 2;
         }
-        log("Scenario: Created " + links + " links");
+        log("Scenario: Created " + this.links.size() + " links");
 
 
 
@@ -144,59 +136,70 @@ public class Scenario extends Logging {
 
 
 
-        // Remove all crossings (zero-point nodes) and replace with direct links between zones
+        // Recreate the entire scenario as a simplified graph with only zones
         log("Scenario: Optimizing...");
-        // Generate routes
-        this.fastestRoutes = new HashMap<>();
+        Map<Node, Map<Node, Double>> edges = new HashMap<>();
+        Set<Node> zones = new HashSet<>();
         for (Node node : this.nodes) {
-            if (!node.isZone) {
-                continue;
+            if (node.isZone) {
+                zones.add(node);
             }
-            Map<Node, Route> fastestRoutes = findFastestRoutes(node);
-            this.fastestRoutes.put(node, fastestRoutes);
         }
-        // Remove crossings
-        List<Node> crossingNodes = this.nodes.stream()
-            .filter(node -> !node.isZone)
-            .toList();
-        for (Node node : crossingNodes) {
-            removeNode(node);
-        }
-        if (crossingNodes.size() > 0) {
-            log("Scenario: Removed " + crossingNodes.size() + " crossings");
-        }
-        // All remaining links are now direct links between zones
-        // Add all routes that don't pass over intermediate zones as links
-        // ("Direct" routes)
-        for (Node node : this.nodes) {
-            for (Node target : this.nodes) {
-                if (node == target || node.hasLinkTo(target)) {
-                    // This link already exists
+        // Build graph
+        for (Node zone : zones) {
+            Map<Node, Route> fastestRoutes = findFastestRoutes(zone);
+            Map<Node, Double> zoneEdges = new HashMap<>();
+            edges.put(zone, zoneEdges);
+            for (Node otherZone : zones) {
+                if (zone == otherZone) {
                     continue;
                 }
-                Route route = this.fastestRoutes.get(node).get(target);
-                // If route passes through an intermediate zone, it can't be a direct link
-                // Start iterating just after target, go backwards, end before reaching node
-                boolean hasIntermediateZone = false;
-                Route current = route.previous;
-                while (current.previous.previous != null) {
-                    if (current.node.isZone) {
-                        hasIntermediateZone = true;
-                        break;
-                    }
-                    current = current.previous;
+                Route route = fastestRoutes.get(otherZone);
+                long zoneCount = route.getNodes().stream()
+                    .filter(node -> node.isZone)
+                    .count();
+                // Only keep direct routes, that don't pass through any other zones
+                if (zoneCount > 2) {
+                    continue;
                 }
-                if (!hasIntermediateZone) {
-                    addLinkPair(node, target, route.distance);
-                }
+                zoneEdges.put(otherZone, route.distance);
             }
+        }
+
+
+
+        // Remove *everything*!
+        int before = this.nodes.size();
+        for (Node node : this.nodes) {
+            node.clear();
+        }
+        this.nodes = new HashSet<>();
+        this.nodeName = new HashMap<>();
+        this.links = new HashSet<>();
+        this.fastestRoutes = new HashMap<>();
+        // Recreate everything
+        for (Node zone : zones) {
+            this.nodes.add(zone);
+            this.nodeName.put(zone.name, zone);
+            for (Node neighbor : zones) {
+                if (zone == neighbor) {
+                    continue;
+                }
+                if (zone.hasLinkTo(neighbor)) {
+                    continue;
+                }
+                double distance = edges.get(zone).get(neighbor);
+                addLinkPair(zone, neighbor, distance);
+            }
+        }
+        if (before > this.nodes.size()) {
+            log("Scenario: Removed " + (before - this.nodes.size()) + " nodes");
         }
 
 
 
         // Regenerate routes
         log("Scenario: Caching routes...");
-        this.fastestRoutes = new HashMap<>();
         for (Node node : this.nodes) {
             Map<Node, Route> fastestRoutes = findFastestRoutes(node);
             this.fastestRoutes.put(node, fastestRoutes);

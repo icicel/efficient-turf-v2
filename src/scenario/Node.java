@@ -45,6 +45,13 @@ public class Node {
         return this.outNodes.contains(neighbor);
     }
 
+    public void clear() {
+        this.in = new HashSet<>();
+        this.out = new HashSet<>();
+        this.inNodes = new HashSet<>();
+        this.outNodes = new HashSet<>();
+    }
+
     @Override
     public String toString() {
         return name;
