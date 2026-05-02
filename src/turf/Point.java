@@ -4,14 +4,14 @@ import java.util.Set;
 import net.sf.geographiclib.Geodesic;
 import net.sf.geographiclib.GeodesicData;
 
-// An intersection between any number of Connections
+// A point on the map
 public class Point {
 
     public double lat;
     public double lon;
     public String name;
 
-    // All Connections that include this Point
+    // All Connections that end at this Point
     public Set<Connection> parents;
 
     // Defaults to null, updated externally
