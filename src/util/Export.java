@@ -1,12 +1,16 @@
 package util;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.function.Function;
@@ -18,6 +22,8 @@ import turf.Turf;
 import turf.Turf.TurfRoute;
 
 public class Export {
+
+    /* Export Turf features as CSV */
 
     // My Maps can accept max 2000 items per file, this handles that
     private static <I> void exportGeneric(
@@ -132,6 +138,55 @@ public class Export {
         }
         Path subfilePath = path.resolveSibling(filename + "_" + fileId + extension);
         Files.writeString(subfilePath, content);
+    }
+
+    /* Export entire Turf */
+
+    // Serialize
+    public static void exportTurf(Turf turf, Path path) throws IOException {
+        OutputStream out = Files.newOutputStream(path);
+        ObjectOutputStream objOut = new ObjectOutputStream(out);
+        // Points are references in multiple places so must be
+        //  serialized as pointers to a list instead
+        Set<Point> allPoints = new HashSet<>(turf.zones);
+        allPoints.addAll(turf.crossings);
+        for (Connection connection : turf.connections) {
+            allPoints.add(connection.left);
+            allPoints.add(connection.right);
+            allPoints.addAll(connection.middle);
+        }
+        List<Point> pointList = new ArrayList<>(allPoints);
+        // Recreate Connections as lists of indicess
+        // Distance can be recalculated from the points
+        Map<Point, Integer> index = new HashMap<>();
+        for (int i = 0; i < pointList.size(); i++) {
+            index.put(pointList.get(i), i);
+        }
+        List<List<Integer>> connectionList = new ArrayList<>();
+        for (Connection connection : turf.connections) {
+            List<Integer> connectionData = new ArrayList<>();
+            connectionData.add(index.get(connection.left));
+            for (Point middlePoint : connection.middle) {
+                connectionData.add(index.get(middlePoint));
+            }
+            connectionData.add(index.get(connection.right));
+            connectionList.add(connectionData);
+        }
+        // Recreate the sets
+        List<Integer> crossingList = new ArrayList<>();
+        for (Point crossing : turf.crossings) {
+            crossingList.add(index.get(crossing));
+        }
+        List<Integer> zoneList = new ArrayList<>();
+        for (Point zone : turf.zones) {
+            zoneList.add(index.get(zone));
+        }
+        // Write
+        objOut.writeObject(pointList);
+        objOut.writeObject(connectionList);
+        objOut.writeObject(crossingList);
+        objOut.writeObject(zoneList);
+        objOut.close();
     }
 
     /* Export Routes using their base Turfs */

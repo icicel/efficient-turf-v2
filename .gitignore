@@ -2,6 +2,7 @@
 launch.json
 test/*.java
 *.kml
+*.turf
 
 # exceptions
 !test/ExportExample.java

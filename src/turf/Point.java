@@ -1,18 +1,19 @@
 package turf;
+import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
 import net.sf.geographiclib.Geodesic;
 import net.sf.geographiclib.GeodesicData;
 
 // A point on the map
-public class Point {
+public class Point implements Serializable {
 
     public double lat;
     public double lon;
     public String name;
 
     // All Connections that end at this Point
-    public Set<Connection> parents;
+    public transient Set<Connection> parents;
 
     // Defaults to null, updated externally
     public Zone zone;

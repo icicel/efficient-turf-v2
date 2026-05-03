@@ -1,5 +1,8 @@
 package turf;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -28,11 +31,71 @@ import util.Logging;
 
 // Represents a collection of zones and crossings, and connections between them
 // Crossings can either be given directly, or be implied from where connections overlap
-public class Turf extends Logging {
+public class Turf extends Logging implements Serializable {
 
     public Set<Point> crossings;
     public Set<Point> zones;
     public Set<Connection> connections;
+
+    private Turf() {}
+
+    // Deserialize
+    public static Turf importTurf(Path path) throws IOException {
+        log("Turf: *** Initializing...");
+
+        InputStream in = Files.newInputStream(path);
+        ObjectInputStream objIn = new ObjectInputStream(in);
+        List<?> pointList;
+        List<?> connectionList;
+        List<?> crossingList;
+        List<?> zoneList;
+        try {
+            pointList = (List<?>) objIn.readObject();
+            connectionList = (List<?>) objIn.readObject();
+            crossingList = (List<?>) objIn.readObject();
+            zoneList = (List<?>) objIn.readObject();
+        } catch (ClassNotFoundException e) {
+            throw new IOException("ERROR: Turf not found during import");
+        } finally {
+            objIn.close();
+        }
+
+        // Actually construct the Turf object
+        log("Turf: Creating points...");
+        Turf turf = new Turf();
+        turf.crossings = new HashSet<>();
+        turf.zones = new HashSet<>();
+        turf.connections = new HashSet<>();
+        List<Point> points = new ArrayList<>();
+        for (Object o : pointList) {
+            Point point = (Point) o;
+            point.parents = new HashSet<>();
+            points.add(point);
+        }
+        for (Object o : crossingList) {
+            turf.crossings.add(points.get((Integer) o));
+        }
+        for (Object o : zoneList) {
+            turf.zones.add(points.get((Integer) o));
+        }
+
+        // Connection time, these are lists of indices into the points list
+        log("Turf: Creating connections...");
+        for (Object o : connectionList) {
+            List<Integer> indices = new ArrayList<>();
+            for (Object i : (List<?>) o) {
+                indices.add((Integer) i);
+            }
+            Point[] connection = new Point[indices.size()];
+            for (int i = 0; i < indices.size(); i++) {
+                connection[i] = points.get(indices.get(i));
+            }
+            turf.connections.add(new Connection(connection));
+        }
+
+        log("Turf: *** Initialized with " + turf.crossings.size() + " crossings and " + turf.connections.size() + " connections");
+        return turf;
+    }
 
     // Get zones and connections from the given KML file, no crossings
     // Only use if you don't actually use any crossings!

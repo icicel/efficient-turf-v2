@@ -1,11 +1,12 @@
 package turf;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import org.json.JSONObject;
 
-public class Zone {
+public class Zone implements Serializable {
 
     // Zone name, should be unique
     public String name;
