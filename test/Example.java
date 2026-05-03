@@ -11,7 +11,8 @@ public class Example {
     public static void main(String[] args) throws Exception {
         Logging.init();
 
-        Path kmlPath = Turf.getRootFilePath("example.kml");
+        Path root = Path.of(System.getProperty("user.dir"));
+        Path kmlPath = root.resolve("example.kml");
         Turf turf = new Turf(kmlPath, "Zones", "Crossings", "Connections");
         Conditions conditions = new Conditions("k-klassrum", "k-nösnäs", 90.0);
         conditions.speed = 64.0;

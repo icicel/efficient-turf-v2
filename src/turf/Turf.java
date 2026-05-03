@@ -7,7 +7,6 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -565,12 +564,5 @@ public class Turf extends Logging implements Serializable {
         double lonQuadrantEdge = Math.round(point.lon * 100) / 100.0;
         Point nearestQuadrantEdge = new Point(latQuadrantEdge, lonQuadrantEdge);
         return point.distanceTo(nearestQuadrantEdge);
-    }
-
-    /* Utility functions */
-
-    // Helper function to get a path to a file in the root directory
-    public static Path getRootFilePath(String filename) {
-        return FileSystems.getDefault().getPath(".", filename);
     }
 }
