@@ -24,7 +24,7 @@ public class Node {
         this.outNodes = new HashSet<>();
         if (point.isZone()) {
             this.points = point.zone.getPoints(username, isNow);
-            this.isZone = true;
+            this.isZone = this.points > 0;
         } else {
             this.points = 0;
             this.isZone = false;
