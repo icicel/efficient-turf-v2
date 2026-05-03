@@ -44,12 +44,7 @@ public class GreedySolver extends Solver {
             this.connections.put(node, neighborConnections);
         }
         // search for a hardcoded amount of time (may rethink this in the future)
-        long end;
-        if (timeLimit == null) {
-            end = Long.MAX_VALUE;
-        } else {
-            end = System.currentTimeMillis() + timeLimit;
-        }
+        long end = super.endTime(timeLimit);
         Route start = new Route(scenario.start);
         search(start, end);
         return new Result(finishedRoutes.values(), scenario.speed);
