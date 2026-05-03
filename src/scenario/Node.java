@@ -12,8 +12,10 @@ public class Node {
     public Set<Link> out;
     public Set<Node> inNodes;
     public Set<Node> outNodes;
-    public int points;
-    public boolean isZone;
+
+    public int realPoints; // actual points
+    public int points; // internal points
+    public boolean isZone; // if false, will be deleted by Scenario
 
     // Create a node from a point
     public Node(Point point, String username, boolean isNow) {
@@ -23,9 +25,11 @@ public class Node {
         this.inNodes = new HashSet<>();
         this.outNodes = new HashSet<>();
         if (point.isZone()) {
-            this.points = point.zone.getPoints(username, isNow);
-            this.isZone = this.points > 0;
+            this.realPoints = point.zone.getPoints(username, isNow);
+            this.points = this.realPoints;
+            this.isZone = this.realPoints > 0;
         } else {
+            this.realPoints = 0;
             this.points = 0;
             this.isZone = false;
         }

@@ -109,10 +109,11 @@ public class Scenario extends Logging {
                 if (!node.isZone) {
                     continue;
                 }
-                if (node != start && node != end) {
+                if (node == start || node == end) {
                     // start and end nodes should not be removed
-                    node.isZone = false;
+                    continue;
                 }
+                node.isZone = false;
                 node.points = 0;
                 log("Scenario: Blanked greylisted zone " + node);
             }

@@ -14,7 +14,9 @@ public class Route {
 
     public double distance;
     public int nodes;
+
     public int zones;
+    public int realPoints;
     public int points;
 
     // begin a Route with a start Node
@@ -26,6 +28,7 @@ public class Route {
         this.distance = 0.0;
         this.nodes = 1;
         this.zones = 1;
+        this.realPoints = root.realPoints;
         this.points = root.points;
     }
 
@@ -41,9 +44,11 @@ public class Route {
         this.nodes = base.nodes + 1;
         if (!base.hasVisited(node)) {
             this.zones = base.zones + 1;
+            this.realPoints = base.realPoints + this.node.realPoints;
             this.points = base.points + this.node.points;
         } else {
             this.zones = base.zones;
+            this.realPoints = base.realPoints;
             this.points = base.points;
         }
     }
@@ -112,7 +117,11 @@ public class Route {
             sb.append(" -> " + this.node.name);
         }
         sb.append("\n(");
-        sb.append(this.points).append(" points, ");
+        sb.append(this.realPoints).append(" points");
+        if (this.points != this.realPoints) {
+            sb.append(" (valued at ").append(this.points).append(")");
+        }
+        sb.append(", ");
         sb.append(this.zones).append(" zones, ");
         sb.append((int) this.distance).append("m, ");
         sb.append((int) (this.distance / speed)).append("min)");
