@@ -1,5 +1,5 @@
 package scenario;
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 // A linked list (one-way graph?) of Nodes connected by Links
@@ -83,12 +83,22 @@ public class Route {
     public List<Node> getNodes() {
         List<Node> nodes;
         if (this.previous == null) {
-            nodes = new ArrayList<>();
+            nodes = new LinkedList<>();
         } else {
             nodes = this.previous.getNodes();
         }
         nodes.add(this.node);
         return nodes;
+    }
+    public List<Link> getLinks() {
+        List<Link> links;
+        if (this.previous == null) {
+            links = new LinkedList<>();
+        } else {
+            links = this.previous.getLinks();
+            links.add(this.link);
+        }
+        return links;
     }
 
     @Override
