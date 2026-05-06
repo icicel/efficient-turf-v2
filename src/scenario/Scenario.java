@@ -185,7 +185,10 @@ public class Scenario extends Logging {
                 if (zone.hasLinkTo(neighbor)) {
                     continue;
                 }
-                double distance = edges.get(zone).get(neighbor);
+                Double distance = edges.get(zone).get(neighbor);
+                if (distance == null) {
+                    continue;
+                }
                 addLinkPair(zone, neighbor, distance);
             }
         }

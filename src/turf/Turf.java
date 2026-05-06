@@ -260,40 +260,58 @@ public class Turf extends Logging implements Serializable {
             String quadrantKey = getQuadrantKey(crossing);
             quadrantMap.computeIfAbsent(quadrantKey, k -> new HashSet<>()).add(crossing);
         }
-        for (Point zone : this.zones) {
+        for (Point zone : new HashSet<>(this.zones)) {
             // Find closest point in the same quadrant as the zone
             String quadrantKey = getQuadrantKey(zone);
             Set<Point> crossingsInQuadrant = quadrantMap.get(quadrantKey);
-            if (crossingsInQuadrant != null) {
-                Point closestCrossing = closestPoint(crossingsInQuadrant, zone);
-                // Only accept this point if it's closer than the edge of the quadrant
-                //  meaning it's closer than any point in a different quadrant
-                if (zone.distanceTo(closestCrossing) < distanceToQuadrantEdge(zone)) {
-                    Connection connection = new Connection(zone, closestCrossing);
-                    connections.add(connection);
-                    continue;
-                }
+            Point closestCrossing = closestPoint(crossingsInQuadrant, zone);
+            // Only accept this point if it's closer than the edge of the quadrant
+            //  meaning it's closer than any point in a different quadrant
+            if (closestCrossing == null || zone.distanceTo(closestCrossing) > distanceToQuadrantEdge(zone)) {
+                // Failure, search globally
+                // This shouldn't be too common since zones are usually close to OSM highways
+                closestCrossing = closestPoint(this.crossings, zone);
             }
-            // Failure, search globally
-            // This shouldn't be too common since zones are usually close to OSM highways
-            Point closestCrossing = closestPoint(this.crossings, zone);
+            // Connect to the zone
             Connection connection = new Connection(zone, closestCrossing);
             connections.add(connection);
         }
 
-
-        // Remove connection chains/linear intersections/cases where a point has only 2 parents
-        // This will be the case for most connections
         log("Turf: Simplifying " + connections.size() + " connections...");
-        Set<Point> toCheck = new HashSet<>(crossings);
-        for (Point point : toCheck) {
-            if (point.parents.size() != 2) {
-                continue;
-            }
-            mergeOverPivot(point);
-        }
+        simplify();
 
         log("Turf: *** Initialized with " + crossings.size() + " crossings and " + connections.size() + " connections");
+    }
+
+    private void simplify() {
+        // Remove connection chains/linear intersections/cases where a point has only 2 parents
+        // This will be the case for most connections
+        for (Point crossing : new HashSet<>(this.crossings)) {
+            if (crossing.parents.size() == 0) {
+                crossings.remove(crossing);
+            } else if (crossing.parents.size() == 2 && !zones.contains(crossing)) {
+                mergeOverPivot(crossing);
+            }
+        }
+        // Remove zone connections that are too short by placing the zone directly at its neighbor
+        for (Point zone : new HashSet<>(this.zones)) {
+            if (zone.parents.size() != 1) {
+                continue;
+            }
+            Connection connection = zone.parents.iterator().next();
+            if (connection.distance > 30) {
+                continue;
+            }
+            Point neighbor = connection.other(zone);
+            neighbor.zone = zone.zone;
+            neighbor.name = zone.name;
+            zones.remove(zone);
+            crossings.remove(neighbor);
+            zones.add(neighbor);
+            neighbor.parents.remove(connection);
+            connections.remove(connection);
+        }
+
     }
 
     /* Zone points */
@@ -496,14 +514,7 @@ public class Turf extends Logging implements Serializable {
             }
         }
         // Cleanup
-        // Theoretically, no crossing should have only one parent
-        for (Point point : new HashSet<>(crossings)) {
-            if (point.parents.size() == 0) {
-                crossings.remove(point);
-            } else if (point.parents.size() == 2) {
-                mergeOverPivot(point);
-            }
-        }
+        simplify();
         log("Turf: *** Optimized to " + crossings.size() + " crossings and " + connections.size() + " connections");
     }
 
@@ -544,9 +555,12 @@ public class Turf extends Logging implements Serializable {
 
     // Returns the closest Point in the given set to a given Point
     public static Point closestPoint(Set<Point> points, Point point) {
+        if (points == null || points.isEmpty()) {
+            return null;
+        }
         return points.stream()
             .min(Comparator.comparingDouble(p -> point.distanceTo(p)))
-            .orElseThrow();
+            .orElse(null);
     }
 
     // Get the key for the quadrant that the given Point falls into
