@@ -279,13 +279,6 @@ public class Turf extends Logging implements Serializable {
 
 
         log("Turf: Simplifying " + connections.size() + " connections...");
-        // Remove connection chains/linear intersections/cases where a point has only 2 parents
-        // This will be the case for most connections
-        for (Point crossing : new HashSet<>(this.crossings)) {
-            if (crossing.parents.size() == 2 && !zones.contains(crossing)) {
-                mergeOverPivot(crossing);
-            }
-        }
         // Remove zone connections that are too short by placing the zone directly at its neighbor
         for (Point zone : new HashSet<>(this.zones)) {
             if (zone.parents.size() != 1) {
@@ -303,6 +296,13 @@ public class Turf extends Logging implements Serializable {
             zones.add(neighbor);
             neighbor.parents.remove(connection);
             connections.remove(connection);
+        }
+        // Remove connection chains/linear intersections/cases where a point has only 2 parents
+        // This will be the case for most connections
+        for (Point crossing : new HashSet<>(this.crossings)) {
+            if (crossing.parents.size() == 2 && !zones.contains(crossing)) {
+                mergeOverPivot(crossing);
+            }
         }
 
 
