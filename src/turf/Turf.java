@@ -277,19 +277,12 @@ public class Turf extends Logging implements Serializable {
             connections.add(connection);
         }
 
+
         log("Turf: Simplifying " + connections.size() + " connections...");
-        simplify();
-
-        log("Turf: *** Initialized with " + crossings.size() + " crossings and " + connections.size() + " connections");
-    }
-
-    private void simplify() {
         // Remove connection chains/linear intersections/cases where a point has only 2 parents
         // This will be the case for most connections
         for (Point crossing : new HashSet<>(this.crossings)) {
-            if (crossing.parents.size() == 0) {
-                crossings.remove(crossing);
-            } else if (crossing.parents.size() == 2 && !zones.contains(crossing)) {
+            if (crossing.parents.size() == 2 && !zones.contains(crossing)) {
                 mergeOverPivot(crossing);
             }
         }
@@ -312,6 +305,8 @@ public class Turf extends Logging implements Serializable {
             connections.remove(connection);
         }
 
+
+        log("Turf: *** Initialized with " + crossings.size() + " crossings and " + connections.size() + " connections");
     }
 
     /* Zone points */
@@ -514,7 +509,13 @@ public class Turf extends Logging implements Serializable {
             }
         }
         // Cleanup
-        simplify();
+        for (Point crossing : new HashSet<>(this.crossings)) {
+            if (crossing.parents.size() == 0) {
+                crossings.remove(crossing);
+            } else if (crossing.parents.size() == 2 && !zones.contains(crossing)) {
+                mergeOverPivot(crossing);
+            }
+        }
         log("Turf: *** Optimized to " + crossings.size() + " crossings and " + connections.size() + " connections");
     }
 
