@@ -573,11 +573,14 @@ public class Turf extends Logging implements Serializable {
     }
 
     // Shortest distance to the edge of the quadrant
-    // Ex: lat=-37.7749, lon=-122.4194 -> nearestQuadrantEdge=(-37.77,-122.42)
     private static double distanceToQuadrantEdge(Point point) {
         double latQuadrantEdge = Math.round(point.lat * 100) / 100.0;
         double lonQuadrantEdge = Math.round(point.lon * 100) / 100.0;
-        Point nearestQuadrantEdge = new Point(latQuadrantEdge, lonQuadrantEdge);
-        return point.distanceTo(nearestQuadrantEdge);
+        Point nearestHorizontalEdge = new Point(point.lat, lonQuadrantEdge);
+        Point nearestVerticalEdge = new Point(latQuadrantEdge, point.lon);
+        return Math.min(
+            point.distanceTo(nearestHorizontalEdge), 
+            point.distanceTo(nearestVerticalEdge)
+        );
     }
 }
