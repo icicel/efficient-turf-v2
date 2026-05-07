@@ -545,6 +545,7 @@ public class Turf extends Logging implements Serializable {
 
     public void insertCrossing(double lat, double lon, String name) {
         Point crossing = new Point(lat, lon, name);
+        crossing.zone = new Zone(); // dummy zone so optimize doesn't remove it
         Point closest = closestPoint(this.crossings, crossing);
         Connection connection = new Connection(crossing, closest);
         this.crossings.add(crossing);

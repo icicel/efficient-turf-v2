@@ -104,10 +104,16 @@ public class Zone implements Serializable {
         }
     }
 
+    public Zone() {
+        // dummy zone
+    }
+
     // Returns the amount of points the zone is worth for the given user
     // If isNow is false, ignores premature end-of-round resets, revisitability, and the neutral bonus
     public int getPoints(String username, boolean isNow) {
-        if (!isNow) {
+        if (name == null) {
+            return 0;
+        } else if (!isNow) {
             return takeoverPoints + (int) (hourlyPoints * expectedHoursHeldMax);
         } else if (owner == null) { // neutral bonus
             return takeoverPoints + (int) (hourlyPoints * expectedHoursHeldFromNow) + 50;
