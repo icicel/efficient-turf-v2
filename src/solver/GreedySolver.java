@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import scenario.Link;
 import scenario.Node;
 import scenario.Route;
 import scenario.Scenario;
@@ -21,6 +22,7 @@ public class GreedySolver extends Solver {
 
     // graph
     private Map<Node, Map<Node, Double>> connections;
+    private Map<Link, Set<Link>> crosses;
 
     // record points
     private Route bestRoute;
@@ -42,6 +44,30 @@ public class GreedySolver extends Solver {
                 neighborConnections.put(other, directRoute.distance);
             }
             this.connections.put(node, neighborConnections);
+        }
+        // find crosses
+        // these are pairs of links AB and CD that can't coexist in a route,
+        //  because traveling AC and BD instead is shorter (usually because AB and CD cross)
+        this.crosses = new HashMap<>();
+        int c = 1;
+        for (Node nodeB : scenario.nodes) {
+            System.out.print("Finding crosses... (" + c++ + "/" + scenario.nodes.size() + ")\r");
+            for (Node nodeC : scenario.nodes) {
+                if (nodeB == nodeC) {
+                    continue;
+                }
+                // find all nodes neighbored by both nodeB and nodeC
+                Set<Node> bothNeighbors = new HashSet<>(nodeB.outNodes);
+                bothNeighbors.retainAll(nodeC.outNodes);
+                for (Node nodeA : bothNeighbors) {
+                    for (Node nodeD : bothNeighbors) {
+                        if (nodeA == nodeD) {
+                            continue;
+                        }
+                        crossCheck(nodeA, nodeB, nodeC, nodeD);
+                    }
+                }
+            }
         }
         // search for a hardcoded amount of time (may rethink this in the future)
         long end = super.endTime(timeLimit);
@@ -92,16 +118,27 @@ public class GreedySolver extends Solver {
             if (base.distance + nextDistance + endRoute.distance > this.scenario.distanceLimit) {
                 continue;
             }
-            // Visiting the last four nodes in another order would've been more efficient
-            if (lastFourCheck(base, nextNode)) {
-                continue;
-             }
-            // Extend route
+            // Extend route while checking for crosses
             Route currentToNext = this.scenario.fastestRoutes.get(current).get(nextNode);
-            Route next = Route.extend(base, currentToNext);
-            if (next.node == this.scenario.end) {
+            Route next = base;
+            boolean crosses = false;
+            for (Link link : currentToNext.getLinks()) {
+                next = new Route(next, link);
+                crosses = crossesRoute(link, next);
+                if (crosses) {
+                    break;
+                }
+            }
+            if (crosses) {
+                continue;
+            }
+            // Finish route if it has reached the end
+            if (nextNode == this.scenario.end) {
                 finishRoute(next);
-                continue; // may re-remove this line
+                // Don't branch from end
+                // May rethink this in the future, the optimal route could theoretically
+                //  involve revisiting end like if it's at a chokepoint
+                continue;
             }
             // Recurse
             search(next, nextBranchEnd);
@@ -128,17 +165,28 @@ public class GreedySolver extends Solver {
         }
     }
 
-    private boolean lastFourCheck(Route route, Node newNode) {
-        if (route.nodes >= 3) {
-            Node lastNode = route.node;
-            Node last2Node = route.previous.node;
-            Node last3Node = route.previous.previous.node;
-            return (
-                this.connections.get(lastNode).get(newNode) +
-                this.connections.get(last3Node).get(last2Node) >
-                this.connections.get(last2Node).get(newNode) +
-                this.connections.get(last3Node).get(lastNode)
-            );
+    // AB + CD < AC + BD
+    private void crossCheck(Node nodeA, Node nodeB, Node nodeC, Node nodeD) {
+        Link linkAB = nodeA.getLinkTo(nodeB);
+        Link linkCD = nodeC.getLinkTo(nodeD);
+        Link linkAC = nodeA.getLinkTo(nodeC);
+        Link linkBD = nodeB.getLinkTo(nodeD);
+        if (linkAB.distance + linkCD.distance < linkAC.distance + linkBD.distance) {
+            return;
+        }
+        // AB and CD "cross"
+        this.crosses.computeIfAbsent(linkAB, k -> new HashSet<>())
+            .add(linkCD);
+        this.crosses.computeIfAbsent(linkCD, k -> new HashSet<>())
+            .add(linkAB);
+    }
+
+    private boolean crossesRoute(Link link, Route route) {
+        for (Link routeLink : route.getLinks()) {
+            Set<Link> crossesWith = this.crosses.get(link);
+            if (crossesWith != null && crossesWith.contains(routeLink)) {
+                return true;
+            }
         }
         return false;
     }

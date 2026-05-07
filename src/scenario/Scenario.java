@@ -3,7 +3,6 @@ import java.io.Console;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
@@ -261,9 +260,6 @@ public class Scenario extends Logging {
         }
         this.nodes.remove(node);
         this.nodeName.remove(node.name);
-        for (Link link : new LinkedList<>(node.in)) {
-            removeLinkPair(link);
-        }
         for (Link link : new LinkedList<>(node.out)) {
             removeLinkPair(link);
         }
@@ -277,13 +273,9 @@ public class Scenario extends Logging {
         this.links.remove(link);
         link.parent.out.remove(link);
         link.parent.outNodes.remove(link.neighbor);
-        link.neighbor.in.remove(link);
-        link.neighbor.inNodes.remove(link.parent);
         this.links.remove(link.reverse);
         link.reverse.parent.out.remove(link.reverse);
         link.reverse.parent.outNodes.remove(link.reverse.neighbor);
-        link.reverse.neighbor.in.remove(link.reverse);
-        link.reverse.neighbor.inNodes.remove(link.reverse.parent);
     }
 
     /* Graph maintenance */
@@ -381,9 +373,7 @@ public class Scenario extends Logging {
     public void nodeViewer() {
         Console in = System.console(); // BufferedReader requires Charset shenanigans
         System.out.println(
-            "out <node>\tView outgoing links\n" +
-            "in <node>\tView incoming links\n" +
-            "links <node>\tView outgoing/incoming links\n" +
+            "links <node>\tView links\n" +
             "route <node> <node>\tView fastest route\n" +
             "routes <node>\tView all fastest routes"
         );
@@ -399,36 +389,9 @@ public class Scenario extends Logging {
                 continue;
             }
             switch (input[0]) {
-                case "out":
-                    for (Link link : node.out) {
-                        System.out.println("\t" + link.neighbor.name + " (" + link.distance + ")");
-                    }
-                    break;
-                
-                case "in":
-                    for (Link link : node.in) {
-                        System.out.println("\t" + link.parent.name + " (" + link.distance + ")");
-                    }
-                    break;
-                
                 case "links":
-                    List<Node> outNeighbors = node.out.stream()
-                        .map(link -> link.neighbor)
-                        .toList();
-                    List<Node> inNeighbors = node.in.stream()
-                        .map(link -> link.parent)
-                        .toList();
-                    for (Link outLink : node.out) {
-                        if (inNeighbors.contains(outLink.neighbor)) {
-                            System.out.println("\t<-> " + outLink.neighbor.name + " (" + outLink.distance + ")");
-                        } else {
-                            System.out.println("\t-> " + outLink.neighbor.name + " (" + outLink.distance + ")");
-                        }
-                    }
-                    for (Link inLink : node.in) {
-                        if (!outNeighbors.contains(inLink.parent)) {
-                            System.out.println("\t<- " + inLink.parent.name + " (" + inLink.distance + ")");
-                        }
+                    for (Link link : node.out) {
+                        System.out.println("\t-> " + link.neighbor.name + " (" + link.distance + ")");
                     }
                     break;
                 

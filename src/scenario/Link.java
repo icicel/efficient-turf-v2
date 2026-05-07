@@ -27,8 +27,7 @@ public class Link {
 
         parent.out.add(this);
         parent.outNodes.add(neighbor);
-        neighbor.in.add(this);
-        neighbor.inNodes.add(parent);
+        parent.outMap.put(neighbor, this);
 
         // Reverse handling
         if (neighbor.hasLinkTo(parent)) {
@@ -40,14 +39,6 @@ public class Link {
     @Override
     public String toString() {
         return parent.name + " -> " + neighbor.name;
-    }
-
-    // Pretend the Link is a Connection if its reverse exists
-    public String pairString() {
-        if (this.reverse == null) {
-            return this.toString();
-        }
-        return parent.name + " <-> " + neighbor.name;
     }
 
     @Override

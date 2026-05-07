@@ -1,5 +1,7 @@
 package scenario;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import turf.Point;
 
@@ -8,10 +10,9 @@ import turf.Point;
 public class Node {
 
     public String name;
-    public Set<Link> in;
     public Set<Link> out;
-    public Set<Node> inNodes;
     public Set<Node> outNodes;
+    public Map<Node, Link> outMap;
 
     public int realPoints; // actual points
     public int points; // internal points
@@ -20,10 +21,9 @@ public class Node {
     // Create a node from a point
     public Node(Point point, String username, boolean isNow) {
         this.name = point.toString();
-        this.in = new HashSet<>();
         this.out = new HashSet<>();
-        this.inNodes = new HashSet<>();
         this.outNodes = new HashSet<>();
+        this.outMap = new HashMap<>();
         if (point.isZone()) {
             this.realPoints = point.zone.getPoints(username, isNow);
             this.points = this.realPoints;
@@ -37,12 +37,7 @@ public class Node {
 
     // Retrieve an outgoing link to a neighbor node
     public Link getLinkTo(Node neighbor) {
-        for (Link link : this.out) {
-            if (link.neighbor == neighbor) {
-                return link;
-            }
-        }
-        return null; // No link to that node
+        return this.outMap.get(neighbor);
     }
 
     public boolean hasLinkTo(Node neighbor) {
@@ -50,10 +45,9 @@ public class Node {
     }
 
     public void clear() {
-        this.in = new HashSet<>();
         this.out = new HashSet<>();
-        this.inNodes = new HashSet<>();
         this.outNodes = new HashSet<>();
+        this.outMap = new HashMap<>();
     }
 
     @Override
