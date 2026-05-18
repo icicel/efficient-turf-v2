@@ -55,10 +55,14 @@ public class XML {
         StringBuilder data = new StringBuilder();
         data.append("[bbox:" + south + "," + west + "," + north + "," + east + "];");
         data.append("(");
-        data.append("way[\"highway\"][\"highway\"!=\"motorway\"][\"highway\"!=\"trunk\"][\"highway\"!=\"primary\"][\"highway\"!=\"secondary\"][\"access\"!=\"private\"];");
-        data.append("way[\"route\"=\"ferry\"];");
+        data.append("way[highway][highway!~motorway][highway!~trunk][highway!~primary][highway!~secondary][highway!=construction];");
+        data.append("way[route=ferry];");
+        data.append(")->.walkable;");
+        data.append("(");
+        data.append("way.walkable[access!=no][access!=private][foot!=no];");
+        data.append("way.walkable[foot=yes];");
         data.append(");");
-        data.append("out skel geom;");
+        data.append("out body geom qt;");
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create("http://overpass-api.de/api/interpreter"))
