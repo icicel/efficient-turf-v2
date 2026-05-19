@@ -207,6 +207,7 @@ public class Turf extends Logging implements Serializable {
                 // If they actually are different, this won't cause any issues
                 // Kinda hacky...
                 connection.distance += 0.001;
+                connection.weightedDistance += 0.001;
             }
             connection.overrideEndpoints(left, right);
         }
@@ -447,6 +448,7 @@ public class Turf extends Logging implements Serializable {
         neighbor.right = rightEnd;
         // Update neighbor's connections
         neighbor.distance += connection.distance;
+        neighbor.weightedDistance += connection.weightedDistance;
         rightEnd.parents.add(neighbor);
         // Remove pivot and connection from the network
         this.crossings.remove(pivot);
@@ -538,7 +540,7 @@ public class Turf extends Logging implements Serializable {
             this.point = extension.other(previous.point);
             this.connectionFromPrevious = extension;
             this.previous = previous;
-            this.length = previous.length + extension.distance;
+            this.length = previous.length + extension.weightedDistance;
         }
     }
 

@@ -11,6 +11,7 @@ public class Connection {
     public Point right;
 
     public double distance; // meters
+    public double weightedDistance; // distance weighted by highway type
 
     // Convert an array of Points to a Connection
     public Connection(Point[] coordinates) {
@@ -27,18 +28,25 @@ public class Connection {
             this.distance += current.distanceTo(next);
             this.middle.add(current);
         }
+        this.weightedDistance = this.distance; // no weighting logic for non-osm connections
         left.parents.add(this);
         right.parents.add(this);
     }
 
     // A direct connection, with no middle
-    public Connection(Point left, Point right) {
+    public Connection(Point left, Point right, double weight) {
         this.left = left;
         this.right = right;
         this.middle = new ArrayList<>();
         this.distance = left.distanceTo(right);
+        this.weightedDistance = this.distance * weight;
         left.parents.add(this);
         right.parents.add(this);
+    }
+
+    // Unweighted direct connection
+    public Connection(Point left, Point right) {
+        this(left, right, 1);
     }
 
     // Does not update distance

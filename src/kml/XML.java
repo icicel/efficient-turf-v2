@@ -32,6 +32,15 @@ public class XML {
         Element root = xml.getRootElement();
 
         for (Element element : root.getChildElements("way")) {
+            // Find highway type
+            Elements tags = element.getChildElements("tag");
+            String highway = null;
+            for (Element tag : tags) {
+                if (tag.getAttributeValue("k").equals("highway")) {
+                    highway = tag.getAttributeValue("v");
+                    break;
+                }
+            }
             // Create a Point for each node
             Elements nodes = element.getChildElements("nd");
             Point[] points = new Point[nodes.size()];
@@ -43,8 +52,9 @@ public class XML {
                 points[i] = new Point(lat, lon, ref);
             }
             // Create Connections between the Points
+            double weight = highwayWeight(highway);
             for (int i = 0; i < points.length - 1; i++) {
-                Connection connection = new Connection(points[i], points[i + 1]);
+                Connection connection = new Connection(points[i], points[i + 1], weight);
                 ways.add(connection);
             }
         }
@@ -55,7 +65,7 @@ public class XML {
         StringBuilder data = new StringBuilder();
         data.append("[bbox:" + south + "," + west + "," + north + "," + east + "];");
         data.append("(");
-        data.append("way[highway][highway!~motorway][highway!~trunk][highway!~primary][highway!~secondary][highway!=construction];");
+        data.append("way[highway][highway!~motorway][highway!~trunk][highway!=construction][highway!=proposed][highway!=no];");
         data.append("way[route=ferry];");
         data.append(")->.walkable;");
         data.append("(");
@@ -83,4 +93,23 @@ public class XML {
         parse(xml);
     }
 
+    public double highwayWeight(String highway) {
+        if (highway == null) {
+            return 1;
+        }
+        switch (highway) {
+            case "primary":
+            case "primary_link":
+            case "secondary":
+            case "secondary_link":
+                return 1.5;
+            case "tertiary":
+            case "tertiary_link":
+            case "unclassified":
+            case "corridor":
+                return 1.25;
+            default:
+                return 1;
+        }
+    }
 }
