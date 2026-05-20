@@ -5,13 +5,11 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.function.Function;
 import scenario.Node;
@@ -200,7 +198,7 @@ public class Export {
             Point start = points.get(i);
             Point end = points.get(i + 1);
             // Construct a backwards turfRoute to drain it in the correct order
-            TurfRoute turfRoute = pathfind(turf, end, start);
+            TurfRoute turfRoute = turf.pathfind(end, start);
             List<Connection> connections = new LinkedList<>();
             while (turfRoute.previous != null) {
                 connections.add(turfRoute.connectionFromPrevious);
@@ -274,34 +272,5 @@ public class Export {
             points.add(point);
         }
         return points;
-    }
-
-    /* Inconspicuous pathfinder */
-
-    // Heavily copied from Turf.optimize
-    public static TurfRoute pathfind(Turf turf, Point start, Point end) {
-        PriorityQueue<TurfRoute> queue = new PriorityQueue<>(
-            Comparator.comparingDouble(route -> route.length)
-        );
-        Set<Point> visited = new HashSet<>();
-        queue.add(turf.new TurfRoute(start));
-        while (!queue.isEmpty()) {
-            TurfRoute route = queue.remove();
-            Point current = route.point;
-            if (visited.contains(current)) {
-                continue;
-            }
-            visited.add(current);
-            // Finish route if we reach end
-            if (current.equals(end)) {
-                return route;
-            }
-            // Extend the route with all connections from the current point
-            for (Connection extension : current.parents) {
-                TurfRoute nextRoute = turf.new TurfRoute(extension, route);
-                queue.add(nextRoute);
-            }
-        }
-        throw new RuntimeException("No path found from " + start + " to " + end);
     }
 }

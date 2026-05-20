@@ -463,6 +463,59 @@ public class Turf extends Logging implements Serializable {
         connection.right.parents.remove(connection);
     }
 
+    // Get routes from a point to all zones
+    public Map<Point, TurfRoute> findFastestRoutes(Point start) {
+        Map<Point, TurfRoute> routes = new HashMap<>();
+        PriorityQueue<TurfRoute> queue = new PriorityQueue<>(
+            Comparator.comparingDouble(route -> route.length)
+        );
+        Set<Point> visited = new HashSet<>();
+        queue.add(new TurfRoute(start));
+        while (!queue.isEmpty()) {
+            TurfRoute route = queue.remove();
+            Point current = route.point;
+            if (visited.contains(current)) {
+                continue;
+            }
+            visited.add(current);
+            // Save route to current
+            routes.put(current, route);
+            // Extend the route with all connections from the current point
+            for (Connection extension : current.parents) {
+                TurfRoute nextRoute = new TurfRoute(extension, route);
+                queue.add(nextRoute);
+            }
+        }
+        return routes;
+    }
+
+    // Get routes from a point to another point
+    public TurfRoute pathfind(Point start, Point end) {
+        PriorityQueue<TurfRoute> queue = new PriorityQueue<>(
+            Comparator.comparingDouble(route -> route.length)
+        );
+        Set<Point> visited = new HashSet<>();
+        queue.add(new TurfRoute(start));
+        while (!queue.isEmpty()) {
+            TurfRoute route = queue.remove();
+            Point current = route.point;
+            if (visited.contains(current)) {
+                continue;
+            }
+            visited.add(current);
+            // Finish route if we reach end
+            if (current.equals(end)) {
+                return route;
+            }
+            // Extend the route with all connections from the current point
+            for (Connection extension : current.parents) {
+                TurfRoute nextRoute = new TurfRoute(extension, route);
+                queue.add(nextRoute);
+            }
+        }
+        throw new RuntimeException("No path found from " + start + " to " + end);
+    }
+
     // Remove all connections except those who are part of some shortest path between
     //  any two zones
     // Works similarly to Node.findFastestRoutes and uses a similar Route class
@@ -470,37 +523,21 @@ public class Turf extends Logging implements Serializable {
         log("Turf: Optimizing...");
         Set<Connection> optimalConnections = new HashSet<>();
         Set<Point> hasBeenStart = new HashSet<>();
+        int c = 1;
         for (Point start : zones) {
+            System.out.print("Finding routes... (" + c++ + "/" + zones.size() + ")\r");
             hasBeenStart.add(start);
-            // Prioritize paths by its last point's distance to start
-            PriorityQueue<TurfRoute> queue = new PriorityQueue<>(
-                Comparator.comparingDouble(route -> route.length)
-            );
-            Set<Point> visited = new HashSet<>();
-            queue.add(new TurfRoute(start));
-            // Dijkstra's time!
-            while (!queue.isEmpty()) {
-                TurfRoute route = queue.remove();
-                Point current = route.point;
-                if (visited.contains(current)) {
+            Map<Point, TurfRoute> routes = findFastestRoutes(start);
+            for (Point end : zones) {
+                // If end has already been a start point, then start->end has already been processed
+                if (hasBeenStart.contains(end)) {
                     continue;
                 }
-                visited.add(current);
-                // If current is a zone, then route is the shortest path
                 // Backtrack the route and add all connections along the way to optimalConnections
-                // If current has already been a start point, then we have already found the
-                //  shortest path to it, so skip
-                if (current.isZone() && !hasBeenStart.contains(current)) {
-                    TurfRoute backtrack = route;
-                    while (backtrack.previous != null) {
-                        optimalConnections.add(backtrack.connectionFromPrevious);
-                        backtrack = backtrack.previous;
-                    }
-                }
-                // Extend the route with all connections from the current point
-                for (Connection extension : current.parents) {
-                    TurfRoute nextRoute = new TurfRoute(extension, route);
-                    queue.add(nextRoute);
+                TurfRoute backtrack = routes.get(end);
+                while (backtrack.previous != null) {
+                    optimalConnections.add(backtrack.connectionFromPrevious);
+                    backtrack = backtrack.previous;
                 }
             }
         }
@@ -521,7 +558,6 @@ public class Turf extends Logging implements Serializable {
         log("Turf: *** Optimized to " + crossings.size() + " crossings and " + connections.size() + " connections");
     }
 
-    // Exlusively for Turf.optimize
     // Turf equivalent of scenario.Route - a linked list with extra steps
     public class TurfRoute {
         public Point point;
@@ -546,12 +582,13 @@ public class Turf extends Logging implements Serializable {
 
     /* Customization */
 
-    public void insertCrossing(double lat, double lon, String name) {
-        Point crossing = new Point(lat, lon, name);
-        crossing.zone = new Zone(); // dummy zone so optimize doesn't remove it
-        Point closest = closestPoint(this.crossings, crossing);
-        Connection connection = new Connection(crossing, closest);
-        this.crossings.add(crossing);
+    // Insert a dummy zone with no points
+    public void insertZone(double lat, double lon, String name) {
+        Point zone = new Point(lat, lon, name);
+        zone.zone = new Zone();
+        Point closest = closestPoint(this.crossings, zone);
+        Connection connection = new Connection(zone, closest);
+        this.zones.add(zone);
         this.connections.add(connection);
     }
 
