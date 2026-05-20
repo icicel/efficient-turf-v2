@@ -69,8 +69,9 @@ public class XML {
         data.append("way[route=ferry];");
         data.append(")->.walkable;");
         data.append("(");
-        data.append("way.walkable[access!=no][access!=private][foot!=no];");
+        data.append("way.walkable[foot!=no][access!=no][access!=private][!junction];");
         data.append("way.walkable[foot=yes];");
+        data.append("way.walkable[foot=designated];");
         data.append(");");
         data.append("out body geom qt;");
         HttpClient client = HttpClient.newHttpClient();
@@ -98,14 +99,18 @@ public class XML {
             return 1;
         }
         switch (highway) {
+            // we really don't want to walk on primary/secondary but if we have to, we have to
             case "primary":
             case "primary_link":
             case "secondary":
             case "secondary_link":
-                return 1.5;
+                return 20;
+            // just a slight deprioritization, allows for shortcuts
             case "tertiary":
             case "tertiary_link":
             case "unclassified":
+            case "residential":
+            case "road":
             case "corridor":
                 return 1.25;
             default:
