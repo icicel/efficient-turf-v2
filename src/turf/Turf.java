@@ -254,7 +254,7 @@ public class Turf extends Logging implements Serializable {
 
 
         // Create direct connections between all zones and their nearest crossing
-        // Identify each crossing with its hundredth-degree lat/lon quadrant
+        // Identify each crossing with a lat/lon quadrant
         log("Turf: Connecting zones...");
         Map<String, Set<Point>> quadrantMap = new HashMap<>();
         for (Point crossing : this.crossings) {
@@ -605,17 +605,16 @@ public class Turf extends Logging implements Serializable {
     }
 
     // Get the key for the quadrant that the given Point falls into
-    // Ex: lat=-37.7749, lon=-122.4194 -> quadrantKey="-3777-12241"
     private static String getQuadrantKey(Point point) {
-        int latQuadrant = (int) Math.floor(point.lat * 100);
-        int lonQuadrant = (int) Math.floor(point.lon * 100);
+        int latQuadrant = (int) Math.floor(point.lat * 50);
+        int lonQuadrant = (int) Math.floor(point.lon * 50);
         return latQuadrant + "" + lonQuadrant;
     }
 
     // Shortest distance to the edge of the quadrant
     private static double distanceToQuadrantEdge(Point point) {
-        double latQuadrantEdge = Math.round(point.lat * 100) / 100.0;
-        double lonQuadrantEdge = Math.round(point.lon * 100) / 100.0;
+        double latQuadrantEdge = Math.round(point.lat * 50) / 50.0;
+        double lonQuadrantEdge = Math.round(point.lon * 50) / 50.0;
         return Math.min(
             point.distanceTo(point.lat, lonQuadrantEdge), 
             point.distanceTo(latQuadrantEdge, point.lon)
