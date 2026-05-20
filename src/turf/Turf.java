@@ -616,11 +616,9 @@ public class Turf extends Logging implements Serializable {
     private static double distanceToQuadrantEdge(Point point) {
         double latQuadrantEdge = Math.round(point.lat * 100) / 100.0;
         double lonQuadrantEdge = Math.round(point.lon * 100) / 100.0;
-        Point nearestHorizontalEdge = new Point(point.lat, lonQuadrantEdge);
-        Point nearestVerticalEdge = new Point(latQuadrantEdge, point.lon);
         return Math.min(
-            point.distanceTo(nearestHorizontalEdge), 
-            point.distanceTo(nearestVerticalEdge)
+            point.distanceTo(point.lat, lonQuadrantEdge), 
+            point.distanceTo(latQuadrantEdge, point.lon)
         );
     }
 }

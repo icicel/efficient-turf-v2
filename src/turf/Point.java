@@ -48,9 +48,12 @@ public class Point implements Serializable {
     }
 
     // Calculates geodesic distance in meters to another Point
-    public double distanceTo(Point other) {
-        GeodesicData data = Geodesic.WGS84.Inverse(this.lat, this.lon, other.lat, other.lon);
+    public double distanceTo(double lat, double lon) {
+        GeodesicData data = Geodesic.WGS84.Inverse(this.lat, this.lon, lat, lon);
         return data.s12;
+    }
+    public double distanceTo(Point other) {
+        return distanceTo(other.lat, other.lon);
     }
 
     public boolean isNeighbor(Point other) {
