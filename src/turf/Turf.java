@@ -463,11 +463,13 @@ public class Turf extends Logging implements Serializable {
         connection.right.parents.remove(connection);
     }
 
-    // Get routes from a point to all zones
-    public Map<Point, TurfRoute> findFastestRoutes(Point start) {
+    /* Pathfinding */
+
+    // Get routes from a point to all points
+    public Map<Point, TurfRoute> routesFrom(Point start) {
         Map<Point, TurfRoute> routes = new HashMap<>();
         PriorityQueue<TurfRoute> queue = new PriorityQueue<>(
-            Comparator.comparingDouble(route -> route.length)
+            Comparator.comparingDouble(route -> route.weightedDistance)
         );
         Set<Point> visited = new HashSet<>();
         queue.add(new TurfRoute(start));
@@ -492,7 +494,7 @@ public class Turf extends Logging implements Serializable {
     // Get routes from a point to another point
     public TurfRoute pathfind(Point start, Point end) {
         PriorityQueue<TurfRoute> queue = new PriorityQueue<>(
-            Comparator.comparingDouble(route -> route.length)
+            Comparator.comparingDouble(route -> route.weightedDistance)
         );
         Set<Point> visited = new HashSet<>();
         queue.add(new TurfRoute(start));
@@ -516,6 +518,59 @@ public class Turf extends Logging implements Serializable {
         throw new RuntimeException("No path found from " + start + " to " + end);
     }
 
+    // Get routes from a point over a subset of points to all reachable points
+    // Subset must include start
+    public Map<Point, TurfRoute> routesOverSubset(Point start, Set<Point> subset) {
+        Map<Point, TurfRoute> routes = new HashMap<>();
+        PriorityQueue<TurfRoute> queue = new PriorityQueue<>(
+            Comparator.comparingDouble(route -> route.weightedDistance)
+        );
+        Set<Point> visited = new HashSet<>();
+        queue.add(new TurfRoute(start));
+        while (!queue.isEmpty()) {
+            TurfRoute route = queue.remove();
+            Point current = route.point;
+            if (visited.contains(current) || !subset.contains(current)) {
+                continue;
+            }
+            visited.add(current);
+            // Save route to current
+            routes.put(current, route);
+            // Extend the route with all connections from the current point
+            for (Connection extension : current.parents) {
+                TurfRoute nextRoute = new TurfRoute(extension, route);
+                queue.add(nextRoute);
+            }
+        }
+        return routes;
+    }
+
+    // Get distances from a point to all points
+    public Map<Point, Double> distancesFrom(Point start) {
+        Map<Point, Double> distances = new HashMap<>();
+        PriorityQueue<TurfRoute> queue = new PriorityQueue<>(
+            Comparator.comparingDouble(route -> route.distance)
+        );
+        Set<Point> visited = new HashSet<>();
+        queue.add(new TurfRoute(start));
+        while (!queue.isEmpty()) {
+            TurfRoute route = queue.remove();
+            Point current = route.point;
+            if (visited.contains(current)) {
+                continue;
+            }
+            visited.add(current);
+            // Save distance to current
+            distances.put(current, route.distance);
+            // Extend the route with all connections from the current point
+            for (Connection extension : current.parents) {
+                TurfRoute nextRoute = new TurfRoute(extension, route);
+                queue.add(nextRoute);
+            }
+        }
+        return distances;
+    }
+
     // Remove all connections except those who are part of some shortest path between
     //  any two zones
     // Works similarly to Node.findFastestRoutes and uses a similar Route class
@@ -527,7 +582,7 @@ public class Turf extends Logging implements Serializable {
         for (Point start : zones) {
             System.out.print("Finding routes... (" + c++ + "/" + zones.size() + ")\r");
             hasBeenStart.add(start);
-            Map<Point, TurfRoute> routes = findFastestRoutes(start);
+            Map<Point, TurfRoute> routes = routesFrom(start);
             for (Point end : zones) {
                 // If end has already been a start point, then start->end has already been processed
                 if (hasBeenStart.contains(end)) {
@@ -563,20 +618,34 @@ public class Turf extends Logging implements Serializable {
         public Point point;
         public Connection connectionFromPrevious;
         public TurfRoute previous;
-        public double length;
+        public double distance;
+        public double weightedDistance;
 
         public TurfRoute(Point point) {
             this.point = point;
             this.connectionFromPrevious = null;
             this.previous = null;
-            this.length = 0.0;
+            this.distance = 0.0;
+            this.weightedDistance = 0.0;
         }
 
         public TurfRoute(Connection extension, TurfRoute previous) {
             this.point = extension.other(previous.point);
             this.connectionFromPrevious = extension;
             this.previous = previous;
-            this.length = previous.length + extension.weightedDistance;
+            this.distance = previous.distance + extension.distance;
+            this.weightedDistance = previous.weightedDistance + extension.weightedDistance;
+        }
+
+        public List<Point> getPoints() {
+            List<Point> points;
+            if (this.previous == null) {
+                points = new ArrayList<>();
+            } else {
+                points = this.previous.getPoints();
+            }
+            points.add(this.point);
+            return points;
         }
     }
 

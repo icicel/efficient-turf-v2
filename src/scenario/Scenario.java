@@ -6,9 +6,9 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
-import turf.Connection;
 import turf.Point;
 import turf.Turf;
+import turf.Turf.TurfRoute;
 import util.Logging;
 
 // Represents a combination of a Turf object (Zone and Link data)
@@ -40,18 +40,21 @@ public class Scenario extends Logging {
         log("Scenario: *** Initializing...");
 
 
-
         // Create a Node for each Point in the Turf
         this.nodes = new HashSet<>();
         this.nodeName = new HashMap<>();
+        Map<Node, Point> ancestors = new HashMap<>();
         for (Point zone : turf.zones) {
-            addNode(zone, conditions.username, conditions.isNow);
+            Node node = addNode(zone, conditions.username, conditions.isNow);
+            ancestors.put(node, zone);
         }
         for (Point crossing : turf.crossings) {
-            addNode(crossing, conditions.username, conditions.isNow);
+            Node node = addNode(crossing, conditions.username, conditions.isNow);
+            ancestors.put(node, crossing);
         }
-        log("Scenario: Created " + this.nodes.size() + " nodes");
 
+
+        log("Scenario: Created " + this.nodes.size() + " nodes");
 
 
         // Fill in other things
@@ -69,32 +72,6 @@ public class Scenario extends Logging {
         // Override
         this.start.isZone = true;
         this.end.isZone = true;
-
-        // Create a Link for each Connection
-        this.links = new HashSet<>();
-        for (Connection connection : turf.connections) {
-            Node leftNode = this.getNode(connection.left.toString());
-            Node rightNode = this.getNode(connection.right.toString());
-            if (leftNode == rightNode) {
-                // Ignore loop
-                continue;
-            }
-            if (leftNode.hasLinkTo(rightNode)) {
-                // Update duplicate link if it's shorter than the existing one
-                Link existingLink = leftNode.getLinkTo(rightNode);
-                if (connection.distance < existingLink.distance) {
-                    existingLink.distance = connection.distance;
-                    existingLink.reverse.distance = connection.distance;
-                }
-                continue;
-            }
-            addLinkPair(leftNode, rightNode, connection.distance);
-        }
-        log("Scenario: Created " + this.links.size() + " links");
-
-
-
-        log("Scenario: Applying conditions...");
         // Apply blacklist
         if (conditions.blacklist != null) {
             for (Node node : getNodes(conditions.blacklist)) {
@@ -108,12 +85,12 @@ public class Scenario extends Logging {
                 if (!node.isZone) {
                     continue;
                 }
+                node.points = 0;
                 if (node == start || node == end) {
                     // start and end nodes should not be removed
                     continue;
                 }
                 node.isZone = false;
-                node.points = 0;
                 log("Scenario: Blanked greylisted zone " + node);
             }
         }
@@ -127,32 +104,56 @@ public class Scenario extends Logging {
                 log("Scenario: Halved redlisted zone " + node);
             }
         }
-        // Remove unreachable nodes based on conditions (time limit and so on)
-        removeUnreachableNodes();
 
 
+        log("Scenario: Traversing Turf...");
 
-        // Recreate the entire scenario as a simplified graph with only zones
-        log("Scenario: Optimizing...");
-        Map<Node, Map<Node, Double>> edges = new HashMap<>();
+
+        // Find all Points that can be visited within the time limit
+        Point startPoint = ancestors.get(start);
+        Point endPoint = ancestors.get(end);
+        Map<Point, Double> startDistances = turf.distancesFrom(startPoint);
+        Map<Point, Double> endDistances = turf.distancesFrom(endPoint);
+        Set<Point> reachablePoints = turf.zones;
+        reachablePoints.addAll(turf.crossings);
+        reachablePoints.removeIf(
+            point -> startDistances.get(point) + endDistances.get(point) > this.distanceLimit
+        );
+        if (reachablePoints.isEmpty()) {
+            throw new RuntimeException("End node is unreachable within time limit");
+        }
+        // Apply blacklist again and check if it has made nodes unreachable
+        reachablePoints.removeIf(
+            point -> getNode(point.name) == null
+        );
+        Map<Point, TurfRoute> startRoutes = turf.routesOverSubset(startPoint, reachablePoints);
+        reachablePoints = startRoutes.keySet();
+        if (!reachablePoints.contains(endPoint)) {
+            throw new RuntimeException("End node is unreachable with current blacklist");
+        }
+
+
+        log("Scenario: Building graph...");
+
+
         Set<Node> zones = new HashSet<>();
         for (Node node : this.nodes) {
-            if (node.isZone) {
+            // reachable zones only
+            if (node.isZone && reachablePoints.contains(ancestors.get(node))) {
                 zones.add(node);
             }
         }
-        // Build graph
+        Map<Node, Map<Node, Double>> edges = new HashMap<>();
         for (Node zone : zones) {
-            Map<Node, Route> fastestRoutes = findFastestRoutes(zone);
+            Map<Point, TurfRoute> routes = turf.routesOverSubset(ancestors.get(zone), reachablePoints);
             Map<Node, Double> zoneEdges = new HashMap<>();
-            edges.put(zone, zoneEdges);
             for (Node otherZone : zones) {
                 if (zone == otherZone) {
                     continue;
                 }
-                Route route = fastestRoutes.get(otherZone);
-                long zoneCount = route.getNodes().stream()
-                    .filter(node -> node.isZone)
+                TurfRoute route = routes.get(ancestors.get(otherZone));
+                long zoneCount = route.getPoints().stream()
+                    .filter(point -> getNode(point.name).isZone)
                     .count();
                 // Only keep direct routes, that don't pass through any other zones
                 if (zoneCount > 2) {
@@ -160,23 +161,16 @@ public class Scenario extends Logging {
                 }
                 zoneEdges.put(otherZone, route.distance);
             }
+            edges.put(zone, zoneEdges);
         }
 
 
+        log("Scenario: Creating links...");
 
-        // Remove *everything*!
-        int before = this.nodes.size();
-        for (Node node : this.nodes) {
-            node.clear();
-        }
-        this.nodes = new HashSet<>();
-        this.nodeName = new HashMap<>();
+
         this.links = new HashSet<>();
-        this.fastestRoutes = new HashMap<>();
         // Recreate everything
         for (Node zone : zones) {
-            this.nodes.add(zone);
-            this.nodeName.put(zone.name, zone);
             for (Node neighbor : zones) {
                 if (zone == neighbor) {
                     continue;
@@ -191,18 +185,23 @@ public class Scenario extends Logging {
                 addLinkPair(zone, neighbor, distance);
             }
         }
-        if (before > this.nodes.size()) {
-            log("Scenario: Removed " + (before - this.nodes.size()) + " nodes");
+
+
+        log("Scenario: Cleaning up, caching routes...");
+
+
+        // Remove orphan nodes
+        for (Node node : new LinkedList<>(this.nodes)) {
+            if (node.outNodes.isEmpty()) {
+                removeNode(node);
+            }
         }
-
-
-
         // Regenerate routes
-        log("Scenario: Caching routes...");
+        this.fastestRoutes = new HashMap<>();
         for (Node node : this.nodes) {
-            Map<Node, Route> fastestRoutes = findFastestRoutes(node);
-            this.fastestRoutes.put(node, fastestRoutes);
+            this.fastestRoutes.put(node, findFastestRoutes(node));
         }
+
 
         log("Scenario: *** Initialized with " + this.nodes.size() + " nodes and " + this.links.size() + " links");
     }
@@ -231,14 +230,15 @@ public class Scenario extends Logging {
         return nodes;
     }
 
-    // Create a Node from a Point
-    private void addNode(Point point, String username, boolean isNow) {
+    // Create a Node from a Point and return it
+    private Node addNode(Point point, String username, boolean isNow) {
         Node node = new Node(point, username, isNow);
         if (this.nodeName.containsKey(node.name)) {
             throw new RuntimeException("Duplicate node name: " + node.name);
         }
         this.nodes.add(node);
         this.nodeName.put(node.name, node);
+        return node;
     }
 
     // Add two links between two nodes, one in each direction
@@ -276,65 +276,6 @@ public class Scenario extends Logging {
         this.links.remove(link.reverse);
         link.reverse.parent.out.remove(link.reverse);
         link.reverse.parent.outNodes.remove(link.reverse.neighbor);
-    }
-
-    /* Graph maintenance */
-
-    // Clean graph of unreachable nodes
-    private void removeUnreachableNodes() {
-
-        // Create route tree from start and end
-        Map<Node, Route> startRoutes = findFastestRoutes(this.start);
-        Map<Node, Route> endRoutes = findFastestRoutes(this.end);
-
-        // Sanity check
-        if (startRoutes.get(this.end) == null) {
-            throw new RuntimeException("Start and end nodes are not connected");
-        }
-
-        // Check for unreachable nodes
-        Set<Node> distantNodes = new HashSet<>();
-        Set<Node> unreachableNodes = new HashSet<>();
-        int distantZones = 0;
-        int unreachableZones = 0;
-        for (Node node : nodes) {
-            Route startToNode = startRoutes.get(node);
-            Route nodeToEnd = endRoutes.get(node);
-
-            // The route start->node->end isn't possible at all
-            if (startToNode == null || nodeToEnd == null) {
-                unreachableNodes.add(node);
-                if (node.isZone) {
-                    unreachableZones++;
-                }
-                continue;
-            }
-
-            // The route start->node->end isn't possible within time limit
-            if (startToNode.distance + nodeToEnd.distance > this.distanceLimit) {
-                distantNodes.add(node);
-                if (node.isZone) {
-                    distantZones++;
-                }
-                continue;
-            }
-        }
-
-        for (Node node : distantNodes) {
-            removeNode(node);
-        }
-        if (distantNodes.size() > 0) {
-            log("Scenario: Removed " + distantNodes.size() + " distant nodes" +
-                " (including " + distantZones + " zones)");
-        }
-
-        for (Node node : unreachableNodes) {
-            removeNode(node);
-        }
-        if (unreachableNodes.size() > 0) {
-            log("Scenario: Removed " + unreachableNodes.size() + " unreachable nodes" +
-                " (including " + unreachableZones + " zones)");
-        }
     }
 
     // Returns the shortest Route to every other Node
