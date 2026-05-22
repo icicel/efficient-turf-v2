@@ -73,36 +73,48 @@ public class Scenario extends Logging {
         this.start.isZone = true;
         this.end.isZone = true;
         // Apply blacklist
+        int c = 0;
         if (conditions.blacklist != null) {
-            for (Node node : getNodes(conditions.blacklist)) {
+            Set<Node> blacklisted = getNodes(conditions.blacklist);
+            for (Node node : blacklisted) {
                 removeNode(node);
-                log("Scenario: Removed blacklisted node " + node);
+                c++;
             }
+            log("Scenario: Removed " + c + " blacklisted zone" + s(c));
         }
         // Apply greylist
+        c = 0;
         if (conditions.greylist != null) {
-            for (Node node : getNodes(conditions.greylist)) {
+            Set<Node> greylisted = getNodes(conditions.greylist);
+            for (Node node : greylisted) {
                 if (!node.isZone) {
                     continue;
                 }
                 node.points = 0;
+                c++;
                 if (node == start || node == end) {
-                    // start and end nodes should not be removed
+                    // start and end nodes should not be un-zoned
                     continue;
                 }
                 node.isZone = false;
-                log("Scenario: Blanked greylisted zone " + node);
             }
+            log("Scenario: Blanked " + c + " greylisted zone" + s(c));
         }
         // Apply redlist
-        if (conditions.redlist != null) {
-            for (Node node : getNodes(conditions.redlist)) {
+        c = 0;
+        if (conditions.takenlist != null) {
+            Set<Node> taken = getNodes(conditions.takenlist);
+            for (Node node : this.nodes) {
+                if (taken.contains(node)) {
+                    continue;
+                }
                 if (node.points == 0) {
                     continue;
                 }
-                node.points /= 2; // integer division
-                log("Scenario: Halved redlisted zone " + node);
+                node.points *= 2;
+                c++;
             }
+            log("Scenario: Doubled " + c + " untaken zone" + s(c));
         }
 
 
@@ -207,6 +219,11 @@ public class Scenario extends Logging {
     }
 
     /* Utility functions */
+
+    // s
+    public String s(int n) {
+        return n == 1 ? "" : "s";
+    }
     
     // Find a zone by name
     public Node getNode(String name) {

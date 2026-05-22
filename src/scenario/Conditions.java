@@ -28,9 +28,8 @@ public class Conditions {
     // Names of zones to ignore points from (a.k.a. convert to crossings)
     public String[] greylist;
 
-    // Names of zones to count as half their value, disincentivize but not completely avoid
-    // Note that routes' points will still reflect reality
-    public String[] redlist;
+    // Names of taken zones, if defined untaken zones will be prioritized by doubling their value
+    public String[] takenlist;
 
     public Conditions(String start, String end, double timeLimit) {
         this.start = start;
