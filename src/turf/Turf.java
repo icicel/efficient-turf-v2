@@ -261,7 +261,9 @@ public class Turf extends Logging implements Serializable {
             String quadrantKey = getQuadrantKey(crossing);
             quadrantMap.computeIfAbsent(quadrantKey, k -> new HashSet<>()).add(crossing);
         }
+        int c = 1;
         for (Point zone : new HashSet<>(this.zones)) {
+            System.out.print("Finding connections... (" + c++ + "/" + zones.size() + ")\r");
             // Find closest point in the same quadrant as the zone
             String quadrantKey = getQuadrantKey(zone);
             Set<Point> crossingsInQuadrant = quadrantMap.get(quadrantKey);

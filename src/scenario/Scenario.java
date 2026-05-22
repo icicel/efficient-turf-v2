@@ -156,7 +156,9 @@ public class Scenario extends Logging {
             }
         }
         Map<Node, Map<Node, Double>> edges = new HashMap<>();
+        c = 1;
         for (Node zone : zones) {
+            System.out.print("Finding edges... (" + c++ + "/" + zones.size() + ")\r");
             Map<Point, TurfRoute> routes = turf.routesOverSubset(ancestors.get(zone), reachablePoints);
             Map<Node, Double> zoneEdges = new HashMap<>();
             for (Node otherZone : zones) {
@@ -199,7 +201,7 @@ public class Scenario extends Logging {
         }
 
 
-        log("Scenario: Cleaning up, caching routes...");
+        log("Scenario: Cleaning up...");
 
 
         // Remove orphan nodes
@@ -210,7 +212,9 @@ public class Scenario extends Logging {
         }
         // Regenerate routes
         this.fastestRoutes = new HashMap<>();
+        c = 1;
         for (Node node : this.nodes) {
+            System.out.print("Caching routes... (" + c++ + "/" + this.nodes.size() + ")\r");
             this.fastestRoutes.put(node, findFastestRoutes(node));
         }
 
