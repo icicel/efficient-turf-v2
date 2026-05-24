@@ -46,11 +46,13 @@ public class Turf extends Logging implements Serializable {
         ObjectInputStream objIn = new ObjectInputStream(in);
         List<?> pointList;
         List<?> connectionList;
+        List<?> weightList;
         List<?> crossingList;
         List<?> zoneList;
         try {
             pointList = (List<?>) objIn.readObject();
             connectionList = (List<?>) objIn.readObject();
+            weightList = (List<?>) objIn.readObject();
             crossingList = (List<?>) objIn.readObject();
             zoneList = (List<?>) objIn.readObject();
         } catch (ClassNotFoundException e) {
@@ -80,6 +82,11 @@ public class Turf extends Logging implements Serializable {
 
         // Connection time, these are lists of indices into the points list
         log("Turf: Creating connections...");
+        List<Double> weights = new ArrayList<>();
+        for (Object o : weightList) {
+            weights.add((Double) o);
+        }
+        int weightIndex = 0;
         for (Object o : connectionList) {
             List<Integer> indices = new ArrayList<>();
             for (Object i : (List<?>) o) {
@@ -89,7 +96,9 @@ public class Turf extends Logging implements Serializable {
             for (int i = 0; i < indices.size(); i++) {
                 connection[i] = points.get(indices.get(i));
             }
-            turf.connections.add(new Connection(connection));
+            turf.connections.add(
+                new Connection(connection, weights.get(weightIndex++))
+            );
         }
 
         log("Turf: *** Initialized with " + turf.crossings.size() + " crossings and " + turf.connections.size() + " connections");

@@ -14,7 +14,7 @@ public class Connection {
     public double weightedDistance; // distance weighted by highway type
 
     // Convert an array of Points to a Connection
-    public Connection(Point[] coordinates) {
+    public Connection(Point[] coordinates, double weight) {
         if (coordinates.length < 2) {
             throw new IllegalArgumentException("Connection must have at least two coordinates");
         }
@@ -28,9 +28,14 @@ public class Connection {
             this.distance += current.distanceTo(next);
             this.middle.add(current);
         }
-        this.weightedDistance = this.distance; // no weighting logic for non-osm connections
+        this.weightedDistance = this.distance * weight;
         left.parents.add(this);
         right.parents.add(this);
+    }
+
+    // Unweighted Point array
+    public Connection(Point[] coordinates) {
+        this(coordinates, 1);
     }
 
     // A direct connection, with no middle

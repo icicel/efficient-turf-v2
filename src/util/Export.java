@@ -161,6 +161,7 @@ public class Export {
             index.put(pointList.get(i), i);
         }
         List<List<Integer>> connectionList = new ArrayList<>();
+        List<Double> weightList = new ArrayList<>();
         for (Connection connection : turf.connections) {
             List<Integer> connectionData = new ArrayList<>();
             connectionData.add(index.get(connection.left));
@@ -169,6 +170,8 @@ public class Export {
             }
             connectionData.add(index.get(connection.right));
             connectionList.add(connectionData);
+            double weight = connection.weightedDistance / connection.distance;
+            weightList.add(weight);
         }
         // Recreate the sets
         List<Integer> crossingList = new ArrayList<>();
@@ -182,6 +185,7 @@ public class Export {
         // Write
         objOut.writeObject(pointList);
         objOut.writeObject(connectionList);
+        objOut.writeObject(weightList);
         objOut.writeObject(crossingList);
         objOut.writeObject(zoneList);
         objOut.close();
