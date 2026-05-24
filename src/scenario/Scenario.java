@@ -126,8 +126,7 @@ public class Scenario extends Logging {
         Point endPoint = ancestors.get(end);
         Map<Point, Double> startDistances = turf.distancesFrom(startPoint);
         Map<Point, Double> endDistances = turf.distancesFrom(endPoint);
-        Set<Point> reachablePoints = turf.zones;
-        reachablePoints.addAll(turf.crossings);
+        Set<Point> reachablePoints = turf.allPoints();
         reachablePoints.removeIf(
             point -> startDistances.get(point) + endDistances.get(point) > this.distanceLimit
         );

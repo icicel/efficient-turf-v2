@@ -133,8 +133,7 @@ public class Turf extends Logging implements Serializable {
         // Init connections
         log("Turf: Initializing connections...");
         this.connections = kml.lines.get(connectionLayer);
-        Set<Point> allPoints = new HashSet<>(this.crossings);
-        allPoints.addAll(this.zones);
+        Set<Point> allPoints = allPoints();
         for (Connection connection : this.connections) {
             Point leftPoint = closestPoint(allPoints, connection.left);
             Point rightPoint = closestPoint(allPoints, connection.right);
@@ -673,6 +672,12 @@ public class Turf extends Logging implements Serializable {
     }
 
     /* Connecting zones helpers */
+
+    public Set<Point> allPoints() {
+        Set<Point> points = new HashSet<>(this.crossings);
+        points.addAll(this.zones);
+        return points;
+    }
 
     // Returns the closest Point in the given set to a given Point
     public static Point closestPoint(Set<Point> points, Point point) {

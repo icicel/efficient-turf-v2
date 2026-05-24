@@ -6,7 +6,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -146,8 +145,7 @@ public class Export {
         ObjectOutputStream objOut = new ObjectOutputStream(out);
         // Points are references in multiple places so must be
         //  serialized as pointers to a list instead
-        Set<Point> allPoints = new HashSet<>(turf.zones);
-        allPoints.addAll(turf.crossings);
+        Set<Point> allPoints = turf.allPoints();
         for (Connection connection : turf.connections) {
             allPoints.add(connection.left);
             allPoints.add(connection.right);
@@ -266,8 +264,7 @@ public class Export {
     private static List<Point> getPoints(Route route, Turf turf) {
         List<Node> nodes = route.getNodes();
         List<Point> points = new ArrayList<>();
-        Set<Point> allPoints = new HashSet<>(turf.zones);
-        allPoints.addAll(turf.crossings);
+        Set<Point> allPoints = turf.allPoints();
         for (Node node : nodes) {
             Point point = allPoints.stream()
                 .filter(p -> p.toString().equals(node.name))
