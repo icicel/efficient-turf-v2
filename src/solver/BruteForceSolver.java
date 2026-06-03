@@ -17,10 +17,12 @@ public class BruteForceSolver extends Solver {
 
     public Scenario scenario;
     public Map<Integer, AdvancedRoute> finishedRoutes;
+    private Route bestRoute;
     
     public Result solve(Scenario scenario, Long timeLimit) {
         this.scenario = scenario;
         this.finishedRoutes = new HashMap<>();
+        this.bestRoute = null;
         long end = super.endTime(timeLimit);
         search(new AdvancedRoute(scenario.start), end);
         return new Result(finishedRoutes.values(), scenario.speed);
@@ -45,6 +47,14 @@ public class BruteForceSolver extends Solver {
                     }
                 } else {
                     finishedRoutes.put(next.points, next);
+                }
+                // Print if best so far
+                if (this.bestRoute == null ||
+                    next.points > this.bestRoute.points ||
+                    (next.points == this.bestRoute.points && next.distance < this.bestRoute.distance)
+                ) {
+                    this.bestRoute = next;
+                    System.out.println(next.routeString(scenario.speed));
                 }
             }
             search(next, endTime);

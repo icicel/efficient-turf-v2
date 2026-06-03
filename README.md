@@ -133,4 +133,3 @@ While the original was breadth-first search, this implementation is depth-first.
 ### `GreedySolver`
 
 A variant of BruteForceSolver that attempts to "direct" its search towards the nearest zones, in order to find the best route quicker.
-Whenever a new best route is found, it is printed to the output.
