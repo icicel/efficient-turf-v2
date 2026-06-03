@@ -494,107 +494,107 @@ public class Turf extends Logging implements Serializable {
 
     /* Pathfinding */
 
-    // Get routes from a point to all points
-    public Map<Point, TurfRoute> routesFrom(Point start) {
-        Map<Point, TurfRoute> routes = new HashMap<>();
-        PriorityQueue<TurfRoute> queue = new PriorityQueue<>(
-            Comparator.comparingDouble(route -> route.weightedDistance)
+    // Get trails from a point to all points
+    public Map<Point, Trail> trailsFrom(Point start) {
+        Map<Point, Trail> trails = new HashMap<>();
+        PriorityQueue<Trail> queue = new PriorityQueue<>(
+            Comparator.comparingDouble(trail -> trail.weightedDistance)
         );
         Set<Point> visited = new HashSet<>();
-        queue.add(new TurfRoute(start));
+        queue.add(new Trail(start));
         while (!queue.isEmpty()) {
-            TurfRoute route = queue.remove();
-            Point current = route.point;
+            Trail trail = queue.remove();
+            Point current = trail.point;
             if (visited.contains(current)) {
                 continue;
             }
             visited.add(current);
-            // Save route to current
-            routes.put(current, route);
-            // Extend the route with all connections from the current point
+            // Save trail to current
+            trails.put(current, trail);
+            // Extend the trail with all connections from the current point
             for (Connection extension : current.parents) {
-                TurfRoute nextRoute = new TurfRoute(extension, route);
-                queue.add(nextRoute);
+                Trail nextTrail = new Trail(extension, trail);
+                queue.add(nextTrail);
             }
         }
-        return routes;
+        return trails;
     }
 
-    // Get routes from a point to another point
-    public TurfRoute pathfind(Point start, Point end) {
-        PriorityQueue<TurfRoute> queue = new PriorityQueue<>(
-            Comparator.comparingDouble(route -> route.weightedDistance)
+    // Get a trail from a point to another point
+    public Trail pathfind(Point start, Point end) {
+        PriorityQueue<Trail> queue = new PriorityQueue<>(
+            Comparator.comparingDouble(trail -> trail.weightedDistance)
         );
         Set<Point> visited = new HashSet<>();
-        queue.add(new TurfRoute(start));
+        queue.add(new Trail(start));
         while (!queue.isEmpty()) {
-            TurfRoute route = queue.remove();
-            Point current = route.point;
+            Trail trail = queue.remove();
+            Point current = trail.point;
             if (visited.contains(current)) {
                 continue;
             }
             visited.add(current);
-            // Finish route if we reach end
+            // Finish trail if we reach end
             if (current.equals(end)) {
-                return route;
+                return trail;
             }
-            // Extend the route with all connections from the current point
+            // Extend the trail with all connections from the current point
             for (Connection extension : current.parents) {
-                TurfRoute nextRoute = new TurfRoute(extension, route);
-                queue.add(nextRoute);
+                Trail nextTrail = new Trail(extension, trail);
+                queue.add(nextTrail);
             }
         }
-        throw new RuntimeException("No path found from " + start + " to " + end);
+        throw new RuntimeException("No trail found from " + start + " to " + end);
     }
 
-    // Get routes from a point over a subset of points to all reachable points
+    // Get trails from a point over a subset of points to all reachable points
     // Subset must include start
-    public Map<Point, TurfRoute> routesOverSubset(Point start, Set<Point> subset) {
-        Map<Point, TurfRoute> routes = new HashMap<>();
-        PriorityQueue<TurfRoute> queue = new PriorityQueue<>(
-            Comparator.comparingDouble(route -> route.weightedDistance)
+    public Map<Point, Trail> trailsOverSubset(Point start, Set<Point> subset) {
+        Map<Point, Trail> trails = new HashMap<>();
+        PriorityQueue<Trail> queue = new PriorityQueue<>(
+            Comparator.comparingDouble(trail -> trail.weightedDistance)
         );
         Set<Point> visited = new HashSet<>();
-        queue.add(new TurfRoute(start));
+        queue.add(new Trail(start));
         while (!queue.isEmpty()) {
-            TurfRoute route = queue.remove();
-            Point current = route.point;
+            Trail trail = queue.remove();
+            Point current = trail.point;
             if (visited.contains(current) || !subset.contains(current)) {
                 continue;
             }
             visited.add(current);
-            // Save route to current
-            routes.put(current, route);
-            // Extend the route with all connections from the current point
+            // Save trail to current
+            trails.put(current, trail);
+            // Extend the trail with all connections from the current point
             for (Connection extension : current.parents) {
-                TurfRoute nextRoute = new TurfRoute(extension, route);
-                queue.add(nextRoute);
+                Trail nextTrail = new Trail(extension, trail);
+                queue.add(nextTrail);
             }
         }
-        return routes;
+        return trails;
     }
 
     // Get distances from a point to all points
     public Map<Point, Double> distancesFrom(Point start) {
         Map<Point, Double> distances = new HashMap<>();
-        PriorityQueue<TurfRoute> queue = new PriorityQueue<>(
-            Comparator.comparingDouble(route -> route.distance)
+        PriorityQueue<Trail> queue = new PriorityQueue<>(
+            Comparator.comparingDouble(trail -> trail.distance)
         );
         Set<Point> visited = new HashSet<>();
-        queue.add(new TurfRoute(start));
+        queue.add(new Trail(start));
         while (!queue.isEmpty()) {
-            TurfRoute route = queue.remove();
-            Point current = route.point;
+            Trail trail = queue.remove();
+            Point current = trail.point;
             if (visited.contains(current)) {
                 continue;
             }
             visited.add(current);
             // Save distance to current
-            distances.put(current, route.distance);
-            // Extend the route with all connections from the current point
+            distances.put(current, trail.distance);
+            // Extend the trail with all connections from the current point
             for (Connection extension : current.parents) {
-                TurfRoute nextRoute = new TurfRoute(extension, route);
-                queue.add(nextRoute);
+                Trail nextTrail = new Trail(extension, trail);
+                queue.add(nextTrail);
             }
         }
         return distances;
@@ -602,27 +602,23 @@ public class Turf extends Logging implements Serializable {
 
     // Remove all connections except those who are part of some shortest path between
     //  any two zones
-    // Works similarly to Node.findFastestRoutes and uses a similar Route class
     public void optimize() {
         log("Turf: Optimizing...");
         Set<Connection> optimalConnections = new HashSet<>();
         Set<Point> hasBeenStart = new HashSet<>();
         int c = 1;
         for (Point start : zones) {
-            System.out.print("Finding routes... (" + c++ + "/" + zones.size() + ")\r");
+            System.out.print("Finding trails... (" + c++ + "/" + zones.size() + ")\r");
             hasBeenStart.add(start);
-            Map<Point, TurfRoute> routes = routesFrom(start);
+            Map<Point, Trail> trails = trailsFrom(start);
             for (Point end : zones) {
                 // If end has already been a start point, then start->end has already been processed
                 if (hasBeenStart.contains(end)) {
                     continue;
                 }
-                // Backtrack the route and add all connections along the way to optimalConnections
-                TurfRoute backtrack = routes.get(end);
-                while (backtrack.previous != null) {
-                    optimalConnections.add(backtrack.connectionFromPrevious);
-                    backtrack = backtrack.previous;
-                }
+                // Add all connections to optimalConnections
+                Trail trail = trails.get(end);
+                optimalConnections.addAll(trail.getConnections());
             }
         }
         // Remove!
@@ -640,42 +636,6 @@ public class Turf extends Logging implements Serializable {
             }
         }
         log("Turf: *** Optimized to " + crossings.size() + " crossings and " + connections.size() + " connections");
-    }
-
-    // Turf equivalent of scenario.Route - a linked list with extra steps
-    public class TurfRoute {
-        public Point point;
-        public Connection connectionFromPrevious;
-        public TurfRoute previous;
-        public double distance;
-        public double weightedDistance;
-
-        public TurfRoute(Point point) {
-            this.point = point;
-            this.connectionFromPrevious = null;
-            this.previous = null;
-            this.distance = 0.0;
-            this.weightedDistance = 0.0;
-        }
-
-        public TurfRoute(Connection extension, TurfRoute previous) {
-            this.point = extension.other(previous.point);
-            this.connectionFromPrevious = extension;
-            this.previous = previous;
-            this.distance = previous.distance + extension.distance;
-            this.weightedDistance = previous.weightedDistance + extension.weightedDistance;
-        }
-
-        public List<Point> getPoints() {
-            List<Point> points;
-            if (this.previous == null) {
-                points = new ArrayList<>();
-            } else {
-                points = this.previous.getPoints();
-            }
-            points.add(this.point);
-            return points;
-        }
     }
 
     /* Customization */

@@ -8,7 +8,7 @@ import java.util.PriorityQueue;
 import java.util.Set;
 import turf.Point;
 import turf.Turf;
-import turf.Turf.TurfRoute;
+import turf.Trail;
 import util.Logging;
 
 // Represents a combination of a Turf object (Zone and Link data)
@@ -137,8 +137,8 @@ public class Scenario extends Logging {
         reachablePoints.removeIf(
             point -> getNode(point.name) == null
         );
-        Map<Point, TurfRoute> startRoutes = turf.routesOverSubset(startPoint, reachablePoints);
-        reachablePoints = startRoutes.keySet();
+        Map<Point, Trail> startTrails = turf.trailsOverSubset(startPoint, reachablePoints);
+        reachablePoints = startTrails.keySet();
         if (!reachablePoints.contains(endPoint)) {
             throw new RuntimeException("End node is unreachable with current blacklist");
         }
@@ -158,21 +158,18 @@ public class Scenario extends Logging {
         c = 1;
         for (Node zone : zones) {
             System.out.print("Finding edges... (" + c++ + "/" + zones.size() + ")\r");
-            Map<Point, TurfRoute> routes = turf.routesOverSubset(ancestors.get(zone), reachablePoints);
+            Map<Point, Trail> trails = turf.trailsOverSubset(ancestors.get(zone), reachablePoints);
             Map<Node, Double> zoneEdges = new HashMap<>();
             for (Node otherZone : zones) {
                 if (zone == otherZone) {
                     continue;
                 }
-                TurfRoute route = routes.get(ancestors.get(otherZone));
-                long zoneCount = route.getPoints().stream()
-                    .filter(point -> getNode(point.name).isZone)
-                    .count();
+                Trail trail = trails.get(ancestors.get(otherZone));
                 // Only keep direct routes, that don't pass through any other zones
-                if (zoneCount > 2) {
+                if (trail.zones > 2) {
                     continue;
                 }
-                zoneEdges.put(otherZone, route.distance);
+                zoneEdges.put(otherZone, trail.distance);
             }
             edges.put(zone, zoneEdges);
         }

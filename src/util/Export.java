@@ -6,7 +6,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -16,7 +15,7 @@ import scenario.Route;
 import turf.Connection;
 import turf.Point;
 import turf.Turf;
-import turf.Turf.TurfRoute;
+import turf.Trail;
 
 public class Export {
 
@@ -199,13 +198,7 @@ public class Export {
         for (int i = 0; i < points.size() - 1; i++) {
             Point start = points.get(i);
             Point end = points.get(i + 1);
-            // Construct a backwards turfRoute to drain it in the correct order
-            TurfRoute turfRoute = turf.pathfind(end, start);
-            List<Connection> connections = new LinkedList<>();
-            while (turfRoute.previous != null) {
-                connections.add(turfRoute.connectionFromPrevious);
-                turfRoute = turfRoute.previous;
-            }
+            Trail trail = turf.pathfind(start, end);
             // Point
             sb.append("\"POINT (");
             sb.append(start.lon).append(" ").append(start.lat);
@@ -214,7 +207,7 @@ public class Export {
             // Connections
             Point current = start;
             sb.append("\"LINESTRING (");
-            for (Connection connection : connections) {
+            for (Connection connection : trail.getConnections()) {
                 // get the correct view of the connection (left->right or right->left)
                 sb.append(current.lon).append(" ").append(current.lat).append(", ");
                 for (Point middlePoint : connection.middleFromPOVOf(current)) {
