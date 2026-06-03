@@ -148,30 +148,68 @@ public class Scenario extends Logging {
 
 
         Set<Node> zones = new HashSet<>();
+        Map<Point, Set<Point>> zonesNearZone = new HashMap<>();
+        Map<Point, Set<Point>> zonesNearCrossing = new HashMap<>();
+        double minZonePassDistance = 50;
         for (Node node : this.nodes) {
+            Point point = ancestors.get(node);
             // reachable zones only
-            if (node.isZone && reachablePoints.contains(ancestors.get(node))) {
+            if (!reachablePoints.contains(ancestors.get(node))) {
+                continue;
+            }
+            if (node.isZone) {
                 zones.add(node);
+                Set<Point> nearbyZones = turf.zonesWithinDistanceOverSubset(point, minZonePassDistance * 2, reachablePoints);
+                zonesNearZone.put(point, nearbyZones);
+            } else {
+                Set<Point> nearbyZones = turf.zonesWithinDistanceOverSubset(point, minZonePassDistance, reachablePoints);
+                zonesNearCrossing.put(point, nearbyZones);
             }
         }
         Map<Node, Map<Node, Double>> edges = new HashMap<>();
         c = 1;
-        for (Node zone : zones) {
+        // Collect all edges between zones that don't pass near any other zones
+        for (Node node1 : zones) {
             System.out.print("Finding edges... (" + c++ + "/" + zones.size() + ")\r");
-            Map<Point, Trail> trails = turf.trailsOverSubset(ancestors.get(zone), reachablePoints);
+            Map<Point, Trail> trails = turf.trailsOverSubset(ancestors.get(node1), reachablePoints);
             Map<Node, Double> zoneEdges = new HashMap<>();
-            for (Node otherZone : zones) {
-                if (zone == otherZone) {
+            for (Node node2 : zones) {
+                if (node1 == node2) {
                     continue;
                 }
-                Trail trail = trails.get(ancestors.get(otherZone));
-                // Only keep direct routes, that don't pass through any other zones
-                if (trail.zones > 2) {
+                Point point1 = ancestors.get(node1);
+                Point point2 = ancestors.get(node2);
+                Trail trail = trails.get(point2);
+                // Only keep trails that don't pass close to any other zones
+                boolean exit = false;
+                Set<Point> endpoints = Set.of(point1, point2);
+                for (Point middleCrossing : trail.getPoints()) {
+                    if (endpoints.contains(middleCrossing)) {
+                        continue;
+                    }
+                    Set<Point> withinDistance = zonesNearCrossing.get(middleCrossing);
+                    for (Point zone : withinDistance) {
+                        if (endpoints.contains(zone)) {
+                            continue;
+                        }
+                        // Discard unless the nearby zone is itself close enough to an endpoint
+                        Set<Point> nearby = zonesNearZone.get(zone);
+                        if (nearby != null && (nearby.contains(point1) || nearby.contains(point2))) {
+                            continue;
+                        }
+                        exit = true;
+                        break;
+                    }
+                    if (exit) {
+                        break;
+                    }
+                }
+                if (exit) {
                     continue;
                 }
-                zoneEdges.put(otherZone, trail.distance);
+                zoneEdges.put(node2, trail.distance);
             }
-            edges.put(zone, zoneEdges);
+            edges.put(node1, zoneEdges);
         }
 
 

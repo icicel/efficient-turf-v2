@@ -309,24 +309,6 @@ public class Turf extends Logging implements Serializable {
 
 
         log("Turf: Simplifying " + connections.size() + " connections...");
-        // Remove zone connections that are too short by placing the zone directly at its neighbor
-        for (Point zone : new HashSet<>(this.zones)) {
-            if (zone.parents.size() != 1) {
-                continue;
-            }
-            Connection connection = zone.parents.iterator().next();
-            if (connection.distance > 30) {
-                continue;
-            }
-            Point neighbor = connection.other(zone);
-            neighbor.zone = zone.zone;
-            neighbor.name = zone.name;
-            zones.remove(zone);
-            crossings.remove(neighbor);
-            zones.add(neighbor);
-            neighbor.parents.remove(connection);
-            connections.remove(connection);
-        }
         // Remove connection chains/linear intersections/cases where a point has only 2 parents
         // This will be the case for most connections
         for (Point crossing : new HashSet<>(this.crossings)) {
@@ -598,6 +580,36 @@ public class Turf extends Logging implements Serializable {
             }
         }
         return distances;
+    }
+
+    // Get all zones except for the given zones reachable from a point within a certain distance over a subset of points
+    // Ugh
+    // If starting at a zone, will return a trail of length 0 of that zone
+    public Set<Point> zonesWithinDistanceOverSubset(Point start, double maxDistance, Set<Point> subset) {
+        Set<Point> zones = new HashSet<>();
+        PriorityQueue<Trail> queue = new PriorityQueue<>(
+            Comparator.comparingDouble(trail -> trail.weightedDistance)
+        );
+        Set<Point> visited = new HashSet<>();
+        queue.add(new Trail(start));
+        while (!queue.isEmpty()) {
+            Trail trail = queue.remove();
+            Point current = trail.point;
+            if (visited.contains(current) || !subset.contains(current) || trail.distance > maxDistance) {
+                continue;
+            }
+            visited.add(current);
+            // Finish trail if we reach a zone
+            if (current.isZone()) {
+                zones.add(current);
+            }
+            // Extend the trail with all connections from the current point
+            for (Connection extension : current.parents) {
+                Trail nextTrail = new Trail(extension, trail);
+                queue.add(nextTrail);
+            }
+        }
+        return zones;
     }
 
     // Remove all connections except those who are part of some shortest path between
