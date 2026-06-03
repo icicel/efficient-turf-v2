@@ -279,9 +279,28 @@ public class Turf extends Logging implements Serializable {
             // Only accept this point if it's closer than the edge of the quadrant
             //  meaning it's closer than any point in a different quadrant
             if (closestCrossing == null || zone.distanceTo(closestCrossing) > distanceToQuadrantEdge(zone)) {
-                // Failure, search globally
-                // This shouldn't be too common since zones are usually close to OSM highways
-                closestCrossing = closestPoint(this.crossings, zone);
+                // Failure, search all surrounding 9 quadrants
+                double lat = zone.lat;
+                double lon = zone.lon;
+                for (int latOffset = -1; latOffset <= 1; latOffset++) {
+                    for (int lonOffset = -1; lonOffset <= 1; lonOffset++) {
+                        String neighborQuadrantKey = getQuadrantKey(lat + latOffset * 0.01, lon + lonOffset * 0.01);
+                        Set<Point> crossingsInNeighborQuadrant = quadrantMap.get(neighborQuadrantKey);
+                        Point closestInNeighbor = closestPoint(crossingsInNeighborQuadrant, zone);
+                        if (closestInNeighbor != null && (
+                                closestCrossing == null ||
+                                zone.distanceTo(closestInNeighbor) < zone.distanceTo(closestCrossing)
+                            )
+                        ) {
+                            closestCrossing = closestInNeighbor;
+                        }
+                    }
+                }
+                if (closestCrossing == null) {
+                    // Failure again, search globally
+                    // This is very slow, but shouldn't be too common since zones are usually close to OSM highways
+                    closestCrossing = closestPoint(this.crossings, zone);
+                }
             }
             // Connect to the zone
             Connection connection = new Connection(zone, closestCrossing);
@@ -691,15 +710,18 @@ public class Turf extends Logging implements Serializable {
 
     // Get the key for the quadrant that the given Point falls into
     private static String getQuadrantKey(Point point) {
-        int latQuadrant = (int) Math.floor(point.lat * 50);
-        int lonQuadrant = (int) Math.floor(point.lon * 50);
+        return getQuadrantKey(point.lat, point.lon);
+    }
+    private static String getQuadrantKey(double lat, double lon) {
+        int latQuadrant = (int) Math.floor(lat * 100);
+        int lonQuadrant = (int) Math.floor(lon * 100);
         return latQuadrant + "" + lonQuadrant;
     }
 
     // Shortest distance to the edge of the quadrant
     private static double distanceToQuadrantEdge(Point point) {
-        double latQuadrantEdge = Math.round(point.lat * 50) / 50.0;
-        double lonQuadrantEdge = Math.round(point.lon * 50) / 50.0;
+        double latQuadrantEdge = Math.round(point.lat * 100) / 100.0;
+        double lonQuadrantEdge = Math.round(point.lon * 100) / 100.0;
         return Math.min(
             point.distanceTo(point.lat, lonQuadrantEdge), 
             point.distanceTo(latQuadrantEdge, point.lon)
