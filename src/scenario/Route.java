@@ -90,6 +90,19 @@ public class Route {
         nodes.add(this.node);
         return nodes;
     }
+    public List<Node> getCapturedNodes() {
+        List<Node> nodes;
+        if (this.previous == null) {
+            nodes = new LinkedList<>();
+            nodes.add(this.node);
+        } else {
+            nodes = this.previous.getCapturedNodes();
+            if (!this.previous.hasVisited(this.node)) {
+                nodes.add(this.node);
+            }
+        }
+        return nodes;
+    }
     public List<Link> getLinks() {
         List<Link> links;
         if (this.previous == null) {

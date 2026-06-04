@@ -255,7 +255,7 @@ public class Export {
     }
 
     private static List<Point> getPoints(Route route, Turf turf) {
-        List<Node> nodes = route.getNodes();
+        List<Node> nodes = route.getCapturedNodes();
         List<Point> points = new ArrayList<>();
         Set<Point> allPoints = turf.allPoints();
         for (Node node : nodes) {
