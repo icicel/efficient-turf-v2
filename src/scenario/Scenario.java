@@ -147,7 +147,7 @@ public class Scenario extends Logging {
         Set<Node> zones = new HashSet<>();
         Map<Point, Set<Point>> zonesNearZone = new HashMap<>();
         Map<Point, Set<Point>> zonesNearCrossing = new HashMap<>();
-        double minZonePassDistance = 50;
+        double minZonePassDistance = 100;
         for (Node node : this.nodes) {
             Point point = node.ancestor;
             // reachable zones only
@@ -190,8 +190,9 @@ public class Scenario extends Logging {
                             continue;
                         }
                         // Discard unless the nearby zone is itself close enough to an endpoint
+                        //  or if it's actually not a zone in this scenario
                         Set<Point> nearby = zonesNearZone.get(zone);
-                        if (nearby != null && (nearby.contains(point1) || nearby.contains(point2))) {
+                        if (nearby == null || nearby.contains(point1) || nearby.contains(point2)) {
                             continue;
                         }
                         exit = true;
