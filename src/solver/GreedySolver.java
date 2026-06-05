@@ -11,8 +11,6 @@ import scenario.Route;
 import scenario.Scenario;
 
 // Also a brute force search, but prioritizes extending its search to the nearest unvisited zone
-// Prints the current shortest finished route every time it finds a new one, so can be
-//  stopped at any time and still give a result
 // For an optimal solution, likely far slower than BruteForceSolver
 // Creates custom Links that ignore intermediate crossings
 public class GreedySolver extends Solver {
@@ -21,8 +19,8 @@ public class GreedySolver extends Solver {
     private Map<Node, Map<Node, Double>> connections;
 
     // for tweaking
-    private final int SEARCH_WIDTH = 6;
-    private final long MIN_LIFESPAN = 50; // ms
+    private final int SEARCH_WIDTH = 10;
+    private final long MIN_LIFESPAN = 250; // ms
 
     public Result solve(Scenario scenario, Long timeLimit) {
         this.scenario = scenario;
