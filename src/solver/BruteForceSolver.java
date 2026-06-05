@@ -3,7 +3,6 @@ import java.io.Console;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import scenario.Link;
 import scenario.Node;
 import scenario.Route;
@@ -14,15 +13,12 @@ import scenario.Scenario;
 //  optimized by not trying routes that are guaranteed to be invalid
 // While the original was breadth-first, this implementation is depth-first
 public class BruteForceSolver extends Solver {
-
-    public Scenario scenario;
-    public Map<Integer, AdvancedRoute> finishedRoutes;
-    private Route bestRoute;
     
     public Result solve(Scenario scenario, Long timeLimit) {
         this.scenario = scenario;
         this.finishedRoutes = new HashMap<>();
         this.bestRoute = null;
+        findCrosses();
         long end = super.endTime(timeLimit);
         search(new AdvancedRoute(scenario.start), end);
         return new Result(finishedRoutes.values(), scenario.speed);
@@ -40,22 +36,7 @@ public class BruteForceSolver extends Solver {
             }
             AdvancedRoute next = new AdvancedRoute(base, link);
             if (next.node == this.scenario.end) {
-                if (finishedRoutes.containsKey(next.points)) {
-                    AdvancedRoute existing = finishedRoutes.get(next.points);
-                    if (next.distance < existing.distance) {
-                        finishedRoutes.put(next.points, next);
-                    }
-                } else {
-                    finishedRoutes.put(next.points, next);
-                }
-                // Print if best so far
-                if (this.bestRoute == null ||
-                    next.points > this.bestRoute.points ||
-                    (next.points == this.bestRoute.points && next.distance < this.bestRoute.distance)
-                ) {
-                    this.bestRoute = next;
-                    System.out.println(next.routeString(scenario.speed));
-                }
+                finishRoute(next);
             }
             search(next, endTime);
         }
@@ -71,35 +52,25 @@ public class BruteForceSolver extends Solver {
             return 1;
         }
 
+        // Link crosses a previous link
+        if (crossesRoute(newLink, route)) {
+            return 2;
+        }
+
         // Returns to a zone without capturing any new zones
         if (newNode == route.lastCapture) {
-            return 2;
+            return 3;
         }
 
         // There exists a faster route to this node from the last captured zone
         if (this.scenario.fastestRoutes.get(route.lastCapture).get(newNode).distance
                 < route.distanceSinceLastCapture + newLink.distance) {
-            return 3;
+            return 4;
         }
 
         // This link has already been used in this route
         if (route.hasVisited(newLink)) {
-            return 4;
-        }
-
-        // Visiting the last four nodes in another order would've been more efficient
-        if (route.nodes >= 3) {
-            Node lastNode = route.node;
-            Node last2Node = route.previous.node;
-            Node last3Node = route.previous.previous.node;
-            if (
-                this.scenario.fastestRoutes.get(lastNode).get(newNode).distance +
-                this.scenario.fastestRoutes.get(last3Node).get(last2Node).distance >
-                this.scenario.fastestRoutes.get(last2Node).get(newNode).distance +
-                this.scenario.fastestRoutes.get(last3Node).get(lastNode).distance
-            ) {
-                return 5;
-            }
+            return 5;
         }
 
         return 0;

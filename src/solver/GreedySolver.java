@@ -17,15 +17,8 @@ import scenario.Scenario;
 // Creates custom Links that ignore intermediate crossings
 public class GreedySolver extends Solver {
 
-    public Scenario scenario;
-    public Map<Integer, Route> finishedRoutes;
-
     // graph
     private Map<Node, Map<Node, Double>> connections;
-    private Map<Link, Set<Link>> crosses;
-
-    // record points
-    private Route bestRoute;
 
     // for tweaking
     private final int SEARCH_WIDTH = 6;
@@ -35,6 +28,7 @@ public class GreedySolver extends Solver {
         this.scenario = scenario;
         this.finishedRoutes = new HashMap<>();
         this.bestRoute = null;
+        findCrosses();
         // create graph of direct connections
         this.connections = new HashMap<>();
         for (Node node : scenario.nodes) {
@@ -44,30 +38,6 @@ public class GreedySolver extends Solver {
                 neighborConnections.put(other, directRoute.distance);
             }
             this.connections.put(node, neighborConnections);
-        }
-        // find crosses
-        // these are pairs of links AB and CD that can't coexist in a route,
-        //  because traveling AC and BD instead is shorter (usually because AB and CD cross)
-        this.crosses = new HashMap<>();
-        int c = 1;
-        for (Node nodeB : scenario.nodes) {
-            System.out.print("Finding crosses... (" + c++ + "/" + scenario.nodes.size() + ")\r");
-            for (Node nodeC : scenario.nodes) {
-                if (nodeB == nodeC) {
-                    continue;
-                }
-                // find all nodes neighbored by both nodeB and nodeC
-                Set<Node> bothNeighbors = new HashSet<>(nodeB.outNodes);
-                bothNeighbors.retainAll(nodeC.outNodes);
-                for (Node nodeA : bothNeighbors) {
-                    for (Node nodeD : bothNeighbors) {
-                        if (nodeA == nodeD) {
-                            continue;
-                        }
-                        crossCheck(nodeA, nodeB, nodeC, nodeD);
-                    }
-                }
-            }
         }
         // search for a hardcoded amount of time (may rethink this in the future)
         long end = super.endTime(timeLimit);
@@ -144,50 +114,5 @@ public class GreedySolver extends Solver {
             search(next, nextBranchEnd);
             nextBranchEnd += branchLifespan;
         }
-    }
-
-    private void finishRoute(Route next) {
-        // If there is already a route with this many points, keep the shorter one
-        if (finishedRoutes.containsKey(next.points)) {
-            Route existing = finishedRoutes.get(next.points);
-            if (next.distance > existing.distance) {
-                return;
-            }
-        }
-        finishedRoutes.put(next.points, next);
-        // Print if best so far
-        if (this.bestRoute == null ||
-            next.points > this.bestRoute.points ||
-            (next.points == this.bestRoute.points && next.distance < this.bestRoute.distance)
-        ) {
-            this.bestRoute = next;
-            System.out.println(next.routeString(scenario.speed));
-        }
-    }
-
-    // AB + CD < AC + BD
-    private void crossCheck(Node nodeA, Node nodeB, Node nodeC, Node nodeD) {
-        Link linkAB = nodeA.getLinkTo(nodeB);
-        Link linkCD = nodeC.getLinkTo(nodeD);
-        Link linkAC = nodeA.getLinkTo(nodeC);
-        Link linkBD = nodeB.getLinkTo(nodeD);
-        if (linkAB.distance + linkCD.distance < linkAC.distance + linkBD.distance) {
-            return;
-        }
-        // AB and CD "cross"
-        this.crosses.computeIfAbsent(linkAB, k -> new HashSet<>())
-            .add(linkCD);
-        this.crosses.computeIfAbsent(linkCD, k -> new HashSet<>())
-            .add(linkAB);
-    }
-
-    private boolean crossesRoute(Link link, Route route) {
-        for (Link routeLink : route.getLinks()) {
-            Set<Link> crossesWith = this.crosses.get(link);
-            if (crossesWith != null && crossesWith.contains(routeLink)) {
-                return true;
-            }
-        }
-        return false;
     }
 }

@@ -117,7 +117,7 @@ Links are one-way, so a Connection turns into two Links.
 ## Solvers
 
 A Scenario can be solved using any implementation of Solver.
-Simply call `Solver.solve` and pass the Scenario as the argument along with an optional time limit.
+Simply call `Solver.solve` and pass the Scenario as the argument along with an optional calculation time limit.
 This returns a Result, which is is a list of Routes that can be read and printed.
 Individual Routes can also be exported with Export.
 
@@ -127,9 +127,11 @@ Below is a list of all Solvers that have currently been implemented.
 
 This is the original solving algorithm, from v1.
 It simply tries every possible route, skipping routes that are guaranteed to be worse than a potential other route or otherwise unfinishable.
+It can find the optimal solution for time limits under ~60 minutes but after that the solve time increases exponentially. 
 
 While the original was breadth-first search, this implementation is depth-first.
 
 ### `GreedySolver`
 
-A variant of BruteForceSolver that attempts to "direct" its search towards the nearest zones, in order to find the best route quicker.
+A variant of BruteForceSolver that attempts to "direct" its search towards the nearest zones, in order to find the best route as quickly as possible.
+It is much slower than BruteForceSolver, but for large time limits it outperforms at finding a "good enough" solution in a reasonable calculation time.
