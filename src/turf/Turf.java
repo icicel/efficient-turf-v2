@@ -612,6 +612,34 @@ public class Turf extends Logging implements Serializable {
         return zones;
     }
 
+    // As above but trails
+    public Set<Trail> zoneTrailsWithinDistanceOverSubset(Point start, double maxDistance, Set<Point> subset) {
+        Set<Trail> zoneTrails = new HashSet<>();
+        PriorityQueue<Trail> queue = new PriorityQueue<>(
+            Comparator.comparingDouble(trail -> trail.weightedDistance)
+        );
+        Set<Point> visited = new HashSet<>();
+        queue.add(new Trail(start));
+        while (!queue.isEmpty()) {
+            Trail trail = queue.remove();
+            Point current = trail.point;
+            if (visited.contains(current) || !subset.contains(current) || trail.distance > maxDistance) {
+                continue;
+            }
+            visited.add(current);
+            // Finish trail if we reach a zone
+            if (current.isZone()) {
+                zoneTrails.add(trail);
+            }
+            // Extend the trail with all connections from the current point
+            for (Connection extension : current.parents) {
+                Trail nextTrail = new Trail(extension, trail);
+                queue.add(nextTrail);
+            }
+        }
+        return zoneTrails;
+    }
+
     // Remove all connections except those who are part of some shortest path between
     //  any two zones
     public void optimize() {

@@ -145,67 +145,59 @@ public class Scenario extends Logging {
 
 
         Set<Node> zones = new HashSet<>();
-        Map<Point, Set<Point>> zonesNearZone = new HashMap<>();
-        Map<Point, Set<Point>> zonesNearCrossing = new HashMap<>();
-        double minZonePassDistance = 100;
+        Set<Point> zonePoints = new HashSet<>();
+        double minZoneVeerDelay = 1.25;
         for (Node node : this.nodes) {
-            Point point = node.ancestor;
             // reachable zones only
             if (!reachablePoints.contains(node.ancestor)) {
                 continue;
             }
             if (node.isZone) {
                 zones.add(node);
-                Set<Point> nearbyZones = turf.zonesWithinDistanceOverSubset(point, minZonePassDistance * 2, reachablePoints);
-                zonesNearZone.put(point, nearbyZones);
-            } else {
-                Set<Point> nearbyZones = turf.zonesWithinDistanceOverSubset(point, minZonePassDistance, reachablePoints);
-                zonesNearCrossing.put(point, nearbyZones);
+                zonePoints.add(node.ancestor);
             }
         }
         Map<Node, Map<Node, Trail>> edges = new HashMap<>();
+        Map<Point, Map<Point, Trail>> allTrails = new HashMap<>();
         c = 1;
-        // Collect all edges between zones that don't pass near any other zones
-        for (Node node1 : zones) {
+        for (Node node : zones) {
             System.out.print("Finding edges... (" + c++ + "/" + zones.size() + ")\r");
-            Map<Point, Trail> trails = turf.trailsOverSubset(node1.ancestor, reachablePoints);
+            allTrails.put(node.ancestor, turf.trailsOverSubset(node.ancestor, reachablePoints));
+        }
+        c = 1;
+        // Collect all edges between zones that don't veer too close to other zones
+        for (Node node1 : zones) {
+            System.out.print("Filtering edges... (" + c++ + "/" + zones.size() + ")\r");
+            Point point1 = node1.ancestor;
+            Map<Point, Trail> trailsFrom1 = allTrails.get(point1);
             Map<Node, Trail> zoneEdges = new HashMap<>();
             for (Node node2 : zones) {
                 if (node1 == node2) {
                     continue;
                 }
-                Point point1 = node1.ancestor;
                 Point point2 = node2.ancestor;
-                Trail trail = trails.get(point2);
-                // Only keep trails that don't pass close to any other zones
-                boolean exit = false;
-                Set<Point> endpoints = Set.of(point1, point2);
-                for (Point middleCrossing : trail.getPoints()) {
-                    if (endpoints.contains(middleCrossing)) {
+                // "Veering too close" to a third zone means that the trail 1->3->2 is
+                //  no more than x% longer than the trail 1->2
+                boolean bad = false;
+                Map<Point, Trail> trailsFrom2 = allTrails.get(point2);
+                Trail trail12 = trailsFrom1.get(point2);
+                for (Point point3 : zonePoints) {
+                    if (point3 == point1 || point3 == point2) {
                         continue;
                     }
-                    Set<Point> withinDistance = zonesNearCrossing.get(middleCrossing);
-                    for (Point zone : withinDistance) {
-                        if (endpoints.contains(zone)) {
-                            continue;
-                        }
-                        // Discard unless the nearby zone is itself close enough to an endpoint
-                        //  or if it's actually not a zone in this scenario
-                        Set<Point> nearby = zonesNearZone.get(zone);
-                        if (nearby == null || nearby.contains(point1) || nearby.contains(point2)) {
-                            continue;
-                        }
-                        exit = true;
-                        break;
-                    }
-                    if (exit) {
+                    Trail trail13 = trailsFrom1.get(point3);
+                    Trail trail23 = trailsFrom2.get(point3);
+                    if (trail13.distance + trail23.distance < trail12.distance * minZoneVeerDelay) {
+                        // Sidetracking across point3 is not inefficient enough to warrant the
+                        //  direct edge from point1 to point2
+                        bad = true;
                         break;
                     }
                 }
-                if (exit) {
+                if (bad) {
                     continue;
                 }
-                zoneEdges.put(node2, trail);
+                zoneEdges.put(node2, trail12);
             }
             edges.put(node1, zoneEdges);
         }
