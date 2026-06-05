@@ -259,7 +259,7 @@ public class Export {
 
     // For use in turf.urbangeeks.org
     public static void exportRouteAsGpx(Route route, Path path) throws IOException {
-        List<Node> nodes = route.getCapturedNodes();
+        List<Node> nodes = route.getRouteNodes();
         StringBuilder sb = new StringBuilder();
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
         sb.append("<gpx version=\"1.1\" xmlns=\"http://www.topografix.com/GPX/1/1\">\n");
@@ -274,7 +274,7 @@ public class Export {
 
     // Prints a Google Maps URL with the route's points as waypoints
     public static void exportRouteAsUrl(Route route) {
-        List<Node> nodes = route.getCapturedNodes();
+        List<Node> nodes = route.getRouteNodes();
         StringBuilder sb = new StringBuilder("https://www.google.com/maps/dir/");
         for (Node node : nodes) {
             sb.append(node.ancestor.lat).append(",");

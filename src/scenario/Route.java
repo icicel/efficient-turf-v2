@@ -103,6 +103,14 @@ public class Route {
         }
         return nodes;
     }
+    // Always including end node
+    public List<Node> getRouteNodes() {
+        List<Node> nodes = this.getCapturedNodes();
+        if (this.previous != null && this.previous.hasVisited(this.node)) {
+            nodes.add(this.node);
+        }
+        return nodes;
+    }
     public List<Link> getLinks() {
         List<Link> links;
         if (this.previous == null) {
