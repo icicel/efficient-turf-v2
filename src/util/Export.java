@@ -6,12 +6,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import scenario.Link;
 import scenario.Node;
 import scenario.Route;
+import scenario.Scenario;
 import turf.Connection;
 import turf.Point;
 import turf.Turf;
@@ -188,55 +191,81 @@ public class Export {
         objOut.close();
     }
 
-    /* Export Routes using their base Turfs */
+    /* Export Scenario objects */
 
-    public static void exportRouteAsCsv(Route route, Path path, Turf turf) throws IOException {
-        List<Point> points = getPoints(route, turf);
-        StringBuilder sb = new StringBuilder();
-        sb.append("WKT,name").append("\n");
-        // Iterate over all nodes except the last one
-        for (int i = 0; i < points.size() - 1; i++) {
-            Point start = points.get(i);
-            Point end = points.get(i + 1);
-            Trail trail = turf.pathfind(start, end);
-            // Point
-            sb.append("\"POINT (");
-            sb.append(start.lon).append(" ").append(start.lat);
-            sb.append(")\",");
-            sb.append(start).append("\n");
-            // Connections
-            Point current = start;
-            sb.append("\"LINESTRING (");
-            for (Connection connection : trail.getConnections()) {
-                // get the correct view of the connection (left->right or right->left)
-                sb.append(current.lon).append(" ").append(current.lat).append(", ");
-                for (Point middlePoint : connection.middleFromPOVOf(current)) {
-                    sb.append(middlePoint.lon).append(" ").append(middlePoint.lat).append(", ");
-                }
-                current = connection.other(current);
+    public static void exportNodes(Scenario scenario, Path path) throws IOException {
+        exportGeneric(
+            path,
+            "WKT,name",
+            scenario.nodes,
+            node -> {
+                Point point = node.ancestor;
+                StringBuilder sb = new StringBuilder();
+                sb.append("\"POINT (");
+                sb.append(point.lon).append(" ").append(point.lat);
+                sb.append(")\",");
+                sb.append(node.name).append("\n");
+                return sb.toString();
             }
-            sb.append(current.lon).append(" ").append(current.lat);
-            sb.append(")\",");
-            sb.append(start).append("-").append(end).append("\n");
+        );
+    }
+
+    private static void exportLinks(Iterable<Link> links, Path path) throws IOException {
+        exportGeneric(
+            path,
+            "WKT,name",
+            links,
+            link -> {
+                Trail trail = link.ancestor;
+                StringBuilder sb = new StringBuilder();
+                Point current = trail.start();
+                sb.append("\"LINESTRING (");
+                for (Connection connection : trail.getConnections()) {
+                    // get the correct view of the connection (left->right or right->left)
+                    sb.append(current.lon).append(" ").append(current.lat).append(", ");
+                    for (Point middlePoint : connection.middleFromPOVOf(current)) {
+                        sb.append(middlePoint.lon).append(" ").append(middlePoint.lat).append(", ");
+                    }
+                    current = connection.other(current);
+                }
+                sb.append(current.lon).append(" ").append(current.lat);
+                sb.append(")\",");
+                sb.append(link.parent.name).append("-").append(link.neighbor.name).append("\n");
+                return sb.toString();
+            }
+        );
+    }
+
+    public static void exportLinks(Scenario scenario, Path path) throws IOException {
+        Set<Link> oneWayLinks = new HashSet<>();
+        for (Link link : scenario.links) {
+            if (oneWayLinks.contains(link.reverse)) {
+                continue;
+            }
+            oneWayLinks.add(link);
         }
-        // Last point
-        Point last = points.get(points.size() - 1);
-        sb.append("\"POINT (");
-        sb.append(last.lon).append(" ").append(last.lat);
-        sb.append(")\",");
-        sb.append(last).append("\n");
-        Files.writeString(path, sb.toString());
+        exportLinks(oneWayLinks, path);
+    }
+
+    public static void exportNodeNeighborhood(Node node, Path path) throws IOException {
+        exportLinks(node.out, path);
+    }
+
+    /* Export Routes */
+
+    public static void exportRouteAsCsv(Route route, Path path) throws IOException {
+        exportLinks(route.getLinks(), path);
     }
 
     // For use in turf.urbangeeks.org
-    public static void exportRouteAsGpx(Route route, Path path, Turf turf) throws IOException {
-        List<Point> points = getPoints(route, turf);
+    public static void exportRouteAsGpx(Route route, Path path) throws IOException {
+        List<Node> nodes = route.getNodes();
         StringBuilder sb = new StringBuilder();
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
         sb.append("<gpx version=\"1.1\" xmlns=\"http://www.topografix.com/GPX/1/1\">\n");
-        for (Point point : points) {
-            sb.append("<wpt lat=\"").append(point.lat).append("\" lon=\"").append(point.lon).append("\">\n");
-            sb.append("<name>").append(point).append("</name>\n");
+        for (Node node : nodes) {
+            sb.append("<wpt lat=\"").append(node.ancestor.lat).append("\" lon=\"").append(node.ancestor.lon).append("\">\n");
+            sb.append("<name>").append(node).append("</name>\n");
             sb.append("</wpt>\n");
         }
         sb.append("</gpx>\n");
@@ -244,27 +273,13 @@ public class Export {
     }
 
     // Prints a Google Maps URL with the route's points as waypoints
-    public static void exportRouteAsUrl(Route route, Turf turf) {
-        List<Point> points = getPoints(route, turf);
+    public static void exportRouteAsUrl(Route route) {
+        List<Node> nodes = route.getNodes();
         StringBuilder sb = new StringBuilder("https://www.google.com/maps/dir/");
-        for (Point point : points) {
-            sb.append(point.lat).append(",");
-            sb.append(point.lon).append("/");
+        for (Node node : nodes) {
+            sb.append(node.ancestor.lat).append(",");
+            sb.append(node.ancestor.lon).append("/");
         }
         System.out.println(sb.toString());
-    }
-
-    private static List<Point> getPoints(Route route, Turf turf) {
-        List<Node> nodes = route.getCapturedNodes();
-        List<Point> points = new ArrayList<>();
-        Set<Point> allPoints = turf.allPoints();
-        for (Node node : nodes) {
-            Point point = allPoints.stream()
-                .filter(p -> p.toString().equals(node.name))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("No point found for node " + node.name));
-            points.add(point);
-        }
-        return points;
     }
 }
