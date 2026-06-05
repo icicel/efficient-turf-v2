@@ -29,6 +29,18 @@ public class Trail {
         this.zones = previous.zones + (this.point.isZone() ? 1 : 0);
     }
 
+    public Point start() {
+        if (this.previous == null) {
+            return this.point;
+        } else {
+            return this.previous.start();
+        }
+    }
+
+    public Point end() {
+        return this.point;
+    }
+
     public List<Point> getPoints() {
         List<Point> points;
         if (this.previous == null) {

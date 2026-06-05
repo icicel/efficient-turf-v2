@@ -18,12 +18,15 @@ public class Node {
     public int points; // internal points
     public boolean isZone; // if false, will be deleted by Scenario
 
+    public Point ancestor;
+
     // Create a node from a point
     public Node(Point point, String username, boolean isNow) {
         this.name = point.toString();
         this.out = new HashSet<>();
         this.outNodes = new HashSet<>();
         this.outMap = new HashMap<>();
+        this.ancestor = point;
         if (point.isZone()) {
             this.realPoints = point.zone.getPoints(username, isNow);
             this.points = this.realPoints;

@@ -1,4 +1,5 @@
 package scenario;
+import turf.Trail;
 
 // Represents a one-way connection from a parent Node to its neighbor
 public class Link {
@@ -13,13 +14,19 @@ public class Link {
     // Can usually be assumed to exist
     public Link reverse;
 
+    public Trail ancestor;
+
     // Initialization
     // Will fail if parent already has a link to neighbor
-    public Link(double distance, Node parent, Node neighbor) {
-        this.distance = distance;
+    public Link(Trail trail, Node parent, Node neighbor) {
+        this.distance = trail.distance;
         this.parent = parent;
         this.neighbor = neighbor;
+        this.ancestor = trail;
 
+        if (parent.ancestor != trail.start() || neighbor.ancestor != trail.end()) {
+            throw new IllegalArgumentException("Trail does not match nodes");
+        }
         if (parent.hasLinkTo(neighbor)) {
             // This link already exists
             throw new IllegalArgumentException("Link already exists from " + parent.name + " to " + neighbor.name);

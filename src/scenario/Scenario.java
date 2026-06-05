@@ -43,14 +43,11 @@ public class Scenario extends Logging {
         // Create a Node for each Point in the Turf
         this.nodes = new HashSet<>();
         this.nodeName = new HashMap<>();
-        Map<Node, Point> ancestors = new HashMap<>();
         for (Point zone : turf.zones) {
-            Node node = addNode(zone, conditions.username, conditions.isNow);
-            ancestors.put(node, zone);
+            addNode(zone, conditions.username, conditions.isNow);
         }
         for (Point crossing : turf.crossings) {
-            Node node = addNode(crossing, conditions.username, conditions.isNow);
-            ancestors.put(node, crossing);
+            addNode(crossing, conditions.username, conditions.isNow);
         }
 
 
@@ -122,8 +119,8 @@ public class Scenario extends Logging {
 
 
         // Find all Points that can be visited within the time limit
-        Point startPoint = ancestors.get(start);
-        Point endPoint = ancestors.get(end);
+        Point startPoint = start.ancestor;
+        Point endPoint = end.ancestor;
         Map<Point, Double> startDistances = turf.distancesFrom(startPoint);
         Map<Point, Double> endDistances = turf.distancesFrom(endPoint);
         Set<Point> reachablePoints = turf.allPoints();
@@ -152,9 +149,9 @@ public class Scenario extends Logging {
         Map<Point, Set<Point>> zonesNearCrossing = new HashMap<>();
         double minZonePassDistance = 50;
         for (Node node : this.nodes) {
-            Point point = ancestors.get(node);
+            Point point = node.ancestor;
             // reachable zones only
-            if (!reachablePoints.contains(ancestors.get(node))) {
+            if (!reachablePoints.contains(node.ancestor)) {
                 continue;
             }
             if (node.isZone) {
@@ -166,19 +163,19 @@ public class Scenario extends Logging {
                 zonesNearCrossing.put(point, nearbyZones);
             }
         }
-        Map<Node, Map<Node, Double>> edges = new HashMap<>();
+        Map<Node, Map<Node, Trail>> edges = new HashMap<>();
         c = 1;
         // Collect all edges between zones that don't pass near any other zones
         for (Node node1 : zones) {
             System.out.print("Finding edges... (" + c++ + "/" + zones.size() + ")\r");
-            Map<Point, Trail> trails = turf.trailsOverSubset(ancestors.get(node1), reachablePoints);
-            Map<Node, Double> zoneEdges = new HashMap<>();
+            Map<Point, Trail> trails = turf.trailsOverSubset(node1.ancestor, reachablePoints);
+            Map<Node, Trail> zoneEdges = new HashMap<>();
             for (Node node2 : zones) {
                 if (node1 == node2) {
                     continue;
                 }
-                Point point1 = ancestors.get(node1);
-                Point point2 = ancestors.get(node2);
+                Point point1 = node1.ancestor;
+                Point point2 = node2.ancestor;
                 Trail trail = trails.get(point2);
                 // Only keep trails that don't pass close to any other zones
                 boolean exit = false;
@@ -207,7 +204,7 @@ public class Scenario extends Logging {
                 if (exit) {
                     continue;
                 }
-                zoneEdges.put(node2, trail.distance);
+                zoneEdges.put(node2, trail);
             }
             edges.put(node1, zoneEdges);
         }
@@ -223,14 +220,11 @@ public class Scenario extends Logging {
                 if (zone == neighbor) {
                     continue;
                 }
-                if (zone.hasLinkTo(neighbor)) {
+                Trail trail = edges.get(zone).get(neighbor);
+                if (trail == null) {
                     continue;
                 }
-                Double distance = edges.get(zone).get(neighbor);
-                if (distance == null) {
-                    continue;
-                }
-                addLinkPair(zone, neighbor, distance);
+                addLink(trail, zone, neighbor);
             }
         }
 
@@ -296,13 +290,11 @@ public class Scenario extends Logging {
         return node;
     }
 
-    // Add two links between two nodes, one in each direction
-    // Fails if there already is one in either direction
-    private void addLinkPair(Node node1, Node node2, double distance) {
-        Link link1 = new Link(distance, node1, node2);
-        Link link2 = new Link(distance, node2, node1);
-        this.links.add(link1);
-        this.links.add(link2);
+    // Add a link between two nodes following a trail
+    // Fails if there already is one in either direction or if the trail doesn't match the nodes
+    private void addLink(Trail trail, Node start, Node end) {
+        Link link = new Link(trail, start, end);
+        this.links.add(link);
     }
 
     // Completely remove all references to a Node, includes removing all Links to/from the Node
