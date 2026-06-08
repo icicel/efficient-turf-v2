@@ -261,50 +261,52 @@ public class Turf extends Logging implements Serializable {
         }
 
 
-        // Create direct connections between all zones and their nearest crossing
-        // Identify each crossing with a lat/lon quadrant
+        // Create direct connections between all zones and the nearest point on a connection
         log("Turf: Connecting zones...");
-        Map<String, Set<Point>> quadrantMap = new HashMap<>();
-        for (Point crossing : this.crossings) {
-            String quadrantKey = getQuadrantKey(crossing);
-            quadrantMap.computeIfAbsent(quadrantKey, k -> new HashSet<>()).add(crossing);
+        // Identify connections with lat/lon quadrants
+        Map<String, Set<Connection>> quadrantMap = new HashMap<>();
+        for (Connection connection : this.connections) {
+            String leftQuadrantKey = getQuadrantKey(connection.left);
+            String rightQuadrantKey = getQuadrantKey(connection.right);
+            quadrantMap.computeIfAbsent(leftQuadrantKey, k -> new HashSet<>()).add(connection);
+            quadrantMap.computeIfAbsent(rightQuadrantKey, k -> new HashSet<>()).add(connection);
         }
         int c = 1;
         for (Point zone : new HashSet<>(this.zones)) {
             System.out.print("Finding connections... (" + c++ + "/" + zones.size() + ")\r");
-            // Find closest point in the same quadrant as the zone
+            // Find closest connection in the same quadrant as the zone
             String quadrantKey = getQuadrantKey(zone);
-            Set<Point> crossingsInQuadrant = quadrantMap.get(quadrantKey);
-            Point closestCrossing = closestPoint(crossingsInQuadrant, zone);
+            Set<Connection> connectionsInQuadrant = quadrantMap.get(quadrantKey);
+            ClosestConnection result = closestConnection(connectionsInQuadrant, zone);
             // Only accept this point if it's closer than the edge of the quadrant
             //  meaning it's closer than any point in a different quadrant
-            if (closestCrossing == null || zone.distanceTo(closestCrossing) > distanceToQuadrantEdge(zone)) {
+            if (result == null || result.distance > distanceToQuadrantEdge(zone)) {
                 // Failure, search all surrounding 9 quadrants
                 double lat = zone.lat;
                 double lon = zone.lon;
                 for (int latOffset = -1; latOffset <= 1; latOffset++) {
                     for (int lonOffset = -1; lonOffset <= 1; lonOffset++) {
                         String neighborQuadrantKey = getQuadrantKey(lat + latOffset * 0.01, lon + lonOffset * 0.01);
-                        Set<Point> crossingsInNeighborQuadrant = quadrantMap.get(neighborQuadrantKey);
-                        Point closestInNeighbor = closestPoint(crossingsInNeighborQuadrant, zone);
-                        if (closestInNeighbor != null && (
-                                closestCrossing == null ||
-                                zone.distanceTo(closestInNeighbor) < zone.distanceTo(closestCrossing)
-                            )
-                        ) {
-                            closestCrossing = closestInNeighbor;
+                        Set<Connection> crossingsInNeighborQuadrant = quadrantMap.get(neighborQuadrantKey);
+                        ClosestConnection neighborResult = closestConnection(crossingsInNeighborQuadrant, zone);
+                        if (neighborResult != null && (
+                            result == null || neighborResult.distance < result.distance
+                        )) {
+                            result = neighborResult;
                         }
                     }
                 }
-                if (closestCrossing == null) {
+                if (result == null) {
                     // Failure again, search globally
                     // This is very slow, but shouldn't be too common since zones are usually close to OSM highways
-                    closestCrossing = closestPoint(this.crossings, zone);
+                    result = closestConnection(this.connections, zone);
                 }
             }
-            // Connect to the zone
-            Connection connection = new Connection(zone, closestCrossing);
-            connections.add(connection);
+            // Connect the zone and the point, splitting the connection if necessary
+            splitConnection(result.connection, result.closestPoint);
+            Connection zoneConnection = new Connection(zone, result.closestPoint);
+            connections.add(zoneConnection);
+            crossings.add(result.closestPoint);
         }
 
 
@@ -706,6 +708,55 @@ public class Turf extends Logging implements Serializable {
         return points.stream()
             .min(Comparator.comparingDouble(p -> point.distanceTo(p)))
             .orElse(null);
+    }
+
+    // Above but closest connection
+    public static ClosestConnection closestConnection(Set<Connection> connections, Point point) {
+        if (connections == null || connections.isEmpty()) {
+            return null;
+        }
+        Connection closestConnection = connections.stream()
+            .min(Comparator.comparingDouble(
+                connection -> point.distanceToLine(connection.left, connection.right)
+            ))
+            .orElse(null);
+        if (closestConnection == null) {
+            return null;
+        }
+        Point closestPoint = point.nearestPointOnLine(closestConnection.left, closestConnection.right);
+        double distance = point.distanceTo(closestPoint);
+        return new ClosestConnection(closestConnection, closestPoint, distance);
+    }
+
+    private static class ClosestConnection {
+        Connection connection;
+        Point closestPoint;
+        double distance;
+
+        public ClosestConnection(Connection connection, Point closestPoint, double distance) {
+            this.connection = connection;
+            this.closestPoint = closestPoint;
+            this.distance = distance;
+        }
+    }
+
+    // Split a 2-point connection by inserting a point to create two connections
+    // Does nothing if point is an endpoint
+    private void splitConnection(Connection connection, Point point) {
+        if (connection.middle.size() > 0) {
+            throw new IllegalArgumentException("Can only split a connection with no middle points");
+        }
+        if (point == connection.left || point == connection.right) {
+            return;
+        }
+        Connection firstHalf = new Connection(connection.left, point, connection.weight);
+        Connection secondHalf = new Connection(point, connection.right, connection.weight);
+        this.connections.add(firstHalf);
+        this.connections.add(secondHalf);
+        // Cleanup old connection
+        connection.left.parents.remove(connection);
+        connection.right.parents.remove(connection);
+        this.connections.remove(connection);
     }
 
     // Get the key for the quadrant that the given Point falls into

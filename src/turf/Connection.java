@@ -12,6 +12,7 @@ public class Connection {
 
     public double distance; // meters
     public double weightedDistance; // distance weighted by highway type
+    public double weight;
 
     // Convert an array of Points to a Connection
     public Connection(Point[] coordinates, double weight) {
@@ -29,6 +30,7 @@ public class Connection {
             this.middle.add(current);
         }
         this.weightedDistance = this.distance * weight;
+        this.weight = weight;
         left.parents.add(this);
         right.parents.add(this);
     }
@@ -45,6 +47,7 @@ public class Connection {
         this.middle = new ArrayList<>();
         this.distance = left.distanceTo(right);
         this.weightedDistance = this.distance * weight;
+        this.weight = weight;
         left.parents.add(this);
         right.parents.add(this);
     }
