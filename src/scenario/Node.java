@@ -16,7 +16,6 @@ public class Node {
 
     public int realPoints; // actual points
     public int points; // internal points
-    public boolean isZone; // if false, will be deleted by Scenario
 
     public Point ancestor;
 
@@ -30,12 +29,14 @@ public class Node {
         if (point.isZone()) {
             this.realPoints = point.zone.getPoints(username, isNow);
             this.points = this.realPoints;
-            this.isZone = this.realPoints > 0;
         } else {
             this.realPoints = 0;
             this.points = 0;
-            this.isZone = false;
         }
+    }
+
+    public boolean isZone() {
+        return this.realPoints > 0;
     }
 
     // Retrieve an outgoing link to a neighbor node

@@ -98,7 +98,7 @@ Optional conditions that can be given are:
 - Walking speed (defaults to 1 m/s)
 - Turf username, for zone ownership calculations
 - Whether to consider zone ownership at all
-- Blacklisting of nodes
+- Blacklisting of points
 - Greylisting of zones (conversion into crossings)
 - Taken zones (disincentivize by counting other zones as twice as valuable)
 

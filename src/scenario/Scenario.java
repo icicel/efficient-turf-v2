@@ -35,19 +35,32 @@ public class Scenario extends Logging {
 
     // route cache, the result of findFastestRoutes() for each node
     public Map<Node, Map<Node, Route>> fastestRoutes;
-    
+
     public Scenario(Turf turf, Conditions conditions) {
         log("Scenario: *** Initializing...");
 
 
-        // Create a Node for each Point in the Turf
+        // Create a Node for each zone and endpoint
         this.nodes = new HashSet<>();
         this.nodeName = new HashMap<>();
         for (Point zone : turf.zones) {
             addNode(zone, conditions.username, conditions.isNow);
         }
         for (Point crossing : turf.crossings) {
+            if (crossing.name != conditions.start && crossing.name != conditions.end) {
+                continue;
+            }
             addNode(crossing, conditions.username, conditions.isNow);
+        }
+        // Setup points
+        Set<Point> reachablePoints = new HashSet<>();
+        Map<String, Point> pointName = new HashMap<>();
+        for (Point point : turf.allPoints()) {
+            reachablePoints.add(point);
+            Point previous = pointName.put(point.name, point);
+            if (previous != null) {
+                throw new RuntimeException("Duplicate point name: " + point.name);
+            }
         }
 
 
@@ -57,43 +70,44 @@ public class Scenario extends Logging {
         // Fill in other things
         this.start = getNode(conditions.start);
         this.end = getNode(conditions.end);
-        this.timeLimit = conditions.timeLimit;
-        this.speed = conditions.speed;
-        this.distanceLimit = this.timeLimit * this.speed;
         if (this.start == null) {
             throw new RuntimeException("Start node not found: " + conditions.start);
         }
         if (this.end == null) {
             throw new RuntimeException("End node not found: " + conditions.end);
         }
-        // Override
-        this.start.isZone = true;
-        this.end.isZone = true;
+        this.timeLimit = conditions.timeLimit;
+        this.speed = conditions.speed;
+        this.distanceLimit = this.timeLimit * this.speed;
         // Apply blacklist
         int c = 0;
         if (conditions.blacklist != null) {
-            Set<Node> blacklisted = getNodes(conditions.blacklist);
-            for (Node node : blacklisted) {
-                removeNode(node);
+            for (String name : conditions.blacklist) {
+                Node node = getNode(name); // may be null
+                Point point = pointName.get(name);
+                if (point == null) {
+                    continue;
+                }
+                if (node != null) {
+                    removeNode(node);
+                }
+                reachablePoints.remove(point);
                 c++;
             }
-            log("Scenario: Removed " + c + " blacklisted zone" + s(c));
+            log("Scenario: Removed " + c + " blacklisted point" + s(c));
         }
         // Apply greylist
         c = 0;
         if (conditions.greylist != null) {
-            Set<Node> greylisted = getNodes(conditions.greylist);
-            for (Node node : greylisted) {
-                if (!node.isZone) {
-                    continue;
-                }
-                node.points = 0;
-                c++;
+            for (Node node : getNodes(conditions.greylist)) {
                 if (node == start || node == end) {
-                    // start and end nodes should not be un-zoned
-                    continue;
+                    // start and end nodes should not be removed
+                    node.points = 0;
+                } else {
+                    // since it's a crossing now, just remove it
+                    removeNode(node);
                 }
-                node.isZone = false;
+                c++;
             }
             log("Scenario: Blanked " + c + " greylisted zone" + s(c));
         }
@@ -103,9 +117,6 @@ public class Scenario extends Logging {
             Set<Node> taken = getNodes(conditions.takenlist);
             for (Node node : this.nodes) {
                 if (taken.contains(node)) {
-                    continue;
-                }
-                if (node.points == 0) {
                     continue;
                 }
                 node.points *= 2;
@@ -123,7 +134,6 @@ public class Scenario extends Logging {
         Point endPoint = end.ancestor;
         Map<Point, Double> startDistances = turf.distancesFrom(startPoint);
         Map<Point, Double> endDistances = turf.distancesFrom(endPoint);
-        Set<Point> reachablePoints = turf.allPoints();
         reachablePoints.removeIf(
             point -> startDistances.get(point) + endDistances.get(point) > this.distanceLimit
         );
@@ -131,52 +141,57 @@ public class Scenario extends Logging {
             throw new RuntimeException("End node is unreachable within time limit");
         }
         // Apply blacklist again and check if it has made nodes unreachable
-        reachablePoints.removeIf(
-            point -> getNode(point.name) == null
-        );
         Map<Point, Trail> startTrails = turf.trailsOverSubset(startPoint, reachablePoints);
         reachablePoints = startTrails.keySet();
         if (!reachablePoints.contains(endPoint)) {
             throw new RuntimeException("End node is unreachable with current blacklist");
+        }
+        // Remove unreachable nodes
+        c = 0;
+        for (Node node : new LinkedList<>(this.nodes)) {
+            if (!reachablePoints.contains(node.ancestor)) {
+                removeNode(node);
+                c++;
+            }
+        }
+        if (c > 0) {
+            log("Scenario: Removed " + c + " unreachable node" + s(c));
         }
 
 
         log("Scenario: Building graph...");
 
 
-        Set<Node> zones = new HashSet<>();
+        Set<Point> points = new HashSet<>();
         Set<Point> zonePoints = new HashSet<>();
-        double minZoneVeerDelay = 1.25;
+        Map<Point, Node> descendant = new HashMap<>();
         for (Node node : this.nodes) {
-            // reachable zones only
-            if (!reachablePoints.contains(node.ancestor)) {
-                continue;
-            }
-            if (node.isZone) {
-                zones.add(node);
+            points.add(node.ancestor);
+            descendant.put(node.ancestor, node);
+            if (node.isZone()) {
                 zonePoints.add(node.ancestor);
             }
         }
-        Map<Node, Map<Node, Trail>> edges = new HashMap<>();
+        // Find all trails between nodes
         Map<Point, Map<Point, Trail>> allTrails = new HashMap<>();
         c = 1;
-        for (Node node : zones) {
-            System.out.print("Finding edges... (" + c++ + "/" + zones.size() + ")\r");
-            allTrails.put(node.ancestor, turf.trailsOverSubset(node.ancestor, reachablePoints));
+        for (Point point : points) {
+            System.out.print("Finding edges... (" + c++ + "/" + points.size() + ")\r");
+            allTrails.put(point, turf.trailsOverSubset(point, reachablePoints));
         }
+        // Collect all trails between nodes that don't veer too close to a zone
+        double minZoneVeerDelay = 1.25;
+        Map<Node, Map<Node, Trail>> edges = new HashMap<>();
         c = 1;
-        // Collect all edges between zones that don't veer too close to other zones
-        for (Node node1 : zones) {
-            System.out.print("Filtering edges... (" + c++ + "/" + zones.size() + ")\r");
-            Point point1 = node1.ancestor;
+        for (Point point1 : points) {
+            System.out.print("Filtering edges... (" + c++ + "/" + points.size() + ")\r");
             Map<Point, Trail> trailsFrom1 = allTrails.get(point1);
-            Map<Node, Trail> zoneEdges = new HashMap<>();
-            for (Node node2 : zones) {
-                if (node1 == node2) {
+            Map<Node, Trail> nodeEdges = new HashMap<>();
+            for (Point point2 : points) {
+                if (point1 == point2) {
                     continue;
                 }
-                Point point2 = node2.ancestor;
-                // "Veering too close" to a third zone means that the trail 1->3->2 is
+                // "Veering too close" to a third point means that the trail 1->3->2 is
                 //  no more than x% longer than the trail 1->2
                 boolean bad = false;
                 Map<Point, Trail> trailsFrom2 = allTrails.get(point2);
@@ -197,9 +212,9 @@ public class Scenario extends Logging {
                 if (bad) {
                     continue;
                 }
-                zoneEdges.put(node2, trail12);
+                nodeEdges.put(descendant.get(point2), trail12);
             }
-            edges.put(node1, zoneEdges);
+            edges.put(descendant.get(point1), nodeEdges);
         }
 
 
@@ -207,9 +222,9 @@ public class Scenario extends Logging {
 
 
         this.links = new HashSet<>();
-        // Recreate everything
-        for (Node zone : zones) {
-            for (Node neighbor : zones) {
+        // Recreate edges as links
+        for (Node zone : this.nodes) {
+            for (Node neighbor : this.nodes) {
                 if (zone == neighbor) {
                     continue;
                 }
@@ -225,12 +240,6 @@ public class Scenario extends Logging {
         log("Scenario: Cleaning up...");
 
 
-        // Remove orphan nodes
-        for (Node node : new LinkedList<>(this.nodes)) {
-            if (node.outNodes.isEmpty()) {
-                removeNode(node);
-            }
-        }
         // Regenerate routes
         this.fastestRoutes = new HashMap<>();
         c = 1;
@@ -249,7 +258,7 @@ public class Scenario extends Logging {
     public String s(int n) {
         return n == 1 ? "" : "s";
     }
-    
+
     // Find a zone by name
     public Node getNode(String name) {
         return this.nodeName.get(name);
@@ -375,7 +384,7 @@ public class Scenario extends Logging {
                         System.out.println("\t-> " + link.neighbor.name + " (" + link.distance + ")");
                     }
                     break;
-                
+
                 case "route":
                     node2 = getNode(input[2]);
                     if (node2 == null) {
@@ -389,14 +398,14 @@ public class Scenario extends Logging {
                     }
                     System.out.println("\t" + route + " (" + route.distance + ")");
                     break;
-                
+
                 case "routes":
                     Map<Node, Route> routes = this.fastestRoutes.get(node);
                     for (Route r : routes.values()) {
                         System.out.println("\t" + r + " (" + r.distance + ")");
                     }
                     break;
-                
+
                 case "exit":
                     return;
             }
