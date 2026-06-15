@@ -251,6 +251,30 @@ public class Export {
         exportLinks(node.out, path);
     }
 
+    public static void exportLinkLines(Scenario scenario, Path path) throws IOException {
+        Set<Link> oneWayLinks = new HashSet<>();
+        for (Link link : scenario.links) {
+            if (oneWayLinks.contains(link.reverse)) {
+                continue;
+            }
+            oneWayLinks.add(link);
+        }
+        exportGeneric(
+            path,
+            "WKT,name",
+            oneWayLinks,
+            link -> {
+                StringBuilder sb = new StringBuilder();
+                sb.append("\"LINESTRING (");
+                sb.append(link.parent.ancestor.lon).append(" ").append(link.parent.ancestor.lat).append(", ");
+                sb.append(link.neighbor.ancestor.lon).append(" ").append(link.neighbor.ancestor.lat);
+                sb.append(")\",");
+                sb.append(link.parent.name).append("-").append(link.neighbor.name).append("\n");
+                return sb.toString();
+            }
+        );
+    }
+
     /* Export Routes */
 
     public static void exportRouteAsCsv(Route route, Path path) throws IOException {
