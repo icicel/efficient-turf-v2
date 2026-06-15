@@ -18,7 +18,6 @@ import scenario.Scenario;
 import turf.Connection;
 import turf.Point;
 import turf.Turf;
-import turf.Trail;
 
 public class Export {
 
@@ -216,11 +215,11 @@ public class Export {
             "WKT,name",
             links,
             link -> {
-                Trail trail = link.ancestor;
+                List<Connection> connections = link.ancestor;
                 StringBuilder sb = new StringBuilder();
-                Point current = trail.start();
+                Point current = link.parent.ancestor;
                 sb.append("\"LINESTRING (");
-                for (Connection connection : trail.getConnections()) {
+                for (Connection connection : connections) {
                     // get the correct view of the connection (left->right or right->left)
                     sb.append(current.lon).append(" ").append(current.lat).append(", ");
                     for (Point middlePoint : connection.middleFromPOVOf(current)) {

@@ -1,4 +1,6 @@
 package scenario;
+import java.util.List;
+import turf.Connection;
 import turf.Trail;
 
 // Represents a one-way connection from a parent Node to its neighbor
@@ -14,7 +16,7 @@ public class Link {
     // Can usually be assumed to exist
     public Link reverse;
 
-    public Trail ancestor;
+    public List<Connection> ancestor;
 
     // Initialization
     // Will fail if parent already has a link to neighbor
@@ -22,7 +24,7 @@ public class Link {
         this.distance = trail.distance;
         this.parent = parent;
         this.neighbor = neighbor;
-        this.ancestor = trail;
+        this.ancestor = trail.getConnections();
 
         if (parent.ancestor != trail.start() || neighbor.ancestor != trail.end()) {
             throw new IllegalArgumentException("Trail does not match nodes");
