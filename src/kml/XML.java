@@ -112,6 +112,7 @@ public class XML {
             case "tertiary_link":
             case "unclassified":
             case "residential":
+            case "service":
             case "cycleway":
             case "road":
             case "corridor":
