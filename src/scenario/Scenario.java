@@ -132,6 +132,20 @@ public class Scenario extends Logging {
             }
         }
         log("Scenario: Removed " + c + " unreachable node" + s(c));
+        // Remove nodes that are crossings
+        c = 0;
+        for (Node node : new LinkedList<>(this.nodes)) {
+            if (node == start || node == end) {
+                continue;
+            }
+            if (!node.isZone()) {
+                removeNode(node);
+                c++;
+            }
+        }
+        if (c > 0) {
+            log("Scenario: Removed " + c + " non-zone node" + s(c));
+        }
         // Apply greylist
         c = 0;
         if (conditions.greylist != null) {
