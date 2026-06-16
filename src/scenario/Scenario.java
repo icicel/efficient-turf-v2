@@ -79,50 +79,26 @@ public class Scenario extends Logging {
         this.timeLimit = conditions.timeLimit;
         this.speed = conditions.speed;
         this.distanceLimit = this.timeLimit * this.speed;
-        // Apply blacklist
+        // Apply blacklist (done early since it affects the Turf traversal)
         int c = 0;
         if (conditions.blacklist != null) {
             for (String name : conditions.blacklist) {
-                Node node = getNode(name); // may be null
                 Point point = pointName.get(name);
                 if (point == null) {
                     continue;
                 }
+                // Also remove node if it exists
+                Node node = getNode(name);
                 if (node != null) {
+                    if (node == start || node == end) {
+                        throw new RuntimeException("Blacklisted start/end node");
+                    }
                     removeNode(node);
                 }
                 reachablePoints.remove(point);
                 c++;
             }
             log("Scenario: Removed " + c + " blacklisted point" + s(c));
-        }
-        // Apply greylist
-        c = 0;
-        if (conditions.greylist != null) {
-            for (Node node : getNodes(conditions.greylist)) {
-                if (node == start || node == end) {
-                    // start and end nodes should not be removed
-                    node.points = 0;
-                } else {
-                    // since it's a crossing now, just remove it
-                    removeNode(node);
-                }
-                c++;
-            }
-            log("Scenario: Blanked " + c + " greylisted zone" + s(c));
-        }
-        // Apply redlist
-        c = 0;
-        if (conditions.takenlist != null) {
-            Set<Node> taken = getNodes(conditions.takenlist);
-            for (Node node : this.nodes) {
-                if (taken.contains(node)) {
-                    continue;
-                }
-                node.points *= 2;
-                c++;
-            }
-            log("Scenario: Doubled " + c + " untaken zone" + s(c));
         }
 
 
@@ -139,12 +115,7 @@ public class Scenario extends Logging {
         );
         if (reachablePoints.isEmpty()) {
             throw new RuntimeException("End node is unreachable within time limit");
-        }
-        // Apply blacklist again and check if it has made nodes unreachable
-        Map<Point, Trail> startTrails = turf.trailsOverSubset(startPoint, reachablePoints);
-        reachablePoints = startTrails.keySet();
-        if (!reachablePoints.contains(endPoint)) {
-            throw new RuntimeException("End node is unreachable with current blacklist");
+            // or rather, no nodes are reachable within time limit
         }
         // Remove unreachable nodes
         c = 0;
@@ -154,8 +125,34 @@ public class Scenario extends Logging {
                 c++;
             }
         }
-        if (c > 0) {
-            log("Scenario: Removed " + c + " unreachable node" + s(c));
+        log("Scenario: Removed " + c + " unreachable node" + s(c));
+        // Apply greylist
+        c = 0;
+        if (conditions.greylist != null) {
+            for (Node node : getNodes(conditions.greylist)) {
+                if (node == start || node == end) {
+                    // start and end nodes should not be removed
+                    node.points = 0;
+                } else {
+                    // since it's a crossing now, just remove it
+                    removeNode(node);
+                }
+                c++;
+            }
+            log("Scenario: Blanked " + c + " greylisted node" + s(c));
+        }
+        // Apply takenlist
+        c = 0;
+        if (conditions.takenlist != null) {
+            Set<Node> taken = getNodes(conditions.takenlist);
+            for (Node node : this.nodes) {
+                if (taken.contains(node)) {
+                    continue;
+                }
+                node.points *= 2;
+                c++;
+            }
+            log("Scenario: Doubled " + c + " untaken node" + s(c));
         }
 
 
