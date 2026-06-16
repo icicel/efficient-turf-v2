@@ -304,7 +304,7 @@ public class Turf extends Logging implements Serializable {
             }
             // Connect the zone and the point, splitting the connection if necessary
             splitConnection(result.connection, result.closestPoint);
-            Connection zoneConnection = new Connection(zone, result.closestPoint);
+            Connection zoneConnection = new Connection(zone, result.closestPoint, result.connection.weight);
             connections.add(zoneConnection);
             crossings.add(result.closestPoint);
         }
@@ -717,14 +717,14 @@ public class Turf extends Logging implements Serializable {
         }
         Connection closestConnection = connections.stream()
             .min(Comparator.comparingDouble(
-                connection -> point.distanceToLine(connection.left, connection.right)
+                connection -> connection.weight * point.distanceToLine(connection.left, connection.right)
             ))
             .orElse(null);
         if (closestConnection == null) {
             return null;
         }
         Point closestPoint = point.nearestPointOnLine(closestConnection.left, closestConnection.right);
-        double distance = point.distanceTo(closestPoint);
+        double distance = closestConnection.weight * point.distanceTo(closestPoint);
         return new ClosestConnection(closestConnection, closestPoint, distance);
     }
 
@@ -774,7 +774,7 @@ public class Turf extends Logging implements Serializable {
         double latQuadrantEdge = Math.round(point.lat * 100) / 100.0;
         double lonQuadrantEdge = Math.round(point.lon * 100) / 100.0;
         return Math.min(
-            point.distanceTo(point.lat, lonQuadrantEdge), 
+            point.distanceTo(point.lat, lonQuadrantEdge),
             point.distanceTo(latQuadrantEdge, point.lon)
         );
     }
