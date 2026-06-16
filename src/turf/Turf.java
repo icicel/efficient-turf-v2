@@ -149,13 +149,17 @@ public class Turf extends Logging implements Serializable {
     // Imply crossings
     public Turf(Path zoneKml)
     throws IOException, InterruptedException, ParsingException {
-        this(zoneKml, null);
+        this(zoneKml, null, (String[]) null);
+    }
+    public Turf(Path zoneKml, String[] blacklist)
+    throws IOException, InterruptedException, ParsingException {
+        this(zoneKml, null, blacklist);
     }
 
     // Get zones from the given KML file
     // Get connections from the given Overpass XML file
     // Imply crossings
-    public Turf(Path zoneKml, Path networkXml)
+    public Turf(Path zoneKml, Path networkXml, String[] blacklist)
     throws IOException, InterruptedException, ParsingException {
         log("Turf: *** Initializing...");
 
@@ -220,6 +224,21 @@ public class Turf extends Logging implements Serializable {
             connection.overrideEndpoints(left, right);
         }
         this.crossings = new HashSet<>(existing.values());
+        // Apply blacklist, if given
+        if (blacklist != null) {
+            Set<String> blacklistSet = new HashSet<>();
+            for (String name : blacklist) {
+                blacklistSet.add(name.toLowerCase());
+            }
+            for (Point crossing : this.crossings) {
+                if (!blacklistSet.contains(crossing.name)) {
+                    continue;
+                }
+                for (Connection parent : new HashSet<>(crossing.parents)) {
+                    removeConnection(parent);
+                }
+            }
+        }
 
 
         // Find the network (connected component) with the most crossings, and remove
