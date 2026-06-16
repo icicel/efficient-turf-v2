@@ -117,6 +117,12 @@ public class Scenario extends Logging {
             throw new RuntimeException("End node is unreachable within time limit");
             // or rather, no nodes are reachable within time limit
         }
+        // Check if blacklist has made Points unreachable
+        Map<Point, Trail> startTrails = turf.trailsOverSubset(startPoint, reachablePoints);
+        reachablePoints = startTrails.keySet();
+        if (!reachablePoints.contains(endPoint)) {
+            throw new RuntimeException("End node is unreachable with current blacklist");
+        }
         // Remove unreachable nodes
         c = 0;
         for (Node node : new LinkedList<>(this.nodes)) {
