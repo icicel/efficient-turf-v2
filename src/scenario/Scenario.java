@@ -197,7 +197,6 @@ public class Scenario extends Logging {
             allTrails.put(point, turf.trailsOverSubset(point, reachablePoints));
         }
         // Collect all trails between nodes that don't veer too close to a zone
-        double minZoneVeerDelay = 1.25;
         Map<Node, Map<Node, Trail>> edges = new HashMap<>();
         c = 1;
         for (Point point1 : points) {
@@ -209,7 +208,7 @@ public class Scenario extends Logging {
                     continue;
                 }
                 // "Veering too close" to a third point means that the trail 1->3->2 is
-                //  no more than x% longer than the trail 1->2
+                //  less than 25% longer or less than 50m longer than the trail 1->2
                 boolean bad = false;
                 Map<Point, Trail> trailsFrom2 = allTrails.get(point2);
                 Trail trail12 = trailsFrom1.get(point2);
@@ -219,9 +218,7 @@ public class Scenario extends Logging {
                     }
                     Trail trail13 = trailsFrom1.get(point3);
                     Trail trail23 = trailsFrom2.get(point3);
-                    if (trail13.distance + trail23.distance < trail12.distance * minZoneVeerDelay) {
-                        // Sidetracking across point3 is not inefficient enough to warrant the
-                        //  direct edge from point1 to point2
+                    if (veerCheck(trail12.distance, trail13.distance, trail23.distance)) {
                         bad = true;
                         break;
                     }
@@ -264,6 +261,12 @@ public class Scenario extends Logging {
             System.out.print("Caching routes... (" + c++ + "/" + this.nodes.size() + ")\r");
             this.fastestRoutes.put(node, findFastestRoutes(node));
         }
+        // Sanity check for one way links
+        for (Link link : this.links) {
+            if (!this.links.contains(link.reverse)) {
+                throw new RuntimeException("One way link: " + link);
+            }
+        }
 
 
         log("Scenario: *** Initialized with " + this.nodes.size() + " nodes and " + this.links.size() + " links");
@@ -274,6 +277,29 @@ public class Scenario extends Logging {
     // s
     public String s(int n) {
         return n == 1 ? "" : "s";
+    }
+
+    // Check if 1->2 veers too close to 3 using the three distances involved
+    public boolean veerCheck(double distance12, double distance13, double distance23) {
+        double minMultVeerDelay = 1.25; // 25% longer
+        double minAbsVeerDelay = 50; // 50m longer
+        // Return true if sidetracking across 3 is not inefficient enough to warrant the
+        //  direct edge from 1 to 2
+        // However, this is fine if the same is true for one of the direct edges 1 to 3 or 2 to 3
+        // Use absolute delay if it applies, otherwise the more lenient multiplicative delay
+        if (distance13 + distance23 < distance12 + minAbsVeerDelay) {
+            return !(
+                distance12 + distance23 < distance13 + minAbsVeerDelay
+                || distance12 + distance13 < distance23 + minAbsVeerDelay
+            );
+        }
+        if (distance13 + distance23 < distance12 * minMultVeerDelay) {
+            return !(
+                distance12 + distance23 < distance13 * minMultVeerDelay
+                || distance12 + distance13 < distance23 * minMultVeerDelay
+            );
+        }
+        return false;
     }
 
     // Find a zone by name
