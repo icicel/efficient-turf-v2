@@ -45,7 +45,11 @@ public class XML {
             int layer = 0;
             for (Element tag : tags) {
                 if (tag.getAttributeValue("k").equals("layer")) {
-                    layer = Integer.parseInt(tag.getAttributeValue("v"));
+                    try {
+                        layer = Integer.parseInt(tag.getAttributeValue("v"));
+                    } catch (NumberFormatException e) {
+                        layer = 1; // multiple layers means at least one is nonzero
+                    }
                 }
             }
             // Create a Point for each node
