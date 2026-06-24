@@ -10,6 +10,7 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,6 +36,8 @@ public class Turf extends Logging implements Serializable {
     public Set<Point> crossings;
     public Set<Point> zones;
     public Set<Connection> connections;
+
+    private static final double TILE_SIZE = 1/1000.0; // degrees
 
     private Turf() {}
 
@@ -282,45 +285,18 @@ public class Turf extends Logging implements Serializable {
 
         // Create direct connections between all zones and the nearest point on a connection
         log("Turf: Connecting zones...");
-        // Identify connections with lat/lon quadrants
-        Map<String, Set<Connection>> quadrantMap = new HashMap<>();
+        // Identify connections with map tiles
+        Map<String, List<Connection>> mapTiles = new HashMap<>();
         for (Connection connection : this.connections) {
-            String leftQuadrantKey = getQuadrantKey(connection.left);
-            String rightQuadrantKey = getQuadrantKey(connection.right);
-            quadrantMap.computeIfAbsent(leftQuadrantKey, k -> new HashSet<>()).add(connection);
-            quadrantMap.computeIfAbsent(rightQuadrantKey, k -> new HashSet<>()).add(connection);
+            String leftTileKey = getTileKey(connection.left);
+            String rightTileKey = getTileKey(connection.right);
+            mapTiles.computeIfAbsent(leftTileKey, k -> new LinkedList<>()).add(connection);
+            mapTiles.computeIfAbsent(rightTileKey, k -> new LinkedList<>()).add(connection);
         }
         int c = 1;
-        for (Point zone : new HashSet<>(this.zones)) {
+        for (Point zone : this.zones) {
             System.out.print("Finding connections... (" + c++ + "/" + zones.size() + ")\r");
-            // Find closest connection in the same quadrant as the zone
-            String quadrantKey = getQuadrantKey(zone);
-            Set<Connection> connectionsInQuadrant = quadrantMap.get(quadrantKey);
-            ClosestConnection result = closestConnection(connectionsInQuadrant, zone);
-            // Only accept this point if it's closer than the edge of the quadrant
-            //  meaning it's closer than any point in a different quadrant
-            if (result == null || result.distance > distanceToQuadrantEdge(zone)) {
-                // Failure, search all surrounding 9 quadrants
-                double lat = zone.lat;
-                double lon = zone.lon;
-                for (int latOffset = -1; latOffset <= 1; latOffset++) {
-                    for (int lonOffset = -1; lonOffset <= 1; lonOffset++) {
-                        String neighborQuadrantKey = getQuadrantKey(lat + latOffset * 0.01, lon + lonOffset * 0.01);
-                        Set<Connection> crossingsInNeighborQuadrant = quadrantMap.get(neighborQuadrantKey);
-                        ClosestConnection neighborResult = closestConnection(crossingsInNeighborQuadrant, zone);
-                        if (neighborResult != null && (
-                            result == null || neighborResult.distance < result.distance
-                        )) {
-                            result = neighborResult;
-                        }
-                    }
-                }
-                if (result == null) {
-                    // Failure again, search globally
-                    // This is very slow, but shouldn't be too common since zones are usually close to OSM highways
-                    result = closestConnection(this.connections, zone);
-                }
-            }
+            ClosestConnection result = closestConnection(zone, mapTiles);
             // Connect the zone and the point, splitting the connection if necessary
             splitConnection(result.connection, result.closestPoint);
             Connection zoneConnection = new Connection(zone, result.closestPoint, result.connection.weight);
@@ -719,8 +695,8 @@ public class Turf extends Logging implements Serializable {
         return points;
     }
 
-    // Returns the closest Point in the given set to a given Point
-    public static Point closestPoint(Set<Point> points, Point point) {
+    // Returns the closest Point in the given collection to a given Point
+    public static Point closestPoint(Collection<Point> points, Point point) {
         if (points == null || points.isEmpty()) {
             return null;
         }
@@ -729,8 +705,8 @@ public class Turf extends Logging implements Serializable {
             .orElse(null);
     }
 
-    // Above but closest connection
-    public static ClosestConnection closestConnection(Set<Connection> connections, Point point) {
+    // Returns the closest Connection in the given collection to a given Point
+    public static ClosestConnection closestConnection(Collection<Connection> connections, Point point) {
         if (connections == null || connections.isEmpty()) {
             return null;
         }
@@ -739,12 +715,41 @@ public class Turf extends Logging implements Serializable {
                 connection -> connection.weight * point.distanceToLine(connection.left, connection.right)
             ))
             .orElse(null);
-        if (closestConnection == null) {
-            return null;
-        }
         Point closestPoint = point.nearestPointOnLine(closestConnection.left, closestConnection.right);
         double distance = closestConnection.weight * point.distanceTo(closestPoint);
         return new ClosestConnection(closestConnection, closestPoint, distance);
+    }
+
+    // Returns the closest Connection in the given map tiles to a given Point
+    private ClosestConnection closestConnection(Point point, Map<String, List<Connection>> mapTiles) {
+        // Iteratively increase search range
+        ClosestConnection result = null;
+        int radius = 0;
+        while (result == null) {
+            for (int latOffset = -radius; latOffset <= radius; latOffset++) {
+                for (int lonOffset = -radius; lonOffset <= radius; lonOffset++) {
+                    String tileKey = getTileKey(
+                        point.lat + latOffset * TILE_SIZE,
+                        point.lon + lonOffset * TILE_SIZE
+                    );
+                    List<Connection> connectionsInTile = mapTiles.get(tileKey);
+                    ClosestConnection tileResult = closestConnection(connectionsInTile, point);
+                    if (tileResult != null && (
+                        result == null || tileResult.distance < result.distance
+                    )) {
+                        result = tileResult;
+                    }
+                }
+            }
+            if (result != null && result.distance > distanceToSearchEdge(point, radius)) {
+                // Trash result if it's further than the closest edge of the search range
+                // The search range is not perfect, this means there could be closer connections at
+                //  a greater search radius
+                result = null;
+            }
+            radius++;
+        }
+        return result;
     }
 
     private static class ClosestConnection {
@@ -778,23 +783,31 @@ public class Turf extends Logging implements Serializable {
         this.connections.remove(connection);
     }
 
-    // Get the key for the quadrant that the given Point falls into
-    private static String getQuadrantKey(Point point) {
-        return getQuadrantKey(point.lat, point.lon);
+    // Get the key for the tile that the given Point falls into
+    private static String getTileKey(Point point) {
+        return getTileKey(point.lat, point.lon);
     }
-    private static String getQuadrantKey(double lat, double lon) {
-        int latQuadrant = (int) Math.floor(lat * 100);
-        int lonQuadrant = (int) Math.floor(lon * 100);
-        return latQuadrant + "" + lonQuadrant;
+    private static String getTileKey(double lat, double lon) {
+        int latTile = (int) Math.floor(lat / TILE_SIZE);
+        int lonTile = (int) Math.floor(lon / TILE_SIZE);
+        return latTile + "" + lonTile;
     }
 
-    // Shortest distance to the edge of the quadrant
-    private static double distanceToQuadrantEdge(Point point) {
-        double latQuadrantEdge = Math.round(point.lat * 100) / 100.0;
-        double lonQuadrantEdge = Math.round(point.lon * 100) / 100.0;
+    // Shortest distance to the edge of the tile search range of specified radius
+    private static double distanceToSearchEdge(Point point, int radius) {
+        // Edge of containing tile
+        double tileLatEdge = Math.round(point.lat / TILE_SIZE) * TILE_SIZE;
+        double tileLonEdge = Math.round(point.lon / TILE_SIZE) * TILE_SIZE;
+        // Heading to the tile edge (whether it is west/east and south/north of the point)
+        int latHeading = (tileLatEdge > point.lat) ? 1 : -1;
+        int lonHeading = (tileLonEdge > point.lon) ? 1 : -1;
+        // Add (radius) amount of tiles to tile edge
+        double searchLatEdge = tileLatEdge + latHeading * radius * TILE_SIZE;
+        double searchLonEdge = tileLonEdge + lonHeading * radius * TILE_SIZE;
+        // Find which direction is closer
         return Math.min(
-            point.distanceTo(point.lat, lonQuadrantEdge),
-            point.distanceTo(latQuadrantEdge, point.lon)
+            point.distanceTo(point.lat, searchLonEdge),
+            point.distanceTo(searchLatEdge, point.lon)
         );
     }
 }
