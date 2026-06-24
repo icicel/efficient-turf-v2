@@ -14,6 +14,8 @@ public class Connection {
     public double weightedDistance; // distance weighted by highway type
     public double weight;
 
+    public int layer; // highway layer, default 0
+
     // Convert an array of Points to a Connection
     public Connection(Point[] coordinates, double weight) {
         if (coordinates.length < 2) {
@@ -28,9 +30,13 @@ public class Connection {
             Point next = coordinates[i + 1];
             this.distance += current.distanceTo(next);
             this.middle.add(current);
+            if (!current.parents.isEmpty()) {
+                throw new IllegalArgumentException("Middle point " + current + " is an endpoint");
+            }
         }
         this.weightedDistance = this.distance * weight;
         this.weight = weight;
+        this.layer = 0;
         left.parents.add(this);
         right.parents.add(this);
     }

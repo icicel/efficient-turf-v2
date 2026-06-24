@@ -37,7 +37,7 @@ public class Turf extends Logging implements Serializable {
     public Set<Point> zones;
     public Set<Connection> connections;
 
-    private static final double TILE_SIZE = 1/1000.0; // degrees
+    private static final double TILE_SIZE = 1/3000.0; // degrees
 
     private Turf() {}
 
@@ -225,6 +225,13 @@ public class Turf extends Logging implements Serializable {
                 connection.weightedDistance += 0.001;
             }
             connection.overrideEndpoints(left, right);
+            // update endpoint layers if 0
+            if (left.layer == 0) {
+                left.layer = connection.layer;
+            }
+            if (right.layer == 0) {
+                right.layer = connection.layer;
+            }
         }
         this.crossings = new HashSet<>(existing.values());
         // Apply blacklist, if given
@@ -303,6 +310,34 @@ public class Turf extends Logging implements Serializable {
             connections.add(zoneConnection);
             crossings.add(result.closestPoint);
         }
+
+
+        // Connect crossingd that are <10m apart, if they are not already connected
+        log("Turf: Connecting crossings...");
+        // Identify crossings with map tiles
+        // Map<String, List<Point>> crossingTiles = new HashMap<>();
+        // for (Point crossing : this.crossings) {
+        //     String tileKey = getTileKey(crossing);
+        //     crossingTiles.computeIfAbsent(tileKey, k -> new LinkedList<>()).add(crossing);
+        // }
+        // c = 1;
+        // for (Point crossing : this.crossings) {
+        //     System.out.print("Finding closest points... (" + c++ + "/" + crossings.size() + ")\r");
+        //     String tileKey = getTileKey(crossing);
+        //     List<Point> tile = crossingTiles.get(tileKey);
+        //     List<Point> closestPoints = closestPoints(tile, crossing, 10);
+        //     for (Point closest : closestPoints) {
+        //         // Add if unconnected and on the same layer
+        //         if (closest == crossing || closest.isNeighbor(crossing)) {
+        //             continue;
+        //         }
+        //         if (closest.layer != crossing.layer) {
+        //             continue;
+        //         }
+        //         Connection connection = new Connection(crossing, closest, 1.5);
+        //         connections.add(connection);
+        //     }
+        // }
 
 
         log("Turf: Simplifying " + connections.size() + " connections...");
@@ -703,6 +738,20 @@ public class Turf extends Logging implements Serializable {
         return points.stream()
             .min(Comparator.comparingDouble(p -> point.distanceTo(p)))
             .orElse(null);
+    }
+
+    // Returns all Points in the given collection within distance to a given Point
+    public static List<Point> closestPoints(Collection<Point> points, Point point, double distance) {
+        List<Point> result = new ArrayList<>();
+        if (points == null) {
+            return result;
+        }
+        for (Point p : points) {
+            if (point.distanceTo(p) <= distance) {
+                result.add(p);
+            }
+        }
+        return result;
     }
 
     // Returns the closest Connection in the given collection to a given Point

@@ -41,6 +41,13 @@ public class XML {
                     break;
                 }
             }
+            // Find layer
+            int layer = 0;
+            for (Element tag : tags) {
+                if (tag.getAttributeValue("k").equals("layer")) {
+                    layer = Integer.parseInt(tag.getAttributeValue("v"));
+                }
+            }
             // Create a Point for each node
             Elements nodes = element.getChildElements("nd");
             Point[] points = new Point[nodes.size()];
@@ -55,6 +62,7 @@ public class XML {
             double weight = highwayWeight(highway);
             for (int i = 0; i < points.length - 1; i++) {
                 Connection connection = new Connection(points[i], points[i + 1], weight);
+                connection.layer = layer;
                 ways.add(connection);
             }
         }

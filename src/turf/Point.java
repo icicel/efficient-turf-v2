@@ -18,6 +18,9 @@ public class Point implements Serializable {
     // Defaults to null, updated externally
     public Zone zone;
 
+    // Should be inherited from parents
+    public int layer; // default 0
+
     public Point(String coordinateString, String name) {
         String[] coordinates = coordinateString.split(",");
         this.lat = Double.parseDouble(coordinates[1]);
@@ -25,6 +28,7 @@ public class Point implements Serializable {
         this.name = name != null ? name : "(" + lat + "," + lon + ")";
         this.parents = new HashSet<>();
         this.zone = null;
+        this.layer = 0;
     }
 
     public Point(double lat, double lon, String name) {
@@ -33,6 +37,7 @@ public class Point implements Serializable {
         this.name = name != null ? name : "(" + lat + "," + lon + ")";
         this.parents = new HashSet<>();
         this.zone = null;
+        this.layer = 0;
     }
 
     public Point(double lat, double lon) {
