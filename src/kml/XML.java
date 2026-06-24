@@ -80,8 +80,6 @@ public class XML {
         data.append("way.walkable[foot!=no][access!=no][access!=private][!junction];");
         data.append("way.walkable[foot=yes];");
         data.append("way.walkable[foot=designated];");
-        data.append("way.walkable[highway=footway];");
-        data.append("way.walkable[highway=cycleway];");
         data.append(");");
         data.append("out body geom qt;");
         HttpClient client = HttpClient.newHttpClient();
@@ -121,7 +119,6 @@ public class XML {
             case "unclassified":
             case "residential":
             case "service":
-            case "cycleway":
             case "road":
             case "corridor":
                 return 1.25;
