@@ -711,20 +711,21 @@ public class Turf extends Logging implements Serializable {
         log("Turf: Optimizing...");
         Set<Connection> optimalConnections = new HashSet<>();
         Set<Point> hasBeenStart = new HashSet<>();
+        // Pick an arbitrary center zone and sort zones by distance to it
+        Point center = zones.iterator().next();
+        List<Point> sortedZones = new ArrayList<>(zones);
+        Map<Point, Double> centerDistances = distancesFrom(center);
+        sortedZones.sort(Comparator.comparingDouble(centerDistances::get));
         int c = 1;
-        for (Point start : zones) {
+        for (Point start : sortedZones) {
             System.out.print("Finding trails... (" + c++ + "/" + zones.size() + ")\r");
-            hasBeenStart.add(start);
-            Map<Point, Trail> trails = trailsFrom(start);
-            for (Point end : zones) {
-                // If end has already been a start point, then start->end has already been processed
-                if (hasBeenStart.contains(end)) {
-                    continue;
-                }
+            Map<Point, Trail> trails = trailsFromTo(start, hasBeenStart);
+            for (Point end : hasBeenStart) {
                 // Add all connections to optimalConnections
                 Trail trail = trails.get(end);
                 optimalConnections.addAll(trail.getConnections());
             }
+            hasBeenStart.add(start);
         }
         // Remove!
         for (Connection connection : new HashSet<>(connections)) {
