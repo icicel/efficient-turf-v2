@@ -534,6 +534,39 @@ public class Turf extends Logging implements Serializable {
         return trails;
     }
 
+    // Get trails from a point to the given points (more efficient than trailsFrom)
+    public Map<Point, Trail> trailsFromTo(Point start, Set<Point> targets) {
+        Map<Point, Trail> trails = new HashMap<>();
+        PriorityQueue<Trail> queue = new PriorityQueue<>(
+            Comparator.comparingDouble(trail -> trail.weightedDistance)
+        );
+        Set<Point> visited = new HashSet<>();
+        Set<Point> remainingTargets = new HashSet<>(targets);
+        queue.add(new Trail(start));
+        while (!queue.isEmpty()) {
+            Trail trail = queue.remove();
+            Point current = trail.point;
+            if (visited.contains(current)) {
+                continue;
+            }
+            visited.add(current);
+            // Save trail if target, break if no more targets
+            if (remainingTargets.contains(current)) {
+                trails.put(current, trail);
+                remainingTargets.remove(current);
+                if (remainingTargets.isEmpty()) {
+                    break;
+                }
+            }
+            // Extend the trail with all connections from the current point
+            for (Connection extension : current.parents) {
+                Trail nextTrail = new Trail(extension, trail);
+                queue.add(nextTrail);
+            }
+        }
+        return trails;
+    }
+
     // Get a trail from a point to another point
     public Trail pathfind(Point start, Point end) {
         PriorityQueue<Trail> queue = new PriorityQueue<>(
@@ -705,6 +738,72 @@ public class Turf extends Logging implements Serializable {
                 crossings.remove(crossing);
             } else if (crossing.parents.size() == 2 && !zones.contains(crossing)) {
                 mergeOverPivot(crossing);
+            }
+        }
+        log("Turf: *** Optimized to " + crossings.size() + " crossings and " + connections.size() + " connections");
+    }
+
+    // Like optimize, but limit the number of connections to the closest 10000 around a given point
+    //  (or specifically, the closest n zones such that the number of connections is lower than 10000
+    //  when applying the optimize algorithm)
+    public void optimizeAround(Point center) {
+        log("Turf: Optimizing around \"" + center + "\"...");
+        Set<Connection> optimalConnections = new HashSet<>();
+        Set<Connection> previousOptimalConnections = new HashSet<>();
+        int connectionsSize = 0;
+        int previousConnectionsSize = 0;
+        Set<Point> hasBeenStart = new HashSet<>();
+        // Sort zones by distance to center
+        List<Point> sortedZones = new ArrayList<>(zones);
+        Map<Point, Double> centerDistances = distancesFrom(center);
+        sortedZones.sort(Comparator.comparingDouble(centerDistances::get));
+        int c = 1;
+        for (Point start : sortedZones) {
+            System.out.print("Finding trails... (" + c++ + "/" + zones.size() + ", " + previousConnectionsSize + "/10000)\r");
+            Map<Point, Trail> trails = trailsFromTo(start, hasBeenStart);
+            for (Point end : hasBeenStart) {
+                // Add all connections to optimalConnections
+                Trail trail = trails.get(end);
+                optimalConnections.addAll(trail.getConnections());
+            }
+            hasBeenStart.add(start);
+            // Count if we have more than 10000 connections
+            connectionsSize = 0;
+            for (Connection connection : optimalConnections) {
+                // Don't count if this connection will be merged (if connection.left has exactly two parents in
+                //  optimalConnection)
+                // Note: it's fine if connection.right only has two parents, because its
+                //  other parent will be the merged connection
+                if (connection.left.parents.stream().filter(optimalConnections::contains).count() == 2) {
+                    continue;
+                }
+                connectionsSize++;
+            }
+            // If the limit's been reached, stop and return the previous set
+            if (connectionsSize > 10000) {
+                optimalConnections = previousOptimalConnections;
+                break;
+            }
+            previousOptimalConnections = new HashSet<>(optimalConnections);
+            previousConnectionsSize = connectionsSize;
+        }
+        // Remove!
+        for (Connection connection : new HashSet<>(connections)) {
+            if (!optimalConnections.contains(connection)) {
+                removeConnection(connection);
+            }
+        }
+        // Cleanup
+        for (Point crossing : new HashSet<>(this.crossings)) {
+            if (crossing.parents.size() == 0) {
+                crossings.remove(crossing);
+            } else if (crossing.parents.size() == 2) {
+                mergeOverPivot(crossing);
+            }
+        }
+        for (Point zone : new HashSet<>(this.zones)) {
+            if (zone.parents.size() == 0) {
+                zones.remove(zone);
             }
         }
         log("Turf: *** Optimized to " + crossings.size() + " crossings and " + connections.size() + " connections");
