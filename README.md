@@ -127,11 +127,12 @@ Below is a list of all Solvers that have currently been implemented.
 
 This is the original solving algorithm, from v1.
 It simply tries every possible route, skipping routes that are guaranteed to be worse than a potential other route or otherwise unfinishable.
-It can find the optimal solution for time limits under ~60 minutes but after that the solve time increases exponentially. 
+It can quickly find the optimal solution for time limits under ~60 minutes but after that the solve time increases exponentially.
+If a time limit is given and reached, it will return the best found solution so far.
 
 While the original was breadth-first search, this implementation is depth-first.
 
 ### `GreedySolver`
 
-A variant of BruteForceSolver that attempts to "direct" its search towards the nearest zones, in order to find the best route as quickly as possible.
-It is much slower than BruteForceSolver, but for large time limits it outperforms at finding a "good enough" solution in a reasonable calculation time.
+A variant of BruteForceSolver that attempts to "direct" its search towards the nearest zones, in order to maximize the search area (and thus solution quality) within the given end time.
+It is slightly slower than BruteForceSolver, but for large time limits it outperforms at finding a "good enough" solution in a reasonable calculation time.

@@ -1,116 +1,101 @@
 package solver;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import scenario.Link;
 import scenario.Node;
-import scenario.Route;
 import scenario.Scenario;
 
 // Also a brute force search, but prioritizes extending its search to the nearest unvisited zone
-// For an optimal solution, likely far slower than BruteForceSolver
-// Creates custom Links that ignore intermediate crossings
-public class GreedySolver extends Solver {
-
-    // graph
-    private Map<Node, Map<Node, Double>> connections;
+// For an optimal solution, somewhat slower than BruteForceSolver
+public class GreedySolver extends BruteForceSolver {
 
     // for tweaking
-    private final int SEARCH_WIDTH = 10;
-    private final long MIN_LIFESPAN = 250; // ms
+    private final long MIN_LIFESPAN = 25; // ms
 
+    @Override
     public Result solve(Scenario scenario, Long timeLimit) {
-        this.scenario = scenario;
-        this.finishedRoutes = new HashMap<>();
-        this.bestRoute = null;
-        findCrosses();
-        // create graph of direct connections
-        this.connections = new HashMap<>();
-        for (Node node : scenario.nodes) {
-            Map<Node, Double> neighborConnections = new HashMap<>();
-            for (Node other : scenario.nodes) {
-                Route directRoute = scenario.fastestRoutes.get(node).get(other);
-                neighborConnections.put(other, directRoute.distance);
-            }
-            this.connections.put(node, neighborConnections);
+        if (timeLimit == null) {
+            System.out.println("ERROR: GreedySolver is not designed for unlimited time, specify an end time or use BruteForceSolver instead (returning empty result)");
+            return new Result(List.of(), scenario.speed);
         }
-        // search for a hardcoded amount of time (may rethink this in the future)
-        long end = super.endTime(timeLimit);
-        Route start = new Route(scenario.start);
-        search(start, end);
-        return new Result(finishedRoutes.values(), scenario.speed);
+        return super.solve(scenario, timeLimit);
     }
 
     // Recursively searches for valid, finished routes
     // Divides its lifespan equally among its branches, unless that goes below
     //   the minimum lifespan, in which case it will simply run until endTime
     // Will not try to run if endTime has passed
-    private void search(Route base, long endTime) {
+    @Override
+    protected void search(AdvancedRoute base, long endTime) {
         if (System.currentTimeMillis() > endTime) {
             return;
         }
-        Node current = base.node;
-        Set<Node> visited = new HashSet<>(base.getNodes());
-        // Get the closest nodes from current, only considering unvisited nodes
-        List<Node> nearestNodes = scenario.nodes.stream()
-            .filter(node -> !visited.contains(node) || node == scenario.end)
-            .sorted(Comparator.comparingDouble(this.connections.get(current)::get))
-            .toList();
+
         // Get lifespans/endtimes for each branch
-        int branches = SEARCH_WIDTH;
+        Node current = base.node;
+        int branches = current.out.size();
         long now = System.currentTimeMillis();
         long lifespan = endTime - now;
         long branchLifespan = lifespan / branches;
-        long nextBranchEnd;
+
+        // Lifespan is long enough, continue branching
         if (branchLifespan >= MIN_LIFESPAN) {
-            long branchLifespanRemainder = lifespan % branches; // gotta account for all time
-            nextBranchEnd = now + branchLifespan + branchLifespanRemainder;
-        } else {
-            // Ignore branching
-            branchLifespan = 0;
-            nextBranchEnd = endTime;
-        }
-        for (Node nextNode : nearestNodes) {
-            if (System.currentTimeMillis() > endTime) {
-                return;
-            }
-            if (nextNode == current) {
-                continue;
-            }
-            double nextDistance = this.connections.get(current).get(nextNode);
-            // Distance limit will be exceeded
-            Route endRoute = this.scenario.fastestRoutes.get(nextNode).get(this.scenario.end);
-            if (base.distance + nextDistance + endRoute.distance > this.scenario.distanceLimit) {
-                continue;
-            }
-            // Extend route while checking for crosses
-            Route currentToNext = this.scenario.fastestRoutes.get(current).get(nextNode);
-            Route next = base;
-            boolean crosses = false;
-            for (Link link : currentToNext.getLinks()) {
-                next = new Route(next, link);
-                crosses = crossesRoute(link, next);
-                if (crosses) {
-                    break;
+
+            // Sort unvisited neighbors
+            Set<Node> visited = new HashSet<>(base.getNodes());
+            List<Link> sortedOut = current.out.stream()
+                .filter(link -> !visited.contains(link.neighbor) || link.neighbor == this.scenario.end)
+                .sorted(Comparator.comparingDouble(link -> link.distance))
+                .toList();
+
+            // Add lifespan remainder to the first branch, so that all of the lifespan is used
+            // This does come into play if MIN_LIFESPAN is very low
+            long nextBranchEnd = now + branchLifespan + lifespan % branches;
+
+            for (Link link : sortedOut) {
+                int error = invalidRouteExtension(base, link);
+                if (error != 0) {
+                    continue;
                 }
+                AdvancedRoute next = new AdvancedRoute(base, link);
+                if (next.node == this.scenario.end) {
+                    finishRoute(next);
+                }
+                // Recurse
+                search(next, nextBranchEnd);
+                // Ready up for next branch
+                nextBranchEnd += branchLifespan;
             }
-            if (crosses) {
+
+        // Lifespan is too short, ignore branching
+        } else {
+            bruteForceSearch(base, endTime);
+        }
+    }
+
+    // Recursively searches for valid, finished routes
+    private void bruteForceSearch(AdvancedRoute base, long endTime) {
+        if (System.currentTimeMillis() > endTime) {
+            return;
+        }
+        // Sort unvisited neighbors
+        Set<Node> visited = new HashSet<>(base.getNodes());
+        List<Link> sortedOut = base.node.out.stream()
+            .filter(link -> !visited.contains(link.neighbor) || link.neighbor == this.scenario.end)
+            .sorted(Comparator.comparingDouble(link -> link.distance))
+            .toList();
+        for (Link link : sortedOut) {
+            int error = invalidRouteExtension(base, link);
+            if (error != 0) {
                 continue;
             }
-            // Finish route if it has reached the end
-            if (nextNode == this.scenario.end) {
+            AdvancedRoute next = new AdvancedRoute(base, link);
+            if (next.node == this.scenario.end) {
                 finishRoute(next);
-                // Don't branch from end
-                // May rethink this in the future, the optimal route could theoretically
-                //  involve revisiting end like if it's at a chokepoint
-                continue;
             }
-            // Recurse
-            search(next, nextBranchEnd);
-            nextBranchEnd += branchLifespan;
+            bruteForceSearch(next, endTime);
         }
     }
 }

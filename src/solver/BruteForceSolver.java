@@ -13,7 +13,7 @@ import scenario.Scenario;
 //  optimized by not trying routes that are guaranteed to be invalid
 // While the original was breadth-first, this implementation is depth-first
 public class BruteForceSolver extends Solver {
-    
+
     public Result solve(Scenario scenario, Long timeLimit) {
         this.scenario = scenario;
         this.finishedRoutes = new HashMap<>();
@@ -25,7 +25,7 @@ public class BruteForceSolver extends Solver {
     }
 
     // Recursively searches for valid, finished routes
-    private void search(AdvancedRoute base, long endTime) {
+    protected void search(AdvancedRoute base, long endTime) {
         if (System.currentTimeMillis() > endTime) {
             return;
         }
@@ -43,7 +43,7 @@ public class BruteForceSolver extends Solver {
     }
 
     // Returns a nonzero number if the route would be invalid (aka inefficient) if extended via the link
-    private int invalidRouteExtension(AdvancedRoute route, Link newLink) {
+    protected int invalidRouteExtension(AdvancedRoute route, Link newLink) {
         Node newNode = newLink.neighbor;
 
         // Can't be finished without exceeding the distance limit
@@ -81,7 +81,7 @@ public class BruteForceSolver extends Solver {
 
         public Node lastCapture;
         public double distanceSinceLastCapture;
-        
+
         public AdvancedRoute(Node root) {
             super(root);
             this.lastCapture = root;

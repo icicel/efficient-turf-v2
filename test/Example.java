@@ -20,7 +20,7 @@ public class Example {
         conditions.blacklist = new String[] {"black", "list"};
         Scenario scenario = new Scenario(turf, conditions);
         Solver solver = new BruteForceSolver();
-        Result result = solver.solve(scenario);
+        Result result = solver.solve(scenario, 120);
         
         System.out.println("Result:");
         System.out.println(result);
