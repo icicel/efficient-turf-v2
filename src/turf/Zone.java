@@ -97,7 +97,7 @@ public class Zone implements Serializable {
             String lastTakenTimestamp = info.getString("dateLastTaken");
             long lastTakenTime = parseTimestamp(lastTakenTimestamp);
             double hoursSinceTaken = asHours(currentTime - lastTakenTime);
-            this.revisitable = hoursSinceTaken > 23;
+            this.revisitable = (hoursSinceTaken - 1) > 23;
         } else {
             this.owner = null;
             this.revisitable = false;
