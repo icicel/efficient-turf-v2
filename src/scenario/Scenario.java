@@ -22,7 +22,7 @@ public class Scenario extends Logging {
     public Set<Link> links;
 
     public Node start;
-    public Node end;
+    public Set<Node> ends;
     public double timeLimit;
     public double speed;
 
@@ -35,6 +35,8 @@ public class Scenario extends Logging {
 
     // route cache, the result of findFastestRoutes() for each node
     public Map<Node, Map<Node, Route>> fastestRoutes;
+    // same as above but specifically to the nearest end node
+    public Map<Node, Route> fastestEndRoutes;
 
     public Scenario(Turf turf, Conditions conditions) {
         log("Scenario: *** Initializing...");
@@ -47,10 +49,15 @@ public class Scenario extends Logging {
             addNode(zone, conditions.username, conditions.isNow);
         }
         for (Point crossing : turf.crossings) {
-            if (crossing.name != conditions.start && crossing.name != conditions.end) {
+            // Only endpoints
+            if (crossing.name != conditions.start) {
                 continue;
             }
-            addNode(crossing, conditions.username, conditions.isNow);
+            for (String end : conditions.ends) {
+                if (crossing.name == end) {
+                    addNode(crossing, conditions.username, conditions.isNow);
+                }
+            }
         }
         // Setup points
         Set<Point> reachablePoints = new HashSet<>();
@@ -69,12 +76,16 @@ public class Scenario extends Logging {
 
         // Fill in other things
         this.start = getNode(conditions.start);
-        this.end = getNode(conditions.end);
         if (this.start == null) {
             throw new RuntimeException("Start node not found: " + conditions.start);
         }
-        if (this.end == null) {
-            throw new RuntimeException("End node not found: " + conditions.end);
+        this.ends = new HashSet<>();
+        for (String end : conditions.ends) {
+            Node endNode = getNode(end);
+            if (endNode == null) {
+                throw new RuntimeException("End node not found: " + end);
+            }
+            this.ends.add(endNode);
         }
         this.timeLimit = conditions.timeLimit;
         this.speed = conditions.speed;
@@ -90,7 +101,7 @@ public class Scenario extends Logging {
                 // Also remove node if it exists
                 Node node = getNode(name);
                 if (node != null) {
-                    if (node == start || node == end) {
+                    if (isStart(node) || isEnd(node)) {
                         throw new RuntimeException("Blacklisted start/end node");
                     }
                     removeNode(node);
@@ -107,21 +118,31 @@ public class Scenario extends Logging {
 
         // Find all Points that can be visited within the time limit
         Point startPoint = start.ancestor;
-        Point endPoint = end.ancestor;
+        Set<Point> endPoints = new HashSet<>();
+        for (Node end : this.ends) {
+            endPoints.add(end.ancestor);
+        }
         Map<Point, Double> startDistances = turf.distancesFrom(startPoint);
-        Map<Point, Double> endDistances = turf.distancesFrom(endPoint);
+        Map<Point, Double> endDistances = turf.distancesToSubset(endPoints);
         reachablePoints.removeIf(
             point -> startDistances.get(point) + endDistances.get(point) > this.distanceLimit
         );
         if (reachablePoints.isEmpty()) {
-            throw new RuntimeException("End node is unreachable within time limit");
-            // or rather, no nodes are reachable within time limit
+            throw new RuntimeException("All end nodes are unreachable within time limit");
+            // or rather, no nodes at all are reachable within time limit
         }
         // Check if blacklist has made Points unreachable
         Map<Point, Trail> startTrails = turf.trailsOverSubset(startPoint, reachablePoints);
         reachablePoints = startTrails.keySet();
-        if (!reachablePoints.contains(endPoint)) {
-            throw new RuntimeException("End node is unreachable with current blacklist");
+        boolean hasReachableEndPoints = false;
+        for (Point endPoint : endPoints) {
+            if (reachablePoints.contains(endPoint)) {
+                hasReachableEndPoints = true;
+                break;
+            }
+        }
+        if (!hasReachableEndPoints) {
+            throw new RuntimeException("All end nodes are unreachable with current blacklist");
         }
         // Remove unreachable nodes
         c = 0;
@@ -135,7 +156,7 @@ public class Scenario extends Logging {
         // Remove nodes that are crossings
         c = 0;
         for (Node node : new LinkedList<>(this.nodes)) {
-            if (node == start || node == end) {
+            if (isStart(node) || isEnd(node)) {
                 continue;
             }
             if (!node.isZone()) {
@@ -150,8 +171,8 @@ public class Scenario extends Logging {
         c = 0;
         if (conditions.greylist != null) {
             for (Node node : getNodes(conditions.greylist)) {
-                if (node == start || node == end) {
-                    // start and end nodes should not be removed
+                if (isStart(node) || isEnd(node)) {
+                    // start and end nodes should not be removed, but should still become crossings
                     node.points = 0;
                 } else {
                     // since it's a crossing now, just remove it
@@ -256,10 +277,18 @@ public class Scenario extends Logging {
 
         // Regenerate routes
         this.fastestRoutes = new HashMap<>();
+        this.fastestEndRoutes = new HashMap<>();
         c = 1;
         for (Node node : this.nodes) {
             System.out.print("Caching routes... (" + c++ + "/" + this.nodes.size() + ")\r");
             this.fastestRoutes.put(node, findFastestRoutes(node));
+            for (Node end : this.ends) {
+                Route endRoute = this.fastestRoutes.get(node).get(end);
+                Route currentBest = this.fastestEndRoutes.get(node);
+                if (currentBest == null || endRoute.distance < currentBest.distance) {
+                    this.fastestEndRoutes.put(node, endRoute);
+                }
+            }
         }
         // Sanity check for one way links
         for (Link link : this.links) {
@@ -277,6 +306,14 @@ public class Scenario extends Logging {
     // s
     public String s(int n) {
         return n == 1 ? "" : "s";
+    }
+
+    // endpoint checks
+    public boolean isStart(Node node) {
+        return node == this.start;
+    }
+    public boolean isEnd(Node node) {
+        return this.ends.contains(node);
     }
 
     // Check if 1->2 veers too close to 3 using the three distances involved
@@ -347,7 +384,7 @@ public class Scenario extends Logging {
         if (node == null) {
             throw new RuntimeException("Tried to remove nonexistant node");
         }
-        if (node == start || node == end) {
+        if (isStart(node) || isEnd(node)) {
             throw new RuntimeException("Tried to remove start or end node");
         }
         this.nodes.remove(node);

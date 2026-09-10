@@ -5,7 +5,7 @@ public class Conditions {
     /* Problem definition */
 
     public String start;
-    public String end;
+    public String[] ends;
     public double timeLimit;
 
     /* Turfing variables */
@@ -32,8 +32,12 @@ public class Conditions {
     public String[] takenlist;
 
     public Conditions(String start, String end, double timeLimit) {
+        this(start, new String[]{end}, timeLimit);
+    }
+
+    public Conditions(String start, String[] ends, double timeLimit) {
         this.start = start;
-        this.end = end;
+        this.ends = ends;
         this.timeLimit = timeLimit;
 
         // Default values

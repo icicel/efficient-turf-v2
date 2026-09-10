@@ -35,7 +35,7 @@ public class BruteForceSolver extends Solver {
                 continue;
             }
             AdvancedRoute next = new AdvancedRoute(base, link);
-            if (next.node == this.scenario.end) {
+            if (this.scenario.isEnd(next.node)) {
                 finishRoute(next);
             }
             search(next, endTime);
@@ -47,7 +47,7 @@ public class BruteForceSolver extends Solver {
         Node newNode = newLink.neighbor;
 
         // Can't be finished without exceeding the distance limit
-        Route endRoute = this.scenario.fastestRoutes.get(newNode).get(this.scenario.end);
+        Route endRoute = this.scenario.fastestEndRoutes.get(newNode);
         if (route.distance + newLink.distance + endRoute.distance > this.scenario.distanceLimit) {
             return 1;
         }

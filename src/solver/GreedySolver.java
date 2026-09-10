@@ -46,7 +46,7 @@ public class GreedySolver extends BruteForceSolver {
             // Sort unvisited neighbors
             Set<Node> visited = new HashSet<>(base.getNodes());
             List<Link> sortedOut = current.out.stream()
-                .filter(link -> !visited.contains(link.neighbor) || link.neighbor == this.scenario.end)
+                .filter(link -> !visited.contains(link.neighbor) || this.scenario.isEnd(link.neighbor))
                 .sorted(Comparator.comparingDouble(link -> link.distance))
                 .toList();
 
@@ -60,7 +60,7 @@ public class GreedySolver extends BruteForceSolver {
                     continue;
                 }
                 AdvancedRoute next = new AdvancedRoute(base, link);
-                if (next.node == this.scenario.end) {
+                if (this.scenario.isEnd(next.node)) {
                     finishRoute(next);
                 }
                 // Recurse
@@ -83,7 +83,7 @@ public class GreedySolver extends BruteForceSolver {
         // Sort unvisited neighbors
         Set<Node> visited = new HashSet<>(base.getNodes());
         List<Link> sortedOut = base.node.out.stream()
-            .filter(link -> !visited.contains(link.neighbor) || link.neighbor == this.scenario.end)
+            .filter(link -> !visited.contains(link.neighbor) || this.scenario.isEnd(link.neighbor))
             .sorted(Comparator.comparingDouble(link -> link.distance))
             .toList();
         for (Link link : sortedOut) {
@@ -92,7 +92,7 @@ public class GreedySolver extends BruteForceSolver {
                 continue;
             }
             AdvancedRoute next = new AdvancedRoute(base, link);
-            if (next.node == this.scenario.end) {
+            if (this.scenario.isEnd(next.node)) {
                 finishRoute(next);
             }
             bruteForceSearch(next, endTime);

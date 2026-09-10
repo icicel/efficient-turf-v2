@@ -647,6 +647,34 @@ public class Turf extends Logging implements Serializable {
         return distances;
     }
 
+    // Get distances from all points to a subset of points
+    public Map<Point, Double> distancesToSubset(Set<Point> subset) {
+        Map<Point, Double> distances = new HashMap<>();
+        PriorityQueue<Trail> queue = new PriorityQueue<>(
+            Comparator.comparingDouble(trail -> trail.distance)
+        );
+        Set<Point> visited = new HashSet<>();
+        for (Point start : subset) {
+            queue.add(new Trail(start));
+        }
+        while (!queue.isEmpty()) {
+            Trail trail = queue.remove();
+            Point current = trail.point;
+            if (visited.contains(current)) {
+                continue;
+            }
+            visited.add(current);
+            // Save distance to current
+            distances.put(current, trail.distance);
+            // Extend the trail with all connections from the current point
+            for (Connection extension : current.parents) {
+                Trail nextTrail = new Trail(extension, trail);
+                queue.add(nextTrail);
+            }
+        }
+        return distances;
+    }
+
     // Get all zones except for the given zones reachable from a point within a certain distance over a subset of points
     // Ugh
     // If starting at a zone, will return a trail of length 0 of that zone
