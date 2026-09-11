@@ -136,3 +136,8 @@ While the original was breadth-first search, this implementation is depth-first.
 
 A variant of BruteForceSolver that attempts to "direct" its search towards the nearest zones, in order to maximize the search area (and thus solution quality) within the given end time.
 It is slightly slower than BruteForceSolver, but for large time limits it outperforms at finding a "good enough" solution in a reasonable calculation time.
+
+### `SteppingSolver`
+
+Another variant of BruteForceSolver that divides the search into "steps", and essentially performs each step as a separate brute force search.
+It introduces some major inefficiencies at step boundaries, but can nevertheless outperform GreedySolver in very large, 3+ hour scenarios.
