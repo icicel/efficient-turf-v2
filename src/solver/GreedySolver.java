@@ -17,7 +17,7 @@ public class GreedySolver extends BruteForceSolver {
     @Override
     public Result solve(Scenario scenario, Long timeLimit) {
         if (timeLimit == null) {
-            System.out.println("ERROR: GreedySolver is not designed for unlimited time, specify an end time or use BruteForceSolver instead (returning empty result)");
+            warn("ERROR: GreedySolver is not designed for unlimited time, specify an end time or use BruteForceSolver instead (returning empty result)");
             return new Result(List.of(), scenario.speed);
         }
         return super.solve(scenario, timeLimit);

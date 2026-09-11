@@ -3,13 +3,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
 import scenario.Link;
 import scenario.Node;
 import scenario.Route;
 import scenario.Scenario;
+import util.Logging;
 
-public abstract class Solver {
+public abstract class Solver extends Logging {
 
     public Scenario scenario;
 
@@ -54,7 +54,7 @@ public abstract class Solver {
             (solution.points == this.bestRoute.points && solution.distance < this.bestRoute.distance)
         ) {
             this.bestRoute = solution;
-            System.out.println(solution.routeString(scenario.speed));
+            log(solution.routeString(scenario.speed));
         }
     }
 
