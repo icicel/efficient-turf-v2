@@ -312,32 +312,35 @@ public class Turf extends Logging implements Serializable {
         }
 
 
-        // Connect crossingd that are <10m apart, if they are not already connected
+        // Connect crossings that are <10m apart, if they are not already connected
         log("Turf: Connecting crossings...");
         // Identify crossings with map tiles
-        // Map<String, List<Point>> crossingTiles = new HashMap<>();
-        // for (Point crossing : this.crossings) {
-        //     String tileKey = getTileKey(crossing);
-        //     crossingTiles.computeIfAbsent(tileKey, k -> new LinkedList<>()).add(crossing);
-        // }
-        // c = 1;
-        // for (Point crossing : this.crossings) {
-        //     System.out.print("Finding closest points... (" + c++ + "/" + crossings.size() + ")\r");
-        //     String tileKey = getTileKey(crossing);
-        //     List<Point> tile = crossingTiles.get(tileKey);
-        //     List<Point> closestPoints = closestPoints(tile, crossing, 10);
-        //     for (Point closest : closestPoints) {
-        //         // Add if unconnected and on the same layer
-        //         if (closest == crossing || closest.isNeighbor(crossing)) {
-        //             continue;
-        //         }
-        //         if (closest.layer != crossing.layer) {
-        //             continue;
-        //         }
-        //         Connection connection = new Connection(crossing, closest, 1.5);
-        //         connections.add(connection);
-        //     }
-        // }
+        Map<String, List<Point>> crossingTiles = new HashMap<>();
+        for (Point crossing : this.crossings) {
+            String tileKey = getTileKey(crossing);
+            crossingTiles.computeIfAbsent(tileKey, k -> new LinkedList<>()).add(crossing);
+        }
+        c = 1;
+        for (Point crossing : this.crossings) {
+            System.out.print("Finding closest points... (" + c++ + "/" + crossings.size() + ")\r");
+            if (crossing.parents.size() == 2) {
+                continue;
+            }
+            String tileKey = getTileKey(crossing);
+            List<Point> tile = crossingTiles.get(tileKey);
+            List<Point> closestPoints = closestPoints(tile, crossing, 10);
+            for (Point closest : closestPoints) {
+                // Add if on the same layer and >30m apart in the network
+                if (closest.layer != crossing.layer) {
+                    continue;
+                }
+                if (withinDistance(crossing, closest, 30)) {
+                    continue;
+                }
+                Connection connection = new Connection(crossing, closest, 1.5);
+                connections.add(connection);
+            }
+        }
 
 
         log("Turf: Simplifying " + connections.size() + " connections...");
@@ -592,6 +595,38 @@ public class Turf extends Logging implements Serializable {
             }
         }
         throw new RuntimeException("No trail found from " + start + " to " + end);
+    }
+
+    // Return whether a point is reachable within distance from another point
+    public boolean withinDistance(Point start, Point end, double maxDistance) {
+        PriorityQueue<Trail> queue = new PriorityQueue<>(
+            Comparator.comparingDouble(trail -> trail.distance)
+        );
+        Set<Point> visited = new HashSet<>();
+        queue.add(new Trail(start));
+        while (!queue.isEmpty()) {
+            Trail trail = queue.remove();
+            Point current = trail.point;
+            if (visited.contains(current) || trail.distance > maxDistance) {
+                continue;
+            }
+            visited.add(current);
+            // Finish if we reach end
+            if (current.equals(end)) {
+                return true;
+            }
+            // Abort if maxDistance is exceeded
+            if (trail.distance > maxDistance) {
+                return false;
+            }
+            // Extend the trail with all connections from the current point
+            for (Connection extension : current.parents) {
+                Trail nextTrail = new Trail(extension, trail);
+                queue.add(nextTrail);
+            }
+        }
+        // No trail found
+        return false;
     }
 
     // Get trails from a point over a subset of points to all reachable points

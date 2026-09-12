@@ -52,7 +52,7 @@ public class Point implements Serializable {
         return parents.size() == 1 && !isZone();
     }
 
-    // Calculates *NON*-geodesic distance in meters to another Point
+    // Calculates geodesic distance in meters to another Point
     public double distanceTo(double lat, double lon) {
         GeodesicData data = Geodesic.WGS84.Inverse(this.lat, this.lon, lat, lon);
         return data.s12;
