@@ -875,14 +875,19 @@ public class Turf extends Logging implements Serializable {
 
     /* Customization */
 
-    // Insert a dummy zone with no points
-    public void insertZone(double lat, double lon, String name) {
+    // Insert a custom zone
+    public void insertZone(double lat, double lon, String name, int points) {
         Point zone = new Point(lat, lon, name);
-        zone.zone = new Zone();
+        zone.zone = new Zone(points);
         Point closest = closestPoint(this.crossings, zone);
         Connection connection = new Connection(zone, closest);
         this.zones.add(zone);
         this.connections.add(connection);
+    }
+
+    // Insert a custom zone without points
+    public void insertZone(double lat, double lon, String name) {
+        insertZone(lat, lon, name, 0);
     }
 
     /* Connecting zones helpers */

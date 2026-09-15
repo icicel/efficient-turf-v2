@@ -23,6 +23,9 @@ public class Zone implements Serializable {
     // The user who controls the zone
     private String owner;
 
+    // Overrides the normal point calculation for dummy zones
+    private int pointsOverride;
+
     // Defines the zone and its statistics from the given API JSON object
     // Takes into account both on-capture points and hourly points by calculating the expected
     //  number of hours the zone will be held
@@ -104,15 +107,16 @@ public class Zone implements Serializable {
         }
     }
 
-    public Zone() {
+    public Zone(int points) {
         // dummy zone
+        this.pointsOverride = points;
     }
 
     // Returns the amount of points the zone is worth for the given user
     // If isNow is false, ignores premature end-of-round resets, revisitability, and the neutral bonus
     public int getPoints(String username, boolean isNow) {
         if (name == null) {
-            return 0;
+            return pointsOverride;
         } else if (!isNow) {
             return takeoverPoints + (int) (hourlyPoints * expectedHoursHeldMax);
         } else if (owner == null) { // neutral bonus
