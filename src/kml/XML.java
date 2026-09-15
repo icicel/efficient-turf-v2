@@ -74,18 +74,19 @@ public class XML {
 
     // Load from Overpass API with a bounding box
     public XML(double south, double west, double north, double east) throws IOException, ParsingException, InterruptedException {
-        StringBuilder data = new StringBuilder();
-        data.append("[bbox:" + south + "," + west + "," + north + "," + east + "];");
-        data.append("(");
-        data.append("way[highway][highway!~motorway][highway!~trunk][highway!=construction][highway!=proposed][highway!=no];");
-        data.append("way[route=ferry];");
-        data.append(")->.walkable;");
-        data.append("(");
-        data.append("way.walkable[foot!=no][access!=no][access!=private][!junction];");
-        data.append("way.walkable[foot=yes];");
-        data.append("way.walkable[foot=designated];");
-        data.append(");");
-        data.append("out body geom qt;");
+        StringBuilder data = new StringBuilder(
+            "[bbox:" + south + "," + west + "," + north + "," + east + "];" +
+            "(" +
+                "way[highway][highway!~motorway][highway!~trunk][highway!=construction][highway!=proposed][highway!=no];" +
+                "way[route=ferry];" +
+            ")->.walkable;" +
+            "(" +
+                "way.walkable[foot!=no][access!=no][access!=private][!junction];" +
+                "way.walkable[foot=yes];" +
+                "way.walkable[foot=designated];" +
+            ");" +
+            "out body geom qt;"
+        );
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create("http://overpass-api.de/api/interpreter"))
