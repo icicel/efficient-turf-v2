@@ -322,7 +322,9 @@ public class Turf extends Logging implements Serializable {
         }
         c = 1;
         for (Point crossing : this.crossings) {
-            System.out.print("Finding closest points... (" + c++ + "/" + crossings.size() + ")\r");
+            if (c % 16 == 0) {
+                System.out.print("Finding closest points... (" + c++ + "/" + crossings.size() + ")\r");
+            }
             if (crossing.parents.size() == 2) {
                 continue;
             }
