@@ -520,22 +520,16 @@ public class Turf extends Logging implements Serializable {
     //  - avoidCondition: if true, the current point will be skipped, even if unvisited
     //  - saveCondition: if true, uses the extractor and saves the item for the current point
     //  - breakCondition: if true, stop the exploration and return the items found so far
-    // useWeightedDistance: if true, use weightedDistance for the closeness ordering
     public <Item> Map<Point, Item> explore(
         Set<Point> starts,
         Function<Trail, Item> extractor,
         Function<Trail, Boolean> avoidCondition,
         Function<Trail, Boolean> saveCondition,
-        Function<Trail, Boolean> breakCondition,
-        boolean useWeightedDistance
+        Function<Trail, Boolean> breakCondition
     ) {
         Map<Point, Item> items = new HashMap<>();
         PriorityQueue<Trail> queue = new PriorityQueue<>(
-            Comparator.comparingDouble(
-                useWeightedDistance
-                    ? trail -> trail.weightedDistance
-                    : trail -> trail.distance
-            )
+            Comparator.comparingDouble(trail -> trail.weightedDistance)
         );
         Set<Point> visited = new HashSet<>();
         for (Point start : starts) {
@@ -572,12 +566,11 @@ public class Turf extends Logging implements Serializable {
         Function<Trail, Item> extractor,
         Function<Trail, Boolean> avoidCondition,
         Function<Trail, Boolean> saveCondition,
-        Function<Trail, Boolean> breakCondition,
-        boolean useWeightedDistance
+        Function<Trail, Boolean> breakCondition
     ) {
         Set<Point> starts = new HashSet<>();
         starts.add(start);
-        return explore(starts, extractor, avoidCondition, saveCondition, breakCondition, useWeightedDistance);
+        return explore(starts, extractor, avoidCondition, saveCondition, breakCondition);
     }
 
     // Get trails from a point to all points
@@ -586,8 +579,7 @@ public class Turf extends Logging implements Serializable {
             trail -> trail,
             trail -> false,
             trail -> true,
-            trail -> false,
-            true
+            trail -> false
         );
     }
 
@@ -605,8 +597,7 @@ public class Turf extends Logging implements Serializable {
                 }
                 return false;
             },
-            trail -> remainingTargets.isEmpty(),
-            true
+            trail -> remainingTargets.isEmpty()
         );
     }
 
@@ -616,8 +607,7 @@ public class Turf extends Logging implements Serializable {
             trail -> trail,
             trail -> false,
             trail -> trail.point.equals(end),
-            trail -> trail.point.equals(end),
-            true
+            trail -> trail.point.equals(end)
         );
         if (!trails.containsKey(end)) {
             throw new RuntimeException("No trail found from " + start + " to " + end);
@@ -631,8 +621,7 @@ public class Turf extends Logging implements Serializable {
             trail -> trail,
             trail -> false,
             trail -> trail.point.equals(end),
-            trail -> trail.point.equals(end) || trail.distance > maxDistance,
-            false
+            trail -> trail.point.equals(end) || trail.distance > maxDistance
         ).containsKey(end);
     }
 
@@ -643,8 +632,7 @@ public class Turf extends Logging implements Serializable {
             trail -> trail,
             trail -> !subset.contains(trail.point),
             trail -> true,
-            trail -> false,
-            true
+            trail -> false
         );
     }
 
@@ -654,8 +642,7 @@ public class Turf extends Logging implements Serializable {
             trail -> trail.distance,
             trail -> false,
             trail -> true,
-            trail -> false,
-            false
+            trail -> false
         );
     }
 
@@ -665,8 +652,7 @@ public class Turf extends Logging implements Serializable {
             trail -> trail.distance,
             trail -> false,
             trail -> true,
-            trail -> false,
-            false
+            trail -> false
         );
     }
 
