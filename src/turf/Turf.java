@@ -513,261 +513,161 @@ public class Turf extends Logging implements Serializable {
 
     /* Pathfinding */
 
-    // Get trails from a point to all points
-    public Map<Point, Trail> trailsFrom(Point start) {
-        Map<Point, Trail> trails = new HashMap<>();
+    // Generic Dijkstra's explorer over the Turf network
+    // Will visit all points reachable from the given starting points in order of closeness
+    // For each visited point, uses the trail taken to reach it for the four given functions:
+    //  - extractor: extract an item for saving, mostly either the trail itself or its distance
+    //  - avoidCondition: if true, the current point will be skipped, even if unvisited
+    //  - saveCondition: if true, uses the extractor and saves the item for the current point
+    //  - breakCondition: if true, stop the exploration and return the items found so far
+    // useWeightedDistance: if true, use weightedDistance for the closeness ordering
+    public <Item> Map<Point, Item> explore(
+        Set<Point> starts,
+        Function<Trail, Item> extractor,
+        Function<Trail, Boolean> avoidCondition,
+        Function<Trail, Boolean> saveCondition,
+        Function<Trail, Boolean> breakCondition,
+        boolean useWeightedDistance
+    ) {
+        Map<Point, Item> items = new HashMap<>();
         PriorityQueue<Trail> queue = new PriorityQueue<>(
-            Comparator.comparingDouble(trail -> trail.weightedDistance)
+            Comparator.comparingDouble(
+                useWeightedDistance
+                    ? trail -> trail.weightedDistance
+                    : trail -> trail.distance
+            )
         );
         Set<Point> visited = new HashSet<>();
-        queue.add(new Trail(start));
-        while (!queue.isEmpty()) {
-            Trail trail = queue.remove();
-            Point current = trail.point;
-            if (visited.contains(current)) {
-                continue;
-            }
-            visited.add(current);
-            // Save trail to current
-            trails.put(current, trail);
-            // Extend the trail with all connections from the current point
-            for (Connection extension : current.parents) {
-                Trail nextTrail = new Trail(extension, trail);
-                queue.add(nextTrail);
-            }
-        }
-        return trails;
-    }
-
-    // Get trails from a point to the given points (more efficient than trailsFrom)
-    public Map<Point, Trail> trailsFromTo(Point start, Set<Point> targets) {
-        Map<Point, Trail> trails = new HashMap<>();
-        PriorityQueue<Trail> queue = new PriorityQueue<>(
-            Comparator.comparingDouble(trail -> trail.weightedDistance)
-        );
-        Set<Point> visited = new HashSet<>();
-        Set<Point> remainingTargets = new HashSet<>(targets);
-        queue.add(new Trail(start));
-        while (!queue.isEmpty()) {
-            Trail trail = queue.remove();
-            Point current = trail.point;
-            if (visited.contains(current)) {
-                continue;
-            }
-            visited.add(current);
-            // Save trail if target, break if no more targets
-            if (remainingTargets.contains(current)) {
-                trails.put(current, trail);
-                remainingTargets.remove(current);
-                if (remainingTargets.isEmpty()) {
-                    break;
-                }
-            }
-            // Extend the trail with all connections from the current point
-            for (Connection extension : current.parents) {
-                Trail nextTrail = new Trail(extension, trail);
-                queue.add(nextTrail);
-            }
-        }
-        return trails;
-    }
-
-    // Get a trail from a point to another point
-    public Trail pathfind(Point start, Point end) {
-        PriorityQueue<Trail> queue = new PriorityQueue<>(
-            Comparator.comparingDouble(trail -> trail.weightedDistance)
-        );
-        Set<Point> visited = new HashSet<>();
-        queue.add(new Trail(start));
-        while (!queue.isEmpty()) {
-            Trail trail = queue.remove();
-            Point current = trail.point;
-            if (visited.contains(current)) {
-                continue;
-            }
-            visited.add(current);
-            // Finish trail if we reach end
-            if (current.equals(end)) {
-                return trail;
-            }
-            // Extend the trail with all connections from the current point
-            for (Connection extension : current.parents) {
-                Trail nextTrail = new Trail(extension, trail);
-                queue.add(nextTrail);
-            }
-        }
-        throw new RuntimeException("No trail found from " + start + " to " + end);
-    }
-
-    // Return whether a point is reachable within distance from another point
-    public boolean withinDistance(Point start, Point end, double maxDistance) {
-        PriorityQueue<Trail> queue = new PriorityQueue<>(
-            Comparator.comparingDouble(trail -> trail.distance)
-        );
-        Set<Point> visited = new HashSet<>();
-        queue.add(new Trail(start));
-        while (!queue.isEmpty()) {
-            Trail trail = queue.remove();
-            Point current = trail.point;
-            if (visited.contains(current) || trail.distance > maxDistance) {
-                continue;
-            }
-            visited.add(current);
-            // Finish if we reach end
-            if (current.equals(end)) {
-                return true;
-            }
-            // Abort if maxDistance is exceeded
-            if (trail.distance > maxDistance) {
-                return false;
-            }
-            // Extend the trail with all connections from the current point
-            for (Connection extension : current.parents) {
-                Trail nextTrail = new Trail(extension, trail);
-                queue.add(nextTrail);
-            }
-        }
-        // No trail found
-        return false;
-    }
-
-    // Get trails from a point over a subset of points to all reachable points
-    // Subset must include start
-    public Map<Point, Trail> trailsOverSubset(Point start, Set<Point> subset) {
-        Map<Point, Trail> trails = new HashMap<>();
-        PriorityQueue<Trail> queue = new PriorityQueue<>(
-            Comparator.comparingDouble(trail -> trail.weightedDistance)
-        );
-        Set<Point> visited = new HashSet<>();
-        queue.add(new Trail(start));
-        while (!queue.isEmpty()) {
-            Trail trail = queue.remove();
-            Point current = trail.point;
-            if (visited.contains(current) || !subset.contains(current)) {
-                continue;
-            }
-            visited.add(current);
-            // Save trail to current
-            trails.put(current, trail);
-            // Extend the trail with all connections from the current point
-            for (Connection extension : current.parents) {
-                Trail nextTrail = new Trail(extension, trail);
-                queue.add(nextTrail);
-            }
-        }
-        return trails;
-    }
-
-    // Get distances from a point to all points
-    public Map<Point, Double> distancesFrom(Point start) {
-        Map<Point, Double> distances = new HashMap<>();
-        PriorityQueue<Trail> queue = new PriorityQueue<>(
-            Comparator.comparingDouble(trail -> trail.distance)
-        );
-        Set<Point> visited = new HashSet<>();
-        queue.add(new Trail(start));
-        while (!queue.isEmpty()) {
-            Trail trail = queue.remove();
-            Point current = trail.point;
-            if (visited.contains(current)) {
-                continue;
-            }
-            visited.add(current);
-            // Save distance to current
-            distances.put(current, trail.distance);
-            // Extend the trail with all connections from the current point
-            for (Connection extension : current.parents) {
-                Trail nextTrail = new Trail(extension, trail);
-                queue.add(nextTrail);
-            }
-        }
-        return distances;
-    }
-
-    // Get distances from all points to a subset of points
-    public Map<Point, Double> distancesToSubset(Set<Point> subset) {
-        Map<Point, Double> distances = new HashMap<>();
-        PriorityQueue<Trail> queue = new PriorityQueue<>(
-            Comparator.comparingDouble(trail -> trail.distance)
-        );
-        Set<Point> visited = new HashSet<>();
-        for (Point start : subset) {
+        for (Point start : starts) {
             queue.add(new Trail(start));
         }
         while (!queue.isEmpty()) {
             Trail trail = queue.remove();
             Point current = trail.point;
-            if (visited.contains(current)) {
+            // Visit if unvisited and avoidCondition is not met
+            if (visited.contains(current) || avoidCondition.apply(trail)) {
                 continue;
             }
             visited.add(current);
-            // Save distance to current
-            distances.put(current, trail.distance);
+            // Save extracted item to current if condition is met
+            if (saveCondition.apply(trail)) {
+                items.put(current, extractor.apply(trail));
+            }
+            // Break if condition is met
+            if (breakCondition.apply(trail)) {
+                break;
+            }
             // Extend the trail with all connections from the current point
             for (Connection extension : current.parents) {
                 Trail nextTrail = new Trail(extension, trail);
                 queue.add(nextTrail);
             }
         }
-        return distances;
+        return items;
     }
 
-    // Get all zones except for the given zones reachable from a point within a certain distance over a subset of points
-    // Ugh
-    // If starting at a zone, will return a trail of length 0 of that zone
-    public Set<Point> zonesWithinDistanceOverSubset(Point start, double maxDistance, Set<Point> subset) {
-        Set<Point> zones = new HashSet<>();
-        PriorityQueue<Trail> queue = new PriorityQueue<>(
-            Comparator.comparingDouble(trail -> trail.weightedDistance)
-        );
-        Set<Point> visited = new HashSet<>();
-        queue.add(new Trail(start));
-        while (!queue.isEmpty()) {
-            Trail trail = queue.remove();
-            Point current = trail.point;
-            if (visited.contains(current) || !subset.contains(current) || trail.distance > maxDistance) {
-                continue;
-            }
-            visited.add(current);
-            // Finish trail if we reach a zone
-            if (current.isZone()) {
-                zones.add(current);
-            }
-            // Extend the trail with all connections from the current point
-            for (Connection extension : current.parents) {
-                Trail nextTrail = new Trail(extension, trail);
-                queue.add(nextTrail);
-            }
-        }
-        return zones;
+    // Single-start explorer alias
+    public <Item> Map<Point, Item> explore(
+        Point start,
+        Function<Trail, Item> extractor,
+        Function<Trail, Boolean> avoidCondition,
+        Function<Trail, Boolean> saveCondition,
+        Function<Trail, Boolean> breakCondition,
+        boolean useWeightedDistance
+    ) {
+        Set<Point> starts = new HashSet<>();
+        starts.add(start);
+        return explore(starts, extractor, avoidCondition, saveCondition, breakCondition, useWeightedDistance);
     }
 
-    // As above but trails
-    public Set<Trail> zoneTrailsWithinDistanceOverSubset(Point start, double maxDistance, Set<Point> subset) {
-        Set<Trail> zoneTrails = new HashSet<>();
-        PriorityQueue<Trail> queue = new PriorityQueue<>(
-            Comparator.comparingDouble(trail -> trail.weightedDistance)
+    // Get trails from a point to all points
+    public Map<Point, Trail> trailsFrom(Point start) {
+        return explore(start,
+            trail -> trail,
+            trail -> false,
+            trail -> true,
+            trail -> false,
+            true
         );
-        Set<Point> visited = new HashSet<>();
-        queue.add(new Trail(start));
-        while (!queue.isEmpty()) {
-            Trail trail = queue.remove();
-            Point current = trail.point;
-            if (visited.contains(current) || !subset.contains(current) || trail.distance > maxDistance) {
-                continue;
-            }
-            visited.add(current);
-            // Finish trail if we reach a zone
-            if (current.isZone()) {
-                zoneTrails.add(trail);
-            }
-            // Extend the trail with all connections from the current point
-            for (Connection extension : current.parents) {
-                Trail nextTrail = new Trail(extension, trail);
-                queue.add(nextTrail);
-            }
+    }
+
+    // Get trails from a point to the given points (more efficient than trailsFrom)
+    // Does not guarantee that all given points will be represented in the result map
+    public Map<Point, Trail> trailsFromTo(Point start, Set<Point> targets) {
+        Set<Point> remainingTargets = new HashSet<>(targets);
+        return explore(start,
+            trail -> trail,
+            trail -> false,
+            trail -> {
+                if (remainingTargets.contains(trail.point)) {
+                    remainingTargets.remove(trail.point);
+                    return true;
+                }
+                return false;
+            },
+            trail -> remainingTargets.isEmpty(),
+            true
+        );
+    }
+
+    // Get a trail from a point to another point
+    public Trail pathfind(Point start, Point end) {
+        Map<Point, Trail> trails = explore(start,
+            trail -> trail,
+            trail -> false,
+            trail -> trail.point.equals(end),
+            trail -> trail.point.equals(end),
+            true
+        );
+        if (!trails.containsKey(end)) {
+            throw new RuntimeException("No trail found from " + start + " to " + end);
         }
-        return zoneTrails;
+        return trails.get(end);
+    }
+
+    // Return whether a point is reachable within distance from another point
+    public boolean withinDistance(Point start, Point end, double maxDistance) {
+        return explore(start,
+            trail -> trail,
+            trail -> false,
+            trail -> trail.point.equals(end),
+            trail -> trail.point.equals(end) || trail.distance > maxDistance,
+            false
+        ).containsKey(end);
+    }
+
+    // Get trails from a point over a subset of points to all reachable points
+    // Subset must include start
+    public Map<Point, Trail> trailsOverSubset(Point start, Set<Point> subset) {
+        return explore(start,
+            trail -> trail,
+            trail -> !subset.contains(trail.point),
+            trail -> true,
+            trail -> false,
+            true
+        );
+    }
+
+    // Get distances from a point to all points
+    public Map<Point, Double> distancesFrom(Point start) {
+        return explore(start,
+            trail -> trail.distance,
+            trail -> false,
+            trail -> true,
+            trail -> false,
+            false
+        );
+    }
+
+    // Get distances from all points to a subset of points
+    public Map<Point, Double> distancesToSubset(Set<Point> subset) {
+        return explore(subset,
+            trail -> trail.distance,
+            trail -> false,
+            trail -> true,
+            trail -> false,
+            false
+        );
     }
 
     // Remove all connections except those who are part of some shortest path between
