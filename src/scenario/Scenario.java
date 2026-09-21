@@ -216,7 +216,7 @@ public class Scenario extends Logging {
         c = 1;
         for (Point point : points) {
             System.out.print("Finding edges... (" + c++ + "/" + points.size() + ")\r");
-            allTrails.put(point, turf.trailsOverSubset(point, reachablePoints));
+            allTrails.put(point, turf.trailsOverSubsetTo(point, reachablePoints, points));
         }
         // Collect all trails between nodes that don't veer too close to a zone
         Map<Node, Map<Node, Trail>> edges = new HashMap<>();

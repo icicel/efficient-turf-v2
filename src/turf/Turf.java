@@ -636,6 +636,23 @@ public class Turf extends Logging implements Serializable {
         );
     }
 
+    // Get trails from a point over a subset of points to the given points
+    public Map<Point, Trail> trailsOverSubsetTo(Point start, Set<Point> subset, Set<Point> targets) {
+        Set<Point> remainingTargets = new HashSet<>(targets);
+        return explore(start,
+            trail -> trail,
+            trail -> !subset.contains(trail.point),
+            trail -> {
+                if (remainingTargets.contains(trail.point)) {
+                    remainingTargets.remove(trail.point);
+                    return true;
+                }
+                return false;
+            },
+            trail -> remainingTargets.isEmpty()
+        );
+    }
+
     // Get distances from a point to all points
     public Map<Point, Double> distancesFrom(Point start) {
         return explore(start,
