@@ -50,11 +50,12 @@ public class Scenario extends Logging {
         }
         for (Point crossing : turf.crossings) {
             // Only endpoints
-            if (crossing.name != conditions.start) {
+            if (crossing.name.equals(conditions.start)) {
+                addNode(crossing, conditions.username, conditions.isNow);
                 continue;
             }
             for (String end : conditions.ends) {
-                if (crossing.name == end) {
+                if (crossing.name.equals(end)) {
                     addNode(crossing, conditions.username, conditions.isNow);
                 }
             }
