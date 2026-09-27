@@ -28,8 +28,11 @@ public class Conditions {
     // Names of zones to ignore points from (a.k.a. convert to crossings)
     public String[] greylist;
 
-    // Names of taken zones, if defined untaken zones will be prioritized by doubling their value
+    // Names of taken zones, if defined untaken zones will be given a bonus multiplier
     public String[] takenlist;
+
+    // Bonus multiplier for untaken zones defined above
+    public double untakenBonus = 2.0;
 
     public Conditions(String start, String end, double timeLimit) {
         this(start, new String[]{end}, timeLimit);

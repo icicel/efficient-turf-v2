@@ -191,10 +191,10 @@ public class Scenario extends Logging {
                 if (taken.contains(node)) {
                     continue;
                 }
-                node.points *= 2;
+                node.points *= conditions.untakenBonus;
                 c++;
             }
-            log("Scenario: Doubled " + c + " untaken node" + s(c));
+            log("Scenario: Increased points for " + c + " untaken node" + s(c));
         }
 
 
