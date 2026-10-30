@@ -103,8 +103,14 @@ public class XML {
             }
         }
         Builder builder = new Builder();
-        Document xml = builder.build(response.body(), null);
-        parse(xml);
+        try {
+            Document xml = builder.build(response.body(), null);
+            parse(xml);
+        } catch (ParsingException e) {
+            System.out.println("Error parsing XML: " + e.getMessage());
+            System.out.println("Response body: " + response.body());
+            throw e;
+        }
     }
 
     public double highwayWeight(String highway) {
