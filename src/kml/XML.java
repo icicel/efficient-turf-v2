@@ -98,7 +98,7 @@ public class XML {
         while (true) {
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
             // Check if error page
-            if (!response.body().contains("!DOCTYPE html")) {
+            if (!response.body().contains("!DOCTYPE html") && !response.body().contains("# 502 Gateway Timeout")) {
                 break;
             }
         }
